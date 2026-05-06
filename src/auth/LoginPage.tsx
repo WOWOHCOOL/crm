@@ -42,8 +42,7 @@ export default function LoginPage() {
     }}>
       <Card style={{ width: 400, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src="/logo.webp" alt="WowohCool" style={{ height: 48, marginBottom: 16 }} />
-          <h2 style={{ margin: '0 0 4px' }}>WOWOHCOOL CRM</h2>
+          <img src="/logo.webp" alt="WowohCool" style={{ height: 48, marginBottom: 12 }} />
           <p style={{ margin: 0, color: '#888', fontSize: 14 }}>
             {tab === 'register' ? '创建账号，开启客户管理之旅' : '一站式外贸客户与业务管理平台'}
           </p>
