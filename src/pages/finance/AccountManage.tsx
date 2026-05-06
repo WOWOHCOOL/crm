@@ -5,6 +5,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Account, AccountType } from '../../types';
 
+const defaultAccounts = [
+  { name: '营业收入', type: 'income' as const },
+  { name: '其他收入', type: 'income' as const },
+  { name: '办公费用', type: 'expense' as const },
+  { name: '采购成本', type: 'expense' as const },
+  { name: '差旅费用', type: 'expense' as const },
+  { name: '其他支出', type: 'expense' as const },
+];
+
 const typeLabels: Record<AccountType, string> = {
   income: '收入',
   expense: '支出',
@@ -61,6 +70,17 @@ export default function AccountManage() {
     onError: () => message.error('删除失败，可能有流水关联此科目'),
   });
 
+  const initMutation = useMutation({
+    mutationFn: async () => {
+      await supabase.from('accounts').insert(defaultAccounts);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      message.success('默认科目已初始化');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
   const openEdit = (record: Account) => {
     setEditing(record);
     form.setFieldsValue(record);
@@ -89,6 +109,19 @@ export default function AccountManage() {
   return (
     <div>
       <Card>
+        {!isLoading && (accounts ?? []).length === 0 && (
+          <div style={{
+            background: '#e6f4ff', border: '1px solid #91caff',
+            borderRadius: 6, padding: '12px 16px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <span>还没有科目，需要初始化默认科目（营业收入、办公费用等）</span>
+            <Button type="primary" size="small" loading={initMutation.isPending}
+              onClick={() => initMutation.mutate()}>
+              一键初始化
+            </Button>
+          </div>
+        )}
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'flex-end' }}>
           <Button type="primary" icon={<PlusOutlined />}
             onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}
