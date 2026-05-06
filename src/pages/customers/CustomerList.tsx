@@ -23,9 +23,12 @@ export default function CustomerList() {
       if (search) {
         query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,country.ilike.%${search}%,source.ilike.%${search}%`);
       }
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) console.error('customers query error:', error);
       return (data ?? []) as Customer[];
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const saveMutation = useMutation({
@@ -99,6 +102,9 @@ export default function CustomerList() {
 
   return (
     <div>
+      <div style={{ background: '#f0f0f0', padding: 8, marginBottom: 8, fontSize: 12, borderRadius: 4 }}>
+        调试：共 {customers?.length ?? 0} 条 | loading={String(isLoading)} | raw={JSON.stringify(customers?.slice(0, 1))}
+      </div>
       <Card>
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
           <Space>

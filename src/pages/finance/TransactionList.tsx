@@ -26,9 +26,12 @@ export default function TransactionList() {
       if (filters.dateRange[0]) query = query.gte('date', filters.dateRange[0]);
       if (filters.dateRange[1]) query = query.lte('date', filters.dateRange[1]);
 
-      const { data } = await query.limit(200);
+      const { data, error } = await query.limit(200);
+      if (error) console.error('transactions query error:', error);
       return data ?? [];
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const { data: customers } = useQuery({
@@ -98,6 +101,9 @@ export default function TransactionList() {
 
   return (
     <div>
+      <div style={{ background: '#f0f0f0', padding: 8, marginBottom: 8, fontSize: 12, borderRadius: 4 }}>
+        调试：共 {transactions?.length ?? 0} 条 | loading={String(isLoading)} | raw={JSON.stringify(transactions?.slice(0, 1))}
+      </div>
       <Card>
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Space wrap>

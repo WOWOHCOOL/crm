@@ -22,9 +22,12 @@ export default function ProductList() {
       if (search) {
         query = query.or(`official_model.ilike.%${search}%,supplier_model.ilike.%${search}%,supplier_name.ilike.%${search}%`);
       }
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) console.error('products query error:', error);
       return (data ?? []) as Product[];
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const saveMutation = useMutation({
@@ -91,6 +94,9 @@ export default function ProductList() {
 
   return (
     <div>
+      <div style={{ background: '#f0f0f0', padding: 8, marginBottom: 8, fontSize: 12, borderRadius: 4 }}>
+        调试：共 {products?.length ?? 0} 条 | loading={String(isLoading)} | raw={JSON.stringify(products?.slice(0, 1))}
+      </div>
       <Card>
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
           <Input
