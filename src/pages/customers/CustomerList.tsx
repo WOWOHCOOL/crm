@@ -30,15 +30,10 @@ export default function CustomerList() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Customer>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const payload = { ...values, user_id: user?.id };
-      if (editing) {
-        const { error } = await supabase.from('customers').update(payload).eq('id', editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('customers').insert([payload]);
-        if (error) throw error;
-      }
+      const { error } = await (editing
+        ? supabase.from('customers').update(values).eq('id', editing.id)
+        : supabase.from('customers').insert([values]));
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -51,7 +46,10 @@ export default function CustomerList() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => { await supabase.from('customers').delete().eq('id', id); },
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('customers').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       message.success('客户已删除');
@@ -75,11 +73,9 @@ export default function CustomerList() {
     { title: '公司', dataIndex: 'company', key: 'company', width: 150 },
     { title: '电话', dataIndex: 'phone', key: 'phone', width: 130 },
     { title: '邮箱', dataIndex: 'email', key: 'email', width: 180 },
-    { title: '社交方式', dataIndex: 'social_media', key: 'social_media', width: 120 },
-    { title: '国家', dataIndex: 'country', key: 'country', width: 100 },
+    { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140 },
+    { title: '国家', dataIndex: 'country', key: 'country', width: 80 },
     { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
-    { title: '地址', dataIndex: 'address', key: 'address', ellipsis: true },
-    { title: '备注', dataIndex: 'notes', key: 'notes', ellipsis: true },
     {
       title: '操作',
       key: 'actions',
@@ -102,12 +98,12 @@ export default function CustomerList() {
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
           <Space>
             <Input
-              placeholder="搜索姓名/公司/电话"
+              placeholder="搜索姓名/公司/电话/邮箱"
               prefix={<SearchOutlined />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               allowClear
-              style={{ width: 250 }}
+              style={{ width: 280 }}
             />
           </Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加客户</Button>
@@ -118,7 +114,7 @@ export default function CustomerList() {
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
-          scroll={{ x: 900 }}
+          scroll={{ x: 1000 }}
         />
       </Card>
 
@@ -128,6 +124,7 @@ export default function CustomerList() {
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
+        width={720}
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
@@ -153,8 +150,18 @@ export default function CustomerList() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="social_media" label="社交方式">
-                <Input placeholder="微信 / WhatsApp / Telegram 等" />
+              <Form.Item name="whatsapp" label="WhatsApp">
+                <Input placeholder="+86 138xxxx" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="linkedin" label="LinkedIn">
+                <Input placeholder="LinkedIn 链接" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="website" label="官网">
+                <Input placeholder="https://" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
@@ -174,7 +181,7 @@ export default function CustomerList() {
             </Col>
             <Col xs={24}>
               <Form.Item name="notes" label="备注">
-                <Input.TextArea rows={3} />
+                <Input.TextArea rows={2} />
               </Form.Item>
             </Col>
           </Row>

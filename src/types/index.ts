@@ -4,7 +4,9 @@ export interface Customer {
   company: string | null;
   phone: string | null;
   email: string | null;
-  social_media: string | null;
+  whatsapp: string | null;
+  linkedin: string | null;
+  website: string | null;
   country: string | null;
   source: string | null;
   address: string | null;
@@ -37,12 +39,45 @@ export interface Transaction {
   date: string;
   created_at: string;
   user_id: string;
-  // join fields
   customers?: Customer | null;
   accounts?: Account | null;
 }
 
-export interface TransactionWithDetails extends Transaction {
-  customers: Customer | null;
-  accounts: Account | null;
+export interface Product {
+  id: string;
+  official_model: string;
+  supplier_model: string | null;
+  supplier_name: string | null;
+  supply_price: number | null;
+  tax_included: boolean;
+  created_at: string;
+  user_id: string;
+}
+
+export type OrderType = 'normal' | 'repeat' | 'sample';
+
+export interface Order {
+  id: string;
+  customer_id: string;
+  pi_number: string | null;
+  order_type: OrderType;
+  total_amount: number | null;
+  notes: string | null;
+  date: string;
+  created_at: string;
+  user_id: string;
+  customers?: Customer | null;
+  order_items?: OrderItem[];
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  model: string | null;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+  user_id: string;
+  products?: Product | null;
 }

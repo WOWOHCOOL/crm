@@ -46,15 +46,10 @@ export default function AccountManage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Account>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const payload = { ...values, user_id: user?.id };
-      if (editing) {
-        const { error } = await supabase.from('accounts').update(payload).eq('id', editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('accounts').insert([payload]);
-        if (error) throw error;
-      }
+      const { error } = await (editing
+        ? supabase.from('accounts').update(values).eq('id', editing.id)
+        : supabase.from('accounts').insert([values]));
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -77,9 +72,7 @@ export default function AccountManage() {
 
   const initMutation = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const payload = defaultAccounts.map((a) => ({ ...a, user_id: user?.id }));
-      const { error } = await supabase.from('accounts').insert(payload);
+      const { error } = await supabase.from('accounts').insert(defaultAccounts);
       if (error) throw error;
     },
     onSuccess: () => {

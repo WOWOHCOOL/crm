@@ -5,6 +5,7 @@ import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
+  ShoppingOutlined,
   DollarOutlined,
   AccountBookOutlined,
   BarChartOutlined,
@@ -20,6 +21,7 @@ const { Header, Sider, Content } = Layout;
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
+  { key: '/products', icon: <ShoppingOutlined />, label: '商品管理' },
   { key: '/finance', icon: <DollarOutlined />, label: '财务记账' },
   { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理' },
   { key: '/reports', icon: <BarChartOutlined />, label: '财务报表' },
@@ -55,6 +57,9 @@ export default function MainLayout() {
       >
         <div style={{
           margin: 16,
+          padding: 8,
+          background: 'rgba(255,255,255,0.95)',
+          borderRadius: 8,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -63,8 +68,8 @@ export default function MainLayout() {
             src="/logo.webp"
             alt="WowohCool CRM"
             style={{
-              height: collapsed ? 32 : 40,
-              maxWidth: collapsed ? 32 : 160,
+              height: collapsed ? 28 : 36,
+              maxWidth: collapsed ? 40 : 150,
               objectFit: 'contain',
             }}
           />

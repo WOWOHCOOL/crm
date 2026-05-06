@@ -12,6 +12,7 @@ import CustomerDetail from './pages/customers/CustomerDetail';
 import TransactionList from './pages/finance/TransactionList';
 import AccountManage from './pages/finance/AccountManage';
 import Reports from './pages/reports/Reports';
+import ProductList from './pages/products/ProductList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,7 @@ function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="customers" element={<CustomerList />} />
                 <Route path="customers/:id" element={<CustomerDetail />} />
+                <Route path="products" element={<ProductList />} />
                 <Route path="finance" element={<TransactionList />} />
                 <Route path="accounts" element={<AccountManage />} />
                 <Route path="reports" element={<Reports />} />
