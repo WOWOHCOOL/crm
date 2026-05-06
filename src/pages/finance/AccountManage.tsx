@@ -44,8 +44,7 @@ export default function AccountManage() {
   const { data: accounts, isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('accounts').select('*').order('type').order('name');
-      if (error) console.error('accounts query error:', error);
+      const { data } = await supabase.from('accounts').select('*').order('type').order('name');
       return (data ?? []) as Account[];
     },
     staleTime: 0,
@@ -124,9 +123,6 @@ export default function AccountManage() {
 
   return (
     <div>
-      <div style={{ background: '#f0f0f0', padding: 8, marginBottom: 8, fontSize: 12, borderRadius: 4 }}>
-        调试：共 {accounts?.length ?? 0} 条 | loading={String(isLoading)} | raw={JSON.stringify(accounts?.slice(0, 1))}
-      </div>
       <Card>
         {!isLoading && (accounts ?? []).length === 0 && (
           <div style={{
