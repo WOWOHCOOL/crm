@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, theme, Dropdown } from 'antd';
+import { Layout, Menu, Button, theme, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
@@ -13,8 +13,11 @@ import {
   MenuUnfoldOutlined,
   UserOutlined,
   LogoutOutlined,
+  KeyOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
+import { supabase } from '../supabase';
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -29,6 +32,9 @@ const menuItems: MenuProps['items'] = [
 
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordForm] = Form.useForm();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,8 +44,30 @@ export default function MainLayout() {
 
   const selectedKey = '/' + location.pathname.split('/').filter(Boolean)[0] || '/';
 
+  const displayName = (user?.user_metadata?.name as string) || user?.email;
+
+  const handleChangePassword = async (values: { newPassword: string }) => {
+    setPasswordLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: values.newPassword });
+    setPasswordLoading(false);
+    if (error) {
+      message.error(error.message);
+      return;
+    }
+    message.success('密码修改成功');
+    setPasswordModalOpen(false);
+    passwordForm.resetFields();
+  };
+
   const userMenuItems: MenuProps['items'] = [
-    { key: 'email', label: user?.email, disabled: true },
+    { key: 'name', label: displayName, disabled: true },
+    { type: 'divider' },
+    {
+      key: 'changePassword',
+      icon: <KeyOutlined />,
+      label: '修改密码',
+      onClick: () => setPasswordModalOpen(true),
+    },
     { type: 'divider' },
     {
       key: 'logout',
@@ -99,7 +127,7 @@ export default function MainLayout() {
           />
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <Button type="text" icon={<UserOutlined />}>
-              {user?.email}
+              {displayName}
             </Button>
           </Dropdown>
         </Header>
@@ -117,6 +145,37 @@ export default function MainLayout() {
           © snowy {new Date().getFullYear()} WowohCool CRM
         </Footer>
       </Layout>
+
+      <Modal
+        title="修改密码"
+        open={passwordModalOpen}
+        onCancel={() => { setPasswordModalOpen(false); passwordForm.resetFields(); }}
+        onOk={() => passwordForm.submit()}
+        confirmLoading={passwordLoading}
+        destroyOnClose
+      >
+        <Form form={passwordForm} layout="vertical" onFinish={handleChangePassword}>
+          <Form.Item name="newPassword" label="新密码" rules={[
+            { required: true, message: '请输入新密码' },
+            { min: 6, message: '密码至少6位' },
+          ]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="请输入至少6位的新密码" />
+          </Form.Item>
+          <Form.Item name="confirmPassword" label="确认密码" dependencies={['newPassword']}
+            rules={[
+              { required: true, message: '请再次输入新密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) return Promise.resolve();
+                  return Promise.reject(new Error('两次输入的密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="请再次输入新密码" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Layout>
   );
 }

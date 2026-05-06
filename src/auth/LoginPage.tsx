@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, message, Tabs } from 'antd';
-import { MailOutlined, LockOutlined, WarningOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, UserOutlined, WarningOutlined } from '@ant-design/icons';
 import { useAuth } from './AuthContext';
 import { isConfigured } from '../supabase';
 
@@ -11,11 +11,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'login' | 'register'>('login');
 
-  const handleSubmit = async (values: { email: string; password: string }) => {
+  const handleSubmit = async (values: { email: string; password: string; name?: string }) => {
     setLoading(true);
     const result = tab === 'login'
       ? await signIn(values.email, values.password)
-      : await signUp(values.email, values.password);
+      : await signUp(values.email, values.password, values.name);
 
     setLoading(false);
 
@@ -25,7 +25,7 @@ export default function LoginPage() {
     }
 
     if (tab === 'register') {
-      message.success('注册成功！请检查邮箱确认链接后登录。');
+      message.success('注册成功！请查收邮箱中的确认链接完成激活。');
       setTab('login');
     } else {
       navigate('/');
@@ -43,7 +43,10 @@ export default function LoginPage() {
       <Card style={{ width: 400, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <img src="/logo.webp" alt="WowohCool" style={{ height: 48, marginBottom: 16 }} />
-          <h2 style={{ margin: 0 }}>CRM 客户管理系统</h2>
+          <h2 style={{ margin: '0 0 4px' }}>WOWOHCOOL CRM</h2>
+          <p style={{ margin: 0, color: '#888', fontSize: 14 }}>
+            {tab === 'register' ? '创建账号，开启客户管理之旅' : '一站式外贸客户与业务管理平台'}
+          </p>
         </div>
         {!isConfigured && (
           <div style={{
@@ -66,6 +69,13 @@ export default function LoginPage() {
           ]}
         />
         <Form onFinish={handleSubmit} size="large">
+          {tab === 'register' && (
+            <Form.Item name="name" rules={[
+              { required: true, message: '请输入您的姓名' },
+            ]}>
+              <Input prefix={<UserOutlined />} placeholder="姓名 / 昵称" />
+            </Form.Item>
+          )}
           <Form.Item name="email" rules={[
             { required: true, message: '请输入邮箱' },
             { type: 'email', message: '邮箱格式不正确' },
