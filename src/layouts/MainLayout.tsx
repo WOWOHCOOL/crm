@@ -16,7 +16,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 
-const { Header, Sider, Content } = Layout;
+const { Header, Sider, Content, Footer } = Layout;
 
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
@@ -111,6 +111,9 @@ export default function MainLayout() {
         }}>
           <Outlet />
         </Content>
+        <Footer style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
+          © snowy {new Date().getFullYear()} WowohCool CRM
+        </Footer>
       </Layout>
     </Layout>
   );
