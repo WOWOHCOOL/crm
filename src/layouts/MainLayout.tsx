@@ -28,11 +28,13 @@ const menuItems: MenuProps['items'] = [
 ];
 
 export default function MainLayout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
+
+  const isMobile = window.innerWidth < 768;
 
   const selectedKey = '/' + location.pathname.split('/').filter(Boolean)[0] || '/';
 
@@ -102,8 +104,8 @@ export default function MainLayout() {
           </Dropdown>
         </Header>
         <Content style={{
-          margin: 24,
-          padding: 24,
+          margin: isMobile ? 8 : 24,
+          padding: isMobile ? 12 : 24,
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           minHeight: 280,

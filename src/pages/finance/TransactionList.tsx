@@ -49,10 +49,13 @@ export default function TransactionList() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('未登录');
       const { error } = await supabase.from('transactions').insert([{
         ...values,
         date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         amount: Number(values.amount),
+        user_id: user.id,
       }]);
       if (error) throw error;
     },

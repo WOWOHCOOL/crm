@@ -30,10 +30,15 @@ export default function CustomerList() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Customer>) => {
-      const { error } = await (editing
-        ? supabase.from('customers').update(values).eq('id', editing.id)
-        : supabase.from('customers').insert([values]));
-      if (error) throw error;
+      if (editing) {
+        const { error } = await supabase.from('customers').update(values).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('未登录');
+        const { error } = await supabase.from('customers').insert([{ ...values, user_id: user.id }]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });

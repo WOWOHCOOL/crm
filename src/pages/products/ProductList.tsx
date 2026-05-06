@@ -29,10 +29,15 @@ export default function ProductList() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Product>) => {
-      const { error } = await (editing
-        ? supabase.from('products').update(values).eq('id', editing.id)
-        : supabase.from('products').insert([values]));
-      if (error) throw error;
+      if (editing) {
+        const { error } = await supabase.from('products').update(values).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('未登录');
+        const { error } = await supabase.from('products').insert([{ ...values, user_id: user.id }]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

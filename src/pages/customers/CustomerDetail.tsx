@@ -63,6 +63,8 @@ export default function CustomerDetail() {
 
   const createOrder = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('未登录');
       const { error } = await supabase.from('orders').insert([{
         customer_id: id,
         pi_number: values.pi_number,
@@ -70,6 +72,7 @@ export default function CustomerDetail() {
         total_amount: values.total_amount ? Number(values.total_amount) : null,
         notes: values.notes,
         date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        user_id: user.id,
       }]);
       if (error) throw error;
     },

@@ -5,6 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Account, AccountType } from '../../types';
 
+async function getUserId() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id;
+}
+
 const defaultAccounts = [
   { name: '营业收入', type: 'income' as const },
   { name: '其他收入', type: 'income' as const },
@@ -46,10 +51,15 @@ export default function AccountManage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Account>) => {
-      const { error } = await (editing
-        ? supabase.from('accounts').update(values).eq('id', editing.id)
-        : supabase.from('accounts').insert([values]));
-      if (error) throw error;
+      if (editing) {
+        const { error } = await supabase.from('accounts').update(values).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const uid = await getUserId();
+        if (!uid) throw new Error('未登录');
+        const { error } = await supabase.from('accounts').insert([{ ...values, user_id: uid }]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -72,7 +82,9 @@ export default function AccountManage() {
 
   const initMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('accounts').insert(defaultAccounts);
+      const uid = await getUserId();
+      if (!uid) throw new Error('未登录');
+      const { error } = await supabase.from('accounts').insert(defaultAccounts.map(a => ({ ...a, user_id: uid })));
       if (error) throw error;
     },
     onSuccess: () => {
