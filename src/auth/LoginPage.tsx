@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, message, Tabs } from 'antd';
-import { MailOutlined, LockOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, WarningOutlined } from '@ant-design/icons';
 import { useAuth } from './AuthContext';
+import { isConfigured } from '../supabase';
 
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
@@ -44,6 +45,20 @@ export default function LoginPage() {
           <img src="/logo.webp" alt="WowohCool" style={{ height: 48, marginBottom: 16 }} />
           <h2 style={{ margin: 0 }}>CRM 客户管理系统</h2>
         </div>
+        {!isConfigured && (
+          <div style={{
+            background: '#fff2f0',
+            border: '1px solid #ffccc7',
+            borderRadius: 6,
+            padding: 12,
+            marginBottom: 16,
+            color: '#ff4d4f',
+            fontSize: 14,
+          }}>
+            <WarningOutlined style={{ marginRight: 8 }} />
+            系统未配置数据库连接，请设置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY 环境变量后重新构建
+          </div>
+        )}
         <Tabs activeKey={tab} onChange={(k) => setTab(k as 'login' | 'register')} centered
           items={[
             { key: 'login', label: '登录' },
