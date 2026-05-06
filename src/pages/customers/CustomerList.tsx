@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, Modal, Form, message, Popconfirm, Card,
+  Table, Button, Space, Input, Modal, Form, message, Popconfirm, Card, Row, Col,
 } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,10 +30,15 @@ export default function CustomerList() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Customer>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload = { ...values, user_id: user?.id };
       if (editing) {
-        return supabase.from('customers').update(values).eq('id', editing.id);
+        const { error } = await supabase.from('customers').update(payload).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('customers').insert([payload]);
+        if (error) throw error;
       }
-      return supabase.from('customers').insert([values]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -126,33 +131,53 @@ export default function CustomerList() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
-          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="company" label="公司">
-            <Input />
-          </Form.Item>
-          <Form.Item name="phone" label="电话">
-            <Input />
-          </Form.Item>
-          <Form.Item name="email" label="邮箱">
-            <Input />
-          </Form.Item>
-          <Form.Item name="social_media" label="社交方式">
-            <Input placeholder="微信 / WhatsApp / Telegram 等" />
-          </Form.Item>
-          <Form.Item name="country" label="国家">
-            <Input placeholder="如：中国、美国" />
-          </Form.Item>
-          <Form.Item name="source" label="来源">
-            <Input placeholder="如：官网、展会、转介绍" />
-          </Form.Item>
-          <Form.Item name="address" label="地址">
-            <Input />
-          </Form.Item>
-          <Form.Item name="notes" label="备注">
-            <Input.TextArea rows={3} />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="company" label="公司">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="phone" label="电话">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email" label="邮箱">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="social_media" label="社交方式">
+                <Input placeholder="微信 / WhatsApp / Telegram 等" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="country" label="国家">
+                <Input placeholder="如：中国、美国" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="source" label="来源">
+                <Input placeholder="如：官网、展会、转介绍" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="address" label="地址">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="notes" label="备注">
+                <Input.TextArea rows={3} />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
     </div>

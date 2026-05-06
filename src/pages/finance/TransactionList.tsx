@@ -49,11 +49,14 @@ export default function TransactionList() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
-      return supabase.from('transactions').insert([{
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('transactions').insert([{
         ...values,
         date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         amount: Number(values.amount),
+        user_id: user?.id,
       }]);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
