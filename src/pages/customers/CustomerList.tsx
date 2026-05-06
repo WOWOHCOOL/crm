@@ -44,6 +44,8 @@ export default function CustomerList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
@@ -59,6 +61,8 @@ export default function CustomerList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('客户已删除');
     },
   });

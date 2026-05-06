@@ -63,6 +63,8 @@ export default function TransactionList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       form.resetFields();
       message.success('流水已添加');
@@ -74,6 +76,8 @@ export default function TransactionList() {
     mutationFn: async (id: string) => { await supabase.from('transactions').delete().eq('id', id); },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('已删除');
     },
   });

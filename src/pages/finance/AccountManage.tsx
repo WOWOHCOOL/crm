@@ -65,6 +65,7 @@ export default function AccountManage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
@@ -77,6 +78,7 @@ export default function AccountManage() {
     mutationFn: async (id: string) => { await supabase.from('accounts').delete().eq('id', id); },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
       message.success('科目已删除');
     },
     onError: () => message.error('删除失败，可能有流水关联此科目'),
@@ -91,6 +93,7 @@ export default function AccountManage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
       message.success('默认科目已初始化');
     },
     onError: (error: Error) => message.error(error.message),

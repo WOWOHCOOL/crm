@@ -43,6 +43,7 @@ export default function ProductList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
@@ -58,6 +59,7 @@ export default function ProductList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('商品已删除');
     },
     onError: () => message.error('删除失败，可能有关联订单'),
