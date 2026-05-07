@@ -89,6 +89,7 @@ export default function ProductList() {
     { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 180 },
     { title: '供应商名称', dataIndex: 'supplier_name', key: 'supplier_name', width: 150 },
     { title: '供货价', dataIndex: 'supply_price', key: 'supply_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
+    { title: '建议报价', dataIndex: 'suggested_price', key: 'suggested_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
     {
       title: '含税', dataIndex: 'tax_included', key: 'tax_included', width: 80,
       render: (v: boolean) => <Tag color={v ? 'blue' : 'default'}>{v ? '含税' : '不含'}</Tag>,
@@ -160,7 +161,12 @@ export default function ProductList() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="supply_price" label="供货价">
+              <Form.Item name="supply_price" label="供货价 (Supply Price)">
+                <InputNumber min={0} precision={2} style={{ width: '100%' }} prefix="¥" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="suggested_price" label="建议报价 (Suggested Price)">
                 <InputNumber min={0} precision={2} style={{ width: '100%' }} prefix="¥" />
               </Form.Item>
             </Col>

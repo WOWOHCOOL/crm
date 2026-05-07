@@ -49,6 +49,7 @@ export interface Product {
   supplier_model: string | null;
   supplier_name: string | null;
   supply_price: number | null;
+  suggested_price: number | null;
   tax_included: boolean;
   image_url: string | null;
   created_at: string;

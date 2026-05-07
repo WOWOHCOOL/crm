@@ -139,7 +139,8 @@ export default function QuotationForm() {
       if (!product) continue;
       if (newItems.some(i => i.product_id === pid)) continue;
       const sp = product.supply_price ?? 0;
-      const rmb = r2(sp * 1.2);
+      const suggested = (product as unknown as Record<string, unknown>).suggested_price as number | null;
+      const rmb = r2(suggested || sp * 1.2);
       const usd = r2(rmb / exchangeRate);
       newItems.push({
         id: '',
@@ -531,7 +532,7 @@ export default function QuotationForm() {
           />
 
           <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-            * 默认价格 = 供货价 × 1.2。汇率：{Number(exchangeRate).toFixed(4)}
+            * 默认价格 = 建议报价，未设置则 = 供货价 × 1.2。汇率：{Number(exchangeRate).toFixed(4)}
             {isQuo ? ' | 图片和详情仅报价单显示，PI不含图片和详情' : ''}
           </div>
 
@@ -654,7 +655,8 @@ export default function QuotationForm() {
             }] : []),
             { title: '型号', dataIndex: 'official_model', key: 'official_model', width: 180 },
             { title: '详情', dataIndex: 'description', key: 'description', ellipsis: true },
-            { title: '供货价', dataIndex: 'supply_price', key: 'supply_price', width: 100, render: (v: number | null) => v ? `¥${v.toFixed(2)}` : '-' },
+            { title: '供货价', dataIndex: 'supply_price', key: 'supply_price', width: 90, render: (v: number | null) => v ? `¥${v.toFixed(2)}` : '-' },
+            { title: '建议报价', dataIndex: 'suggested_price', key: 'suggested_price', width: 90, render: (v: number | null) => v ? `¥${v.toFixed(2)}` : '-' },
           ]}
           rowKey="id"
           size="small"
