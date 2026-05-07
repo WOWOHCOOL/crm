@@ -4,8 +4,8 @@ import { Table, Button, Space, Input, message, Popconfirm, Card, Segmented, Tag 
 import { PlusOutlined, SearchOutlined, DeleteOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Quotation } from '../../types';
-import * as XLSX from 'xlsx';
+import type { Quotation, QuotationItem } from '../../types';
+import { exportExcel, exportPDF } from '../../utils/quotationExport';
 
 export default function QuotationList() {
   const [search, setSearch] = useState('');
@@ -39,88 +39,23 @@ export default function QuotationList() {
     onError: (error: Error) => message.error(error.message),
   });
 
-  const handleExportExcel = async (record: Quotation) => {
-    const { data: items } = await supabase
+  const handleExport = async (record: Quotation, format: 'excel' | 'pdf') => {
+    const { data } = await supabase
       .from('quotation_items')
-      .select('*, products(image_url)')
+      .select('*')
       .eq('quotation_id', record.id)
       .order('created_at');
-    if (!items) return;
-
-    const title = tab === 'quotation' ? 'QUOTATION' : 'PROFORMA INVOICE';
-    const totalUSD = (items ?? []).reduce((s, i) => s + Number(i.unit_price_usd) * i.quantity, 0);
-    const validUntil = new Date(new Date(record.created_at).getTime() + (record.valid_days || 15) * 86400000);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wsData: any[] = [];
-    const wb = XLSX.utils.book_new();
-
-    // Header
-    wsData.push([title]);
-    wsData.push([`No: ${record.quotation_no}`]);
-    wsData.push([`Date: ${new Date(record.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`]);
-    wsData.push([`Valid Until: ${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`]);
-    wsData.push([]);
-
-    // Supplier
-    wsData.push(['SELLER:']);
-    wsData.push(['Dong Yi Technology Co., Limited']);
-    wsData.push(['Contact: Sales Department']);
-    wsData.push(['Tel: +86-755-XXXXXXXX']);
-    wsData.push(['Email: sales@wowohcool.com']);
-    wsData.push(['Web: www.wowohcool.com']);
-    wsData.push(['Address: Shenzhen, Guangdong, China']);
-    wsData.push([]);
-
-    // Customer
-    wsData.push(['BUYER:']);
-    wsData.push([record.customer_company || '____________________']);
-    wsData.push([`Contact: ${record.customer_contact || '____________________'}`]);
-    wsData.push([`Tel: ${record.customer_phone || '____________________'}`]);
-    wsData.push([`Web: ${record.customer_website || '____________________'}`]);
-    wsData.push([`Address: ${record.customer_address || '____________________'}`]);
-    wsData.push([]);
-    wsData.push([]);
-
-    // Items
-    if (tab === 'quotation') {
-      wsData.push(['#', 'Model', 'Description', 'MOQ', 'Qty', 'Price (USD)', 'Total (USD)', 'Remarks']);
-    } else {
-      wsData.push(['#', 'Model', 'Qty', 'Price (USD)', 'Total (USD)']);
+    const items = (data ?? []) as QuotationItem[];
+    if (items.length === 0 && format === 'excel') {
+      message.warning('没有可导出的产品');
+      return;
     }
-    (items ?? []).forEach((item, i) => {
-      if (tab === 'quotation') {
-        wsData.push([i + 1, item.official_model, item.description || '', item.moq || 1, item.quantity,
-          Number(item.unit_price_usd), Number(item.unit_price_usd) * item.quantity, item.remarks || '']);
-      } else {
-        wsData.push([i + 1, item.official_model, item.quantity,
-          Number(item.unit_price_usd), Number(item.unit_price_usd) * item.quantity]);
-      }
-    });
-    wsData.push([]);
-    wsData.push([`TOTAL AMOUNT: $${totalUSD.toFixed(2)}`]);
-    wsData.push([]);
-
-    // Bank
-    wsData.push(['BANK INFORMATION:']);
-    wsData.push([`Beneficiary: ${record.bank_beneficiary || 'Dong Yi Technology Co., Limited'}`]);
-    wsData.push([`Bank: ${record.bank_name || ''}`]);
-    wsData.push([`Account: ${record.bank_account || ''}`]);
-    wsData.push([`SWIFT: ${record.bank_swift || ''}`]);
-    wsData.push([]);
-
-    // Terms
-    wsData.push(['TERMS & CONDITIONS:']);
-    wsData.push([`Payment: ${record.payment_terms || ''}`]);
-    wsData.push([`Delivery: ${record.delivery_time_global || record.delivery_time || ''}`]);
-    wsData.push([`Validity: ${record.valid_days || 15} days`]);
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 28 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 20 }];
-
-    XLSX.utils.book_append_sheet(wb, ws, title);
-    XLSX.writeFile(wb, `${record.quotation_no}.xlsx`);
-    message.success('Excel 已导出');
+    if (format === 'excel') {
+      exportExcel(record, items, tab, 'USD');
+      message.success('Excel 已导出');
+    } else {
+      exportPDF(record, items, tab, 'USD');
+    }
   };
 
   const title = tab === 'quotation' ? '报价单' : 'PI';
@@ -138,8 +73,11 @@ export default function QuotationList() {
           <Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/quotations/edit/${record.id}`)}>
             编辑
           </Button>
-          <Button size="small" icon={<DownloadOutlined />} onClick={() => handleExportExcel(record)}>
-            导出Excel
+          <Button size="small" onClick={() => handleExport(record, 'excel')}>
+            Excel
+          </Button>
+          <Button size="small" onClick={() => handleExport(record, 'pdf')}>
+            PDF
           </Button>
           <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
             <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>

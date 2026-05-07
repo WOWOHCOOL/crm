@@ -8,7 +8,7 @@ import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLe
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation } from '../../types';
-import * as XLSX from 'xlsx';
+import { exportExcel, exportPDF } from '../../utils/quotationExport';
 
 function r2(v: number): number {
   return Math.round(v * 100) / 100;
@@ -257,99 +257,48 @@ export default function QuotationForm() {
     }
   };
 
-  const handleExportExcel = async () => {
+  const getExportData = () => {
     const values = form.getFieldsValue();
-    const wb = XLSX.utils.book_new();
-    const title = docType === 'quotation' ? 'QUOTATION' : 'PROFORMA INVOICE';
-    const sellerName = 'Dong Yi Technology Co., Limited';
-    const sellerContact = 'Sales Department';
-    const sellerTel = '+86-755-XXXXXXXX';
-    const sellerEmail = 'sales@wowohcool.com';
-    const sellerWeb = 'www.wowohcool.com';
-    const sellerAddr = 'Shenzhen, Guangdong, China';
+    const quotationData: Quotation = {
+      id: id || '',
+      type: docType,
+      quotation_no: values.quotation_no || '',
+      customer_company: values.customer_company || null,
+      customer_contact: values.customer_contact || null,
+      customer_website: values.customer_website || null,
+      customer_address: values.customer_address || null,
+      customer_phone: values.customer_phone || null,
+      exchange_rate: values.exchange_rate || 7.25,
+      valid_days: values.valid_days || 15,
+      payment_terms: values.payment_terms || '',
+      delivery_time: '',
+      delivery_time_global: values.delivery_time_global || '',
+      notes: values.notes || null,
+      bank_beneficiary: values.bank_beneficiary || '',
+      bank_name: values.bank_name || '',
+      bank_address: values.bank_address || null,
+      bank_account: values.bank_account || null,
+      bank_swift: values.bank_swift || '',
+      status: 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_id: '',
+      org_id: null,
+      quotation_items: items as QuotationItem[],
+    };
+    const qItems = items as QuotationItem[];
+    return { quotationData, qItems };
+  };
 
-    const priceLabel = currency === 'USD' ? 'Price (USD)' : 'Price (RMB)';
-    const totalLabel = currency === 'USD' ? 'Total (USD)' : 'Total (RMB)';
-    const curSym = currency === 'USD' ? '$' : '¥';
-    const totalVal = currency === 'USD' ? totalUSD : totalRMB;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const wsData: any[] = [];
-
-    // === HEADER ===
-    wsData.push(['', '', '', '', title, '', '', '', '', '']);
-    wsData.push(['', '', '', '', `No: ${values.quotation_no}`, '', '', '', '', '']);
-    wsData.push(['', '', '', '', `Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
-    const validUntil = new Date(Date.now() + (values.valid_days || 15) * 86400000);
-    wsData.push(['', '', '', '', `Valid Until: ${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
-    wsData.push([]);
-
-    // === SELLER vs BUYER ===
-    wsData.push(['SELLER / SUPPLIER:', '', '', '', 'BUYER / CUSTOMER:', '', '', '', '', '']);
-    wsData.push([sellerName, '', '', '', values.customer_company || '____________________', '', '', '', '', '']);
-    wsData.push([`Contact: ${sellerContact}`, '', '', '', `Contact: ${values.customer_contact || '____________________'}`, '', '', '', '', '']);
-    wsData.push([`Tel: ${sellerTel}`, '', '', '', `Tel: ${values.customer_phone || '____________________'}`, '', '', '', '', '']);
-    wsData.push([`Email: ${sellerEmail}`, '', '', '', `Web: ${values.customer_website || '____________________'}`, '', '', '', '', '']);
-    wsData.push([`Web: ${sellerWeb}`, '', '', '', `Address: ${values.customer_address || '____________________'}`, '', '', '', '', '']);
-    wsData.push([`Address: ${sellerAddr}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([]);
-    wsData.push([]);
-
-    // === ITEMS TABLE (single currency) ===
-    if (docType === 'quotation') {
-      wsData.push(['#', 'Model', 'Description', 'MOQ', 'Qty', priceLabel, totalLabel, 'Remarks']);
-    } else {
-      wsData.push(['#', 'Model', 'Qty', priceLabel, totalLabel]);
-    }
-
-    items.forEach((item, i) => {
-      if (docType === 'quotation') {
-        wsData.push([i + 1, item.official_model, item.description || '', item.moq || 1, item.quantity,
-          currency === 'USD' ? item.unit_price_usd : item.unit_price_rmb,
-          currency === 'USD' ? r2(item.unit_price_usd * item.quantity) : r2(item.unit_price_rmb * item.quantity),
-          item.remarks || '']);
-      } else {
-        wsData.push([i + 1, item.official_model, item.quantity,
-          currency === 'USD' ? item.unit_price_usd : item.unit_price_rmb,
-          currency === 'USD' ? r2(item.unit_price_usd * item.quantity) : r2(item.unit_price_rmb * item.quantity)]);
-      }
-    });
-
-    wsData.push([]);
-    wsData.push([`TOTAL AMOUNT: ${curSym}${totalVal.toFixed(2)}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([]);
-
-    // === BANK INFO ===
-    wsData.push(['BANK INFORMATION:', '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Beneficiary: ${values.bank_beneficiary || sellerName}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Bank Name: ${values.bank_name || '____________________'}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Bank Address: ${values.bank_address || '____________________'}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Account No.: ${values.bank_account || '____________________'}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([`SWIFT Code: ${values.bank_swift || '____________________'}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([]);
-
-    // === TERMS ===
-    wsData.push(['TERMS & CONDITIONS:', '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Payment Terms: ${values.payment_terms || 'T/T'}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Delivery Time: ${values.delivery_time_global || 'To be confirmed'}`, '', '', '', '', '', '', '', '', '']);
-    wsData.push([`Validity: ${values.valid_days || 15} days from the date hereof`, '', '', '', '', '', '', '', '', '']);
-    if (values.notes) {
-      wsData.push([`Remarks: ${values.notes}`, '', '', '', '', '', '', '', '', '']);
-    }
-    wsData.push([]);
-    wsData.push(['Authorized Signature:', '', '', '', '', '', '', '', '', '']);
-    wsData.push([]);
-    wsData.push(['_________________________', '', '', '', '', '', '', '', '', '']);
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const colWidths = docType === 'quotation'
-      ? [{ wch: 5 }, { wch: 22 }, { wch: 25 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }]
-      : [{ wch: 5 }, { wch: 25 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
-    ws['!cols'] = colWidths;
-
-    XLSX.utils.book_append_sheet(wb, ws, title);
-    XLSX.writeFile(wb, `${values.quotation_no || 'export'}.xlsx`);
+  const handleExportExcel = () => {
+    const { quotationData, qItems } = getExportData();
+    exportExcel(quotationData, qItems, docType, currency);
     message.success('Excel 已导出');
+  };
+
+  const handleExportPDF = () => {
+    const { quotationData, qItems } = getExportData();
+    exportPDF(quotationData, qItems, docType, currency);
   };
 
   const isQuo = docType === 'quotation';
@@ -439,7 +388,8 @@ export default function QuotationForm() {
               ]}
             />
           )}
-          <Button onClick={handleExportExcel} icon={<DownloadOutlined />}>导出Excel</Button>
+          <Button onClick={handleExportExcel} icon={<DownloadOutlined />}>Excel</Button>
+          <Button onClick={handleExportPDF} icon={<DownloadOutlined />}>PDF</Button>
           <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
         </Space>
       }>
