@@ -249,7 +249,7 @@ export default function QuotationForm() {
       }
 
       message.success(isEdit ? '已更新' : '已保存');
-      navigate('/quotations');
+      navigate(`/quotations/${docType === 'quotation' ? 'quo' : 'pi'}`);
     } catch (err: unknown) {
       message.error((err as Error).message || '保存失败');
     } finally {
@@ -369,7 +369,7 @@ export default function QuotationForm() {
     <div>
       <Card title={
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/quotations')} type="text" />
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/quotations/${docType === 'quotation' ? 'quo' : 'pi'}`)} type="text" />
           <span style={{ fontSize: 18, fontWeight: 600 }}>
             {isEdit ? '编辑' : '新建'} {isQuo ? '报价单' : 'PI'}
           </span>

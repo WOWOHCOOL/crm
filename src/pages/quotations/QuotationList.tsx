@@ -1,22 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Space, Input, message, Popconfirm, Card, Segmented, Tag } from 'antd';
+import { Table, Button, Space, Input, message, Popconfirm, Card, Tag } from 'antd';
 import { PlusOutlined, SearchOutlined, DeleteOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Quotation, QuotationItem } from '../../types';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
 
-export default function QuotationList() {
+export default function QuotationList({ listType }: { listType: 'quotation' | 'pi' }) {
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'quotation' | 'pi'>('quotation');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: quotations, isLoading } = useQuery({
-    queryKey: ['quotations', tab, search],
+    queryKey: ['quotations', listType, search],
     queryFn: async () => {
-      let query = supabase.from('quotations').select('*').eq('type', tab).order('created_at', { ascending: false });
+      let query = supabase.from('quotations').select('*').eq('type', listType).order('created_at', { ascending: false });
       if (search) {
         query = query.or(`quotation_no.ilike.%${search}%,customer_company.ilike.%${search}%`);
       }
@@ -51,15 +50,14 @@ export default function QuotationList() {
       return;
     }
     if (format === 'excel') {
-      exportExcel(record, items, tab, 'USD');
+      exportExcel(record, items, listType, 'USD');
       message.success('Excel 已导出');
     } else {
-      exportPDF(record, items, tab, 'USD');
+      exportPDF(record, items, listType, 'USD');
     }
   };
 
-  const title = tab === 'quotation' ? '报价单' : 'PI';
-  const noPrefix = tab === 'quotation' ? 'QUO' : 'PI';
+  const title = listType === 'quotation' ? '报价单' : 'PI';
 
   const columns = [
     { title: `${title}编号`, dataIndex: 'quotation_no', key: 'quotation_no', width: 200 },
@@ -91,26 +89,16 @@ export default function QuotationList() {
     <div>
       <Card>
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
-          <Space>
-            <Segmented
-              value={tab}
-              onChange={(v) => setTab(v as 'quotation' | 'pi')}
-              options={[
-                { label: `报价单 (QUO)`, value: 'quotation' },
-                { label: `PI管理 (PI)`, value: 'pi' },
-              ]}
-            />
-            <Input
-              placeholder={`搜索${title}编号 / 客户公司`}
-              prefix={<SearchOutlined />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              allowClear
-              style={{ width: 260 }}
-            />
-          </Space>
+          <Input
+            placeholder={`搜索${title}编号 / 客户公司`}
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+            style={{ width: 300 }}
+          />
           <Button type="primary" icon={<PlusOutlined />}
-            onClick={() => navigate(`/quotations/new?type=${tab}`)}>
+            onClick={() => navigate(`/quotations/new?type=${listType}`)}>
             新建{title}
           </Button>
         </Space>

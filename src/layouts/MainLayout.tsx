@@ -35,7 +35,8 @@ export default function MainLayout() {
 
   const isMobile = window.innerWidth < 768;
 
-  const selectedKey = '/' + location.pathname.split('/').filter(Boolean)[0] || '/';
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const selectedKey = pathParts.length >= 2 ? '/' + pathParts.slice(0, 2).join('/') : '/' + (pathParts[0] || '');
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
 
@@ -45,7 +46,8 @@ export default function MainLayout() {
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
     { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
     { key: '/products', icon: <ShoppingOutlined />, label: '商品管理' },
-    { key: '/quotations', icon: <FileTextOutlined />, label: '报价管理' },
+    { key: '/quotations/quo', icon: <FileTextOutlined />, label: '报价单 (QUO)' },
+    { key: '/quotations/pi', icon: <FileTextOutlined />, label: 'PI管理 (PI)' },
     { key: '/finance', icon: <DollarOutlined />, label: '财务记账' },
     { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理' },
     { key: '/reports', icon: <BarChartOutlined />, label: '财务报表' },

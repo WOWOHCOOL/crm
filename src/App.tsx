@@ -14,7 +14,8 @@ import TransactionList from './pages/finance/TransactionList';
 import AccountManage from './pages/finance/AccountManage';
 import Reports from './pages/reports/Reports';
 import ProductList from './pages/products/ProductList';
-import QuotationList from './pages/quotations/QuotationList';
+import QuotationQuoList from './pages/quotations/QuotationQuoList';
+import QuotationPIList from './pages/quotations/QuotationPIList';
 import QuotationForm from './pages/quotations/QuotationForm';
 import OrgManage from './pages/OrgManage';
 
@@ -94,7 +95,9 @@ function App() {
                 <Route path="finance" element={<TransactionList />} />
                 <Route path="accounts" element={<AccountManage />} />
                 <Route path="reports" element={<Reports />} />
-                <Route path="quotations" element={<QuotationList />} />
+                <Route path="quotations" element={<QuotationQuoList />} />
+                <Route path="quotations/quo" element={<QuotationQuoList />} />
+                <Route path="quotations/pi" element={<QuotationPIList />} />
                 <Route path="quotations/new" element={<QuotationForm />} />
                 <Route path="quotations/edit/:id" element={<QuotationForm />} />
                 <Route path="org" element={<OrgManage />} />
