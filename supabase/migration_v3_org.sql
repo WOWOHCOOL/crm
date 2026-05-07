@@ -369,6 +369,10 @@ ON CONFLICT (code) DO NOTHING;
 -- -------- 商品（同组织全部可见） --------
 DROP POLICY IF EXISTS "users_manage_own_products" ON products;
 DROP POLICY IF EXISTS "p_products" ON products;
+DROP POLICY IF EXISTS "products_select" ON products;
+DROP POLICY IF EXISTS "products_insert" ON products;
+DROP POLICY IF EXISTS "products_update" ON products;
+DROP POLICY IF EXISTS "products_delete" ON products;
 CREATE POLICY "products_select" ON products FOR SELECT USING (
   auth.uid() = user_id OR users_in_same_org(user_id)
 );
@@ -378,6 +382,10 @@ CREATE POLICY "products_delete" ON products FOR DELETE USING (auth.uid() = user_
 
 -- -------- 科目（同组织全部可见） --------
 DROP POLICY IF EXISTS "users_manage_own_accounts" ON accounts;
+DROP POLICY IF EXISTS "accounts_select" ON accounts;
+DROP POLICY IF EXISTS "accounts_insert" ON accounts;
+DROP POLICY IF EXISTS "accounts_update" ON accounts;
+DROP POLICY IF EXISTS "accounts_delete" ON accounts;
 CREATE POLICY "accounts_select" ON accounts FOR SELECT USING (
   auth.uid() = user_id OR users_in_same_org(user_id)
 );
@@ -387,6 +395,10 @@ CREATE POLICY "accounts_delete" ON accounts FOR DELETE USING (auth.uid() = user_
 
 -- -------- 客户（成员看自己，主账号看全部） --------
 DROP POLICY IF EXISTS "users_manage_own_customers" ON customers;
+DROP POLICY IF EXISTS "customers_select" ON customers;
+DROP POLICY IF EXISTS "customers_insert" ON customers;
+DROP POLICY IF EXISTS "customers_update" ON customers;
+DROP POLICY IF EXISTS "customers_delete" ON customers;
 CREATE POLICY "customers_select" ON customers FOR SELECT USING (
   auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
 );
@@ -396,6 +408,10 @@ CREATE POLICY "customers_delete" ON customers FOR DELETE USING (auth.uid() = use
 
 -- -------- 流水（成员看自己，主账号看全部） --------
 DROP POLICY IF EXISTS "users_manage_own_transactions" ON transactions;
+DROP POLICY IF EXISTS "transactions_select" ON transactions;
+DROP POLICY IF EXISTS "transactions_insert" ON transactions;
+DROP POLICY IF EXISTS "transactions_update" ON transactions;
+DROP POLICY IF EXISTS "transactions_delete" ON transactions;
 CREATE POLICY "transactions_select" ON transactions FOR SELECT USING (
   auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
 );
@@ -406,6 +422,10 @@ CREATE POLICY "transactions_delete" ON transactions FOR DELETE USING (auth.uid()
 -- -------- 订单（成员看自己，主账号看全部） --------
 DROP POLICY IF EXISTS "users_manage_own_orders" ON orders;
 DROP POLICY IF EXISTS "p_orders" ON orders;
+DROP POLICY IF EXISTS "orders_select" ON orders;
+DROP POLICY IF EXISTS "orders_insert" ON orders;
+DROP POLICY IF EXISTS "orders_update" ON orders;
+DROP POLICY IF EXISTS "orders_delete" ON orders;
 CREATE POLICY "orders_select" ON orders FOR SELECT USING (
   auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
 );
@@ -416,6 +436,10 @@ CREATE POLICY "orders_delete" ON orders FOR DELETE USING (auth.uid() = user_id);
 -- -------- 订单明细（成员看自己，主账号看全部） --------
 DROP POLICY IF EXISTS "users_manage_own_order_items" ON order_items;
 DROP POLICY IF EXISTS "p_order_items" ON order_items;
+DROP POLICY IF EXISTS "order_items_select" ON order_items;
+DROP POLICY IF EXISTS "order_items_insert" ON order_items;
+DROP POLICY IF EXISTS "order_items_update" ON order_items;
+DROP POLICY IF EXISTS "order_items_delete" ON order_items;
 CREATE POLICY "order_items_select" ON order_items FOR SELECT USING (
   auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
 );
