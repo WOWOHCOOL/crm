@@ -47,41 +47,78 @@ export default function QuotationList() {
       .order('created_at');
     if (!items) return;
 
+    const title = tab === 'quotation' ? 'QUOTATION' : 'PROFORMA INVOICE';
+    const totalUSD = (items ?? []).reduce((s, i) => s + Number(i.unit_price_usd) * i.quantity, 0);
+    const validUntil = new Date(new Date(record.created_at).getTime() + (record.valid_days || 15) * 86400000);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wsData: any[] = [];
     const wb = XLSX.utils.book_new();
-    const rows: Record<string, string | number>[] = [];
 
+    // Header
+    wsData.push([title]);
+    wsData.push([`No: ${record.quotation_no}`]);
+    wsData.push([`Date: ${new Date(record.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`]);
+    wsData.push([`Valid Until: ${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`]);
+    wsData.push([]);
+
+    // Supplier
+    wsData.push(['SELLER:']);
+    wsData.push(['Dong Yi Technology Co., Limited']);
+    wsData.push(['Contact: Sales Department']);
+    wsData.push(['Tel: +86-755-XXXXXXXX']);
+    wsData.push(['Email: sales@wowohcool.com']);
+    wsData.push(['Web: www.wowohcool.com']);
+    wsData.push(['Address: Shenzhen, Guangdong, China']);
+    wsData.push([]);
+
+    // Customer
+    wsData.push(['BUYER:']);
+    wsData.push([record.customer_company || '____________________']);
+    wsData.push([`Contact: ${record.customer_contact || '____________________'}`]);
+    wsData.push([`Tel: ${record.customer_phone || '____________________'}`]);
+    wsData.push([`Web: ${record.customer_website || '____________________'}`]);
+    wsData.push([`Address: ${record.customer_address || '____________________'}`]);
+    wsData.push([]);
+    wsData.push([]);
+
+    // Items
     if (tab === 'quotation') {
-      rows.push({ '#': '', 'Product Model': '', 'Product Image': '', 'Description': '', 'MOQ': '', 'Qty': '', 'Unit Price (USD)': '', 'Unit Price (RMB)': '', 'Total (USD)': '', 'Total (RMB)': '', 'Remarks': '' });
+      wsData.push(['#', 'Model', 'Description', 'MOQ', 'Qty', 'Price (USD)', 'Total (USD)', 'Remarks']);
     } else {
-      rows.push({ '#': '', 'Product Model': '', 'Qty': '', 'Unit Price (USD)': '', 'Unit Price (RMB)': '', 'Total (USD)': '', 'Total (RMB)': '' });
+      wsData.push(['#', 'Model', 'Qty', 'Price (USD)', 'Total (USD)']);
     }
-
     (items ?? []).forEach((item, i) => {
-      const base: Record<string, string | number> = {
-        '#': i + 1,
-        'Product Model': item.official_model,
-        'Qty': item.quantity,
-        'Unit Price (USD)': Number(item.unit_price_usd),
-        'Unit Price (RMB)': Number(item.unit_price_rmb),
-        'Total (USD)': Number(item.unit_price_usd) * item.quantity,
-        'Total (RMB)': Number(item.unit_price_rmb) * item.quantity,
-      };
       if (tab === 'quotation') {
-        base['Product Image'] = (item.products as { image_url?: string } | null)?.image_url || '';
-        base['Description'] = item.description || '';
-        base['MOQ'] = item.moq || 1;
-        base['Remarks'] = item.remarks || '';
+        wsData.push([i + 1, item.official_model, item.description || '', item.moq || 1, item.quantity,
+          Number(item.unit_price_usd), Number(item.unit_price_usd) * item.quantity, item.remarks || '']);
+      } else {
+        wsData.push([i + 1, item.official_model, item.quantity,
+          Number(item.unit_price_usd), Number(item.unit_price_usd) * item.quantity]);
       }
-      rows.push(base);
     });
+    wsData.push([]);
+    wsData.push([`TOTAL AMOUNT: $${totalUSD.toFixed(2)}`]);
+    wsData.push([]);
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const colWidths = tab === 'quotation'
-      ? [{ wch: 4 }, { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }]
-      : [{ wch: 4 }, { wch: 25 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
-    ws['!cols'] = colWidths;
+    // Bank
+    wsData.push(['BANK INFORMATION:']);
+    wsData.push([`Beneficiary: ${record.bank_beneficiary || 'Dong Yi Technology Co., Limited'}`]);
+    wsData.push([`Bank: ${record.bank_name || ''}`]);
+    wsData.push([`Account: ${record.bank_account || ''}`]);
+    wsData.push([`SWIFT: ${record.bank_swift || ''}`]);
+    wsData.push([]);
 
-    XLSX.utils.book_append_sheet(wb, ws, tab === 'quotation' ? 'Quotation' : 'Invoice');
+    // Terms
+    wsData.push(['TERMS & CONDITIONS:']);
+    wsData.push([`Payment: ${record.payment_terms || ''}`]);
+    wsData.push([`Delivery: ${record.delivery_time_global || record.delivery_time || ''}`]);
+    wsData.push([`Validity: ${record.valid_days || 15} days`]);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 28 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 20 }];
+
+    XLSX.utils.book_append_sheet(wb, ws, title);
     XLSX.writeFile(wb, `${record.quotation_no}.xlsx`);
     message.success('Excel 已导出');
   };
