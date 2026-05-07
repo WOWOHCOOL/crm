@@ -1,5 +1,5 @@
-import { Card, Col, Row, Space, Statistic, Table, Spin, DatePicker } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { Card, Col, Row, Space, Statistic, Table, Spin, DatePicker, Button } from 'antd';
+import { ArrowUpOutlined, ArrowDownOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { useState } from 'react';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 
 const COLORS = ['#52c41a', '#ff4d4f', '#1677ff', '#faad14', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16'];
 
@@ -99,12 +100,56 @@ export default function Reports() {
     },
   });
 
+  const handleExport = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: 月度收支
+    const monthlyRows = (monthlyData?.months ?? []).map((m) => ({
+      '月份': m.month,
+      '收入 (¥)': m.收入,
+      '支出 (¥)': m.支出,
+      '结余 (¥)': m.收入 - m.支出,
+    }));
+    const ws1 = XLSX.utils.json_to_sheet(monthlyRows);
+    XLSX.utils.book_append_sheet(wb, ws1, '月度收支');
+
+    // Sheet 2: 收入科目
+    const incomeRows = (accountData?.income ?? []).map((item) => ({
+      '科目': item.name,
+      '金额 (¥)': item.value,
+    }));
+    const ws2 = XLSX.utils.json_to_sheet(incomeRows);
+    XLSX.utils.book_append_sheet(wb, ws2, '收入科目');
+
+    // Sheet 3: 支出科目
+    const expenseRows = (accountData?.expense ?? []).map((item) => ({
+      '科目': item.name,
+      '金额 (¥)': item.value,
+    }));
+    const ws3 = XLSX.utils.json_to_sheet(expenseRows);
+    XLSX.utils.book_append_sheet(wb, ws3, '支出科目');
+
+    // Sheet 4: 客户排行
+    const rankRows = (customerRank ?? []).map((item, i) => ({
+      '排名': i + 1,
+      '客户': item.name,
+      '贡献金额 (¥)': item.amount,
+    }));
+    const ws4 = XLSX.utils.json_to_sheet(rankRows);
+    XLSX.utils.book_append_sheet(wb, ws4, '客户贡献排行');
+
+    XLSX.writeFile(wb, `财务报表_${year}年.xlsx`);
+  };
+
   if (isLoading) return <Spin />;
 
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
         <DatePicker picker="year" value={dayjs(`${year}`)} onChange={(d) => setYear(d?.year() ?? dayjs().year())} />
+        <Button icon={<DownloadOutlined />} onClick={handleExport}>
+          导出 Excel
+        </Button>
       </Space>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
