@@ -24,22 +24,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
--- 2. 注册邀请码表（必须先有邀请码才能注册）
--- ============================================================
-CREATE TABLE IF NOT EXISTS registration_tokens (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  code TEXT UNIQUE NOT NULL DEFAULT generate_invite_code(),
-  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,  -- NULL = 管理员注册码（创建组织用）
-  used BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  used_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  used_at TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS idx_reg_tokens_code ON registration_tokens(code);
-
--- ============================================================
--- 3. 组织表
+-- 2. 组织表（必须先创建，其他表依赖它）
 -- ============================================================
 CREATE TABLE IF NOT EXISTS organizations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -49,7 +34,7 @@ CREATE TABLE IF NOT EXISTS organizations (
 );
 
 -- ============================================================
--- 4. 组织成员表
+-- 3. 组织成员表
 -- ============================================================
 CREATE TABLE IF NOT EXISTS organization_members (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -62,6 +47,21 @@ CREATE TABLE IF NOT EXISTS organization_members (
 
 CREATE INDEX IF NOT EXISTS idx_org_members_org ON organization_members(org_id);
 CREATE INDEX IF NOT EXISTS idx_org_members_user ON organization_members(user_id);
+
+-- ============================================================
+-- 4. 注册邀请码表（必须先有邀请码才能注册）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS registration_tokens (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code TEXT UNIQUE NOT NULL DEFAULT generate_invite_code(),
+  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,  -- NULL = 管理员注册码（创建组织用）
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  used_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  used_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_reg_tokens_code ON registration_tokens(code);
 
 -- ============================================================
 -- 5. 数据库级注册拦截器（阻止没有邀请码的注册）
