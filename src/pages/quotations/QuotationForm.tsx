@@ -8,6 +8,7 @@ import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLe
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation } from '../../types';
+import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
 
 function r2(v: number): number {
@@ -260,7 +261,9 @@ export default function QuotationForm() {
         if (iErr) throw iErr;
       }
 
+      const qty = items.reduce((s, i) => s + i.quantity, 0);
       message.success(isEdit ? '已更新' : '已保存');
+      logOperation(docType === 'quotation' ? 'quotation' : 'pi', isEdit ? 'update' : 'create', qId, `${values.quotation_no} (${items.length} items)`);
       navigate(`/quotations/${docType === 'quotation' ? 'quo' : 'pi'}`);
     } catch (err: unknown) {
       message.error((err as Error).message || '保存失败');

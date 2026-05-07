@@ -7,6 +7,7 @@ import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Customer } from '../../types';
+import { logOperation } from '../../utils/log';
 
 export default function CustomerList() {
   const [search, setSearch] = useState('');
@@ -42,28 +43,33 @@ export default function CustomerList() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, values) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customers-select'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
-      message.success(editing ? '客户已更新' : '客户已添加');
+      const isUpdate = !!editing;
+      message.success(isUpdate ? '客户已更新' : '客户已添加');
+      logOperation('customer', isUpdate ? 'update' : 'create', editing?.id, values.name);
     },
     onError: (error: Error) => message.error(error.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { data } = await supabase.from('customers').select('name').eq('id', id).single();
       const { error } = await supabase.from('customers').delete().eq('id', id);
       if (error) throw error;
+      return data as { name: string } | null;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customers-select'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('客户已删除');
+      logOperation('customer', 'delete', undefined, data?.name || '');
     },
   });
 

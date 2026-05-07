@@ -4,6 +4,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Account, AccountType } from '../../types';
+import { logOperation } from '../../utils/log';
 
 async function getUserId() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -63,27 +64,32 @@ export default function AccountManage() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, values) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
-      message.success(editing ? '科目已更新' : '科目已添加');
+      const isUpdate = !!editing;
+      message.success(isUpdate ? '科目已更新' : '科目已添加');
+      logOperation('account', isUpdate ? 'update' : 'create', editing?.id, values.name);
     },
     onError: (error: Error) => message.error(error.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.from('accounts').delete().eq('id', id).select();
+      const { data } = await supabase.from('accounts').select('name').eq('id', id).single();
+      const { data: delData, error } = await supabase.from('accounts').delete().eq('id', id).select();
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('无权删除此科目（可能由其他成员创建），请联系主账号处理');
+      if (!delData || delData.length === 0) throw new Error('无权删除此科目（可能由其他成员创建），请联系主账号处理');
+      return data as { name: string } | null;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
       message.success('科目已删除');
+      logOperation('account', 'delete', undefined, data?.name || '');
     },
     onError: (error: Error) => message.error(error.message),
   });

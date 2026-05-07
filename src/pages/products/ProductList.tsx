@@ -7,6 +7,7 @@ import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product } from '../../types';
+import { logOperation } from '../../utils/log';
 
 export default function ProductList() {
   const [search, setSearch] = useState('');
@@ -41,27 +42,32 @@ export default function ProductList() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, values) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
-      message.success(editing ? '商品已更新' : '商品已添加');
+      const isUpdate = !!editing;
+      message.success(isUpdate ? '商品已更新' : '商品已添加');
+      logOperation('product', isUpdate ? 'update' : 'create', editing?.id, values.official_model);
     },
     onError: (error: Error) => message.error(error.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.from('products').delete().eq('id', id).select();
+      const { data } = await supabase.from('products').select('official_model').eq('id', id).single();
+      const { data: delData, error } = await supabase.from('products').delete().eq('id', id).select();
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error('无权删除此商品（可能由其他成员创建）');
+      if (!delData || delData.length === 0) throw new Error('无权删除此商品（可能由其他成员创建）');
+      return data as { official_model: string } | null;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('商品已删除');
+      logOperation('product', 'delete', undefined, data?.official_model || '');
     },
     onError: (error: Error) => message.error(error.message),
   });

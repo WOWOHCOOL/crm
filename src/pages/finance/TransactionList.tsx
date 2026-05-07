@@ -6,6 +6,7 @@ import {
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
+import { logOperation } from '../../utils/log';
 import dayjs from 'dayjs';
 
 export default function TransactionList() {
@@ -61,13 +62,14 @@ export default function TransactionList() {
       }]);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, values) => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       form.resetFields();
       message.success('流水已添加');
+      logOperation('transaction', 'create', undefined, `${values.type === 'income' ? '收入' : '支出'} ¥${values.amount}`);
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -79,6 +81,7 @@ export default function TransactionList() {
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('已删除');
+      logOperation('transaction', 'delete');
     },
   });
 

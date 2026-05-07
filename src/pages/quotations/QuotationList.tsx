@@ -5,6 +5,7 @@ import { PlusOutlined, SearchOutlined, DeleteOutlined, EditOutlined, DownloadOut
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Quotation, QuotationItem } from '../../types';
+import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
 
 export default function QuotationList({ listType }: { listType: 'quotation' | 'pi' }) {
@@ -28,12 +29,15 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { data: q } = await supabase.from('quotations').select('quotation_no,type').eq('id', id).single();
       const { error } = await supabase.from('quotations').delete().eq('id', id);
       if (error) throw error;
+      return q as { quotation_no: string; type: string } | null;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       message.success('已删除');
+      logOperation(data?.type === 'pi' ? 'pi' : 'quotation', 'delete', undefined, data?.quotation_no || '');
     },
     onError: (error: Error) => message.error(error.message),
   });
