@@ -50,7 +50,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
       return;
     }
     if (format === 'excel') {
-      exportExcel(record, items, listType, 'USD');
+      exportExcel(record, items, 'USD');
       message.success('Excel 已导出');
     } else {
       exportPDF(record, items, listType, 'USD');
@@ -65,18 +65,16 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
     { title: '日期', dataIndex: 'created_at', key: 'created_at', width: 120, render: (v: string) => new Date(v).toLocaleDateString('zh-CN') },
     { title: '状态', dataIndex: 'status', key: 'status', width: 80, render: (v: string) => <Tag>{v === 'draft' ? '草稿' : '已发送'}</Tag> },
     {
-      title: '操作', key: 'actions', width: 240,
+      title: '操作', key: 'actions', width: 200,
       render: (_: unknown, record: Quotation) => (
-        <Space>
+        <Space size="small">
           <Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/quotations/edit/${record.id}`)}>
             编辑
           </Button>
-          <Button size="small" onClick={() => handleExport(record, 'excel')}>
-            Excel
-          </Button>
-          <Button size="small" onClick={() => handleExport(record, 'pdf')}>
-            PDF
-          </Button>
+          {listType === 'quotation' && (
+            <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
+          )}
+          <Button size="small" onClick={() => handleExport(record, 'pdf')}>PDF</Button>
           <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
             <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>
           </Popconfirm>

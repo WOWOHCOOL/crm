@@ -292,7 +292,7 @@ export default function QuotationForm() {
 
   const handleExportExcel = () => {
     const { quotationData, qItems } = getExportData();
-    exportExcel(quotationData, qItems, docType, currency);
+    exportExcel(quotationData, qItems, currency);
     message.success('Excel 已导出');
   };
 
@@ -388,7 +388,7 @@ export default function QuotationForm() {
               ]}
             />
           )}
-          <Button onClick={handleExportExcel} icon={<DownloadOutlined />}>Excel</Button>
+          {isQuo && <Button onClick={handleExportExcel} icon={<DownloadOutlined />}>Excel</Button>}
           <Button onClick={handleExportPDF} icon={<DownloadOutlined />}>PDF</Button>
           <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
         </Space>
