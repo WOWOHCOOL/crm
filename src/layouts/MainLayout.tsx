@@ -28,7 +28,7 @@ export default function MainLayout() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
-  const { user, signOut, orgInfo, permissions, isOwner } = useAuth();
+  const { user, signOut, orgInfo, permissions, isOwner, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -40,7 +40,7 @@ export default function MainLayout() {
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
 
-  const hasPerm = (k: string) => isOwner || permissions.includes(k as never);
+  const hasPerm = (k: string) => isOwner || isAdmin || permissions.includes(k as never);
 
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
@@ -67,13 +67,13 @@ export default function MainLayout() {
     passwordForm.resetFields();
   };
 
-  const userSubtitle = isOwner ? '主账号' : '子账号';
+  const roleLabel = orgInfo?.role === 'owner' ? '主账号' : orgInfo?.role === 'admin' ? '管理员' : '子账号';
 
   const userMenuItems: MenuProps['items'] = [
     { key: 'name', label: (
       <div>
         <div style={{ fontWeight: 500 }}>{displayName}</div>
-        <div style={{ fontSize: 12, color: '#999' }}>{userSubtitle} · {orgInfo?.org_name}</div>
+        <div style={{ fontSize: 12, color: '#999' }}>{roleLabel} · {orgInfo?.org_name}</div>
       </div>
     ), disabled: true },
     { type: 'divider' },

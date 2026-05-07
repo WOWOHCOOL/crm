@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Card, Table, Tag, Button, message, Space, Typography, Tooltip, Tabs, Switch, Spin } from 'antd';
-import { CopyOutlined, UserOutlined, PlusOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Button, message, Space, Typography, Tooltip, Tabs, Switch, Spin, Select } from 'antd';
+import { CopyOutlined, UserOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import { useAuth } from '../auth/AuthContext';
@@ -54,6 +54,17 @@ export default function OrgManage() {
       handleCopy(code);
     },
     onError: (error: Error) => message.error(error.message),
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { data, error } = await supabase.rpc('set_member_role', { p_user_id: userId, p_role: role });
+      if (error) throw error;
+      const result = data as { error?: string };
+      if (result.error) throw new Error(result.error);
+    },
+    onSuccess: () => { message.success('角色已更新'); queryClient.invalidateQueries({ queryKey: ['org-members'] }); },
+    onError: (err: Error) => message.error(err.message),
   });
 
   const permMutation = useMutation({
@@ -150,6 +161,18 @@ export default function OrgManage() {
               <Table dataSource={nonOwnerMembers} rowKey="user_id" pagination={false}
                 columns={[
                   { title: '邮箱', dataIndex: 'email', key: 'email', render: (v: string) => v || '-' },
+                  {
+                    title: '角色', dataIndex: 'role', key: 'role', width: 140,
+                    render: (v: string, record: OrgMemberInfo) => (
+                      <Select size="small" value={v} style={{ width: 110 }}
+                        onChange={(val) => roleMutation.mutate({ userId: record.user_id, role: val })}
+                        options={[
+                          { label: '管理员', value: 'admin' },
+                          { label: '普通账号', value: 'member' },
+                        ]}
+                      />
+                    ),
+                  },
                   ...ALL_PERMISSIONS.map(p => ({
                     title: p.label,
                     key: p.key,

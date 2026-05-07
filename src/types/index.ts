@@ -95,7 +95,7 @@ export interface OrganizationMember {
   id: string;
   org_id: string;
   user_id: string;
-  role: 'owner' | 'member';
+  role: 'owner' | 'admin' | 'member';
   created_at: string;
 }
 
@@ -103,7 +103,7 @@ export interface OrgInfo {
   org_id: string;
   org_name: string;
   invite_code: string;
-  role: 'owner' | 'member';
+  role: 'owner' | 'admin' | 'member';
 }
 
 export interface OrgMemberInfo {

@@ -8,8 +8,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product } from '../../types';
 import { logOperation } from '../../utils/log';
+import { useAuth } from '../../auth/AuthContext';
 
 export default function ProductList() {
+  const { isOwner, isAdmin } = useAuth();
+  const canSeePrice = isOwner || isAdmin;
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -88,13 +91,13 @@ export default function ProductList() {
     { title: '官网型号', dataIndex: 'official_model', key: 'official_model', width: 180 },
     { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 180 },
     { title: '供应商名称', dataIndex: 'supplier_name', key: 'supplier_name', width: 150 },
-    { title: '供货价', dataIndex: 'supply_price', key: 'supply_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
-    { title: '建议报价', dataIndex: 'suggested_price', key: 'suggested_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
+    ...(canSeePrice ? [{ title: '供货价', dataIndex: 'supply_price', key: 'supply_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' }] : []),
+    ...(canSeePrice ? [{ title: '建议报价', dataIndex: 'suggested_price', key: 'suggested_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' }] : []),
     {
       title: '含税', dataIndex: 'tax_included', key: 'tax_included', width: 80,
       render: (v: boolean) => <Tag color={v ? 'blue' : 'default'}>{v ? '含税' : '不含'}</Tag>,
     },
-    {
+    ...(canSeePrice ? [{
       title: '操作', key: 'actions', width: 150,
       render: (_: unknown, record: Product) => (
         <Space>
@@ -104,7 +107,7 @@ export default function ProductList() {
           </Popconfirm>
         </Space>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -119,10 +122,10 @@ export default function ProductList() {
             allowClear
             style={{ width: 280 }}
           />
-          <Button type="primary" icon={<PlusOutlined />}
+          {canSeePrice && <Button type="primary" icon={<PlusOutlined />}
             onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}>
             添加商品
-          </Button>
+          </Button>}
         </Space>
         <Table
           dataSource={products}

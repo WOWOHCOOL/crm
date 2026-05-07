@@ -11,6 +11,7 @@ interface AuthState {
   orgLoading: boolean;
   permissions: Permission[];
   isOwner: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, name: string, inviteCode: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isOwner = orgInfo?.role === 'owner';
+  const isAdmin = orgInfo?.role === 'admin' || isOwner;
 
   const fetchOrg = useCallback(async () => {
     setOrgLoading(true);
@@ -182,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, loading, orgInfo, orgLoading,
-      permissions, isOwner,
+      permissions, isOwner, isAdmin,
       signUp, signIn, signOut,
       createOrg, joinWithInviteCode, refreshOrg,
       hasOrgSetup,
