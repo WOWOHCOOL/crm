@@ -69,6 +69,33 @@ export function exportExcel(
 }
 
 // ============================================================
+// Number to Words
+// ============================================================
+function numberToWords(n: number): string {
+  if (n === 0) return 'Zero';
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const c = (num: number): string => {
+    const p: string[] = [];
+    const h = Math.floor(num / 100);
+    const r = num % 100;
+    if (h) p.push(ones[h] + ' Hundred');
+    if (r) { if (r < 20) p.push(ones[r]); else p.push(tens[Math.floor(r / 10)] + (r % 10 ? '-' + ones[r % 10] : '')); }
+    return p.join(' ');
+  };
+  const i = Math.floor(n);
+  const cents = Math.round((n - i) * 100);
+  const b = Math.floor(i / 1e9), m = Math.floor((i % 1e9) / 1e6), th = Math.floor((i % 1e6) / 1e3), rem = i % 1e3;
+  const w: string[] = [];
+  if (b) w.push(c(b) + ' Billion');
+  if (m) w.push(c(m) + ' Million');
+  if (th) w.push(c(th) + ' Thousand');
+  if (rem) w.push(c(rem));
+  if (cents) w.push('And Cents ' + c(cents));
+  return w.join(' ') + ' Only';
+}
+
+// ============================================================
 // PDF EXPORT — A4 portrait, ready to print
 // ============================================================
 export function exportPDF(
@@ -85,65 +112,56 @@ export function exportPDF(
   const showPrice = (i: QuotationItem) => currency === 'USD' ? Number(i.unit_price_usd) : Number(i.unit_price_rmb);
   const grandTotal = currency === 'USD' ? totalUSD : totalRMB;
   const origin = window.location.origin;
-
-  const colCount = type === 'quotation' ? 6 : 4; // colspan for total row
+  const depRate = q.deposit_rate || 50;
+  const deposit = r2(grandTotal * depRate / 100);
+  const balance = r2(grandTotal - deposit);
+  const qtys = items.reduce((s, i) => s + i.quantity, 0);
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${q.quotation_no}</title>
 <style>
   @page { size: A4 portrait; margin: 18mm 16mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Helvetica Neue',Arial,'Segoe UI',sans-serif; color:#222; font-size:10.5px; line-height:1.5; }
+  body { font-family:'Helvetica Neue',Arial,'Segoe UI',sans-serif; color:#222; font-size:10px; line-height:1.5; }
   .page { max-width:100%; }
-
-  /* Top section: logo left, title right */
-  .top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+  .top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
   .logo img { height:44px; }
   .title-block { text-align:right; }
   .title-block h1 { font-size:20px; font-weight:700; color:#b22222; letter-spacing:2px; text-transform:uppercase; margin:0; }
-  .title-block .meta { font-size:9.5px; color:#666; margin-top:3px; line-height:1.6; }
-
-  /* Divider */
-  .divider { border:none; border-top:2px solid #ddd; margin:0 0 16px 0; }
-
-  /* Supplier / Customer side by side */
-  .parties { display:flex; gap:20px; margin-bottom:18px; }
+  .title-block .meta { font-size:9px; color:#666; margin-top:2px; line-height:1.6; }
+  .divider { border:none; border-top:2px solid #ddd; margin:0 0 14px 0; }
+  .parties { display:flex; gap:20px; margin-bottom:14px; }
   .party { flex:1; }
-  .party h3 { font-size:9px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
-  .party .name { font-size:11px; font-weight:600; color:#111; }
-  .party .info { font-size:9.5px; color:#555; margin-top:2px; line-height:1.6; }
-
-  /* Items */
-  table.items { width:100%; border-collapse:collapse; margin-bottom:14px; }
-  table.items thead th { font-size:8.5px; font-weight:600; color:#444; padding:5px 4px; border-bottom:2px solid #bbb; text-align:center; text-transform:uppercase; letter-spacing:0.3px; }
+  .party h3 { font-size:8.5px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
+  .party .name { font-size:10.5px; font-weight:600; color:#111; }
+  .party .info { font-size:9px; color:#555; margin-top:1px; line-height:1.6; }
+  .trade-terms { font-size:9px; color:#333; margin-bottom:12px; padding:6px 10px; background:#fafafa; border:1px solid #eee; border-radius:3px; }
+  .trade-terms strong { color:#b22222; }
+  table.items { width:100%; border-collapse:collapse; margin-bottom:10px; }
+  table.items thead th { font-size:8px; font-weight:600; color:#444; padding:4px 3px; border-bottom:2px solid #bbb; text-align:center; text-transform:uppercase; letter-spacing:0.2px; }
   table.items thead th.left { text-align:left; }
-  table.items tbody td { font-size:9.5px; padding:5px 4px; border-bottom:1px solid #e8e8e8; text-align:center; }
+  table.items tbody td { font-size:9px; padding:4px 3px; border-bottom:1px solid #e8e8e8; text-align:center; }
   table.items tbody td.left { text-align:left; }
-  table.items tfoot td { font-size:10px; font-weight:700; padding:7px 4px; border-top:2px solid #333; text-align:right; }
-
-  /* Note line */
-  .note { font-size:9px; color:#999; text-align:right; margin-bottom:14px; }
-
-  /* Sections: Bank, Terms */
-  .section { margin-bottom:12px; }
-  .section h3 { font-size:9px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
-  .section p { font-size:9.5px; color:#555; line-height:1.6; margin:0; }
-
-  /* Signature area */
-  .sig { margin-top:28px; display:flex; justify-content:space-between; align-items:flex-end; }
-  .sig .line { width:160px; border-top:1px solid #333; padding-top:4px; font-size:9px; color:#999; }
-  .sig .eoe { font-size:8.5px; color:#aaa; text-align:right; }
-
-  /* Print button */
-  .print-btn { text-align:center; padding:10px 0 12px; }
-  .print-btn button { padding:6px 20px; font-size:12px; cursor:pointer; border:1px solid #999; background:#fff; border-radius:3px; }
+  table.items tfoot td { font-size:9.5px; font-weight:700; padding:5px 3px; border-top:2px solid #333; text-align:right; }
+  .note { font-size:8.5px; color:#999; text-align:right; margin-bottom:10px; }
+  .amounts { border:1px solid #ddd; border-radius:4px; padding:10px 14px; margin-bottom:12px; }
+  .amounts .row { display:flex; justify-content:space-between; font-size:9.5px; color:#333; padding:2px 0; }
+  .amounts .row.total { font-size:11px; font-weight:700; color:#b22222; border-top:1px solid #ddd; padding-top:4px; margin-top:2px; }
+  .amounts .words { font-size:8.5px; color:#666; font-style:italic; margin-top:6px; }
+  .section { margin-bottom:10px; }
+  .section h3 { font-size:8.5px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
+  .section p, .section .line { font-size:9px; color:#555; line-height:1.6; margin:0; }
+  .sig { margin-top:24px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .sig .line { width:150px; border-top:1px solid #333; padding-top:3px; font-size:8.5px; color:#999; }
+  .sig .eoe { font-size:8px; color:#aaa; text-align:right; }
+  .print-btn { text-align:center; padding:8px 0 10px; }
+  .print-btn button { padding:5px 18px; font-size:11px; cursor:pointer; border:1px solid #999; background:#fff; border-radius:3px; }
   .print-btn button:hover { background:#f5f5f5; }
   @media print { .print-btn { display:none; } body { -webkit-print-color-adjust:exact; } }
 </style></head><body>
 <div class="print-btn"><button onclick="window.print()">🖨 Print / Save PDF</button></div>
 <div class="page">
 
-  <!-- Header: logo left, title right -->
   <div class="top">
     <div class="logo"><img src="${origin}/logo.webp" alt="WOWOHCOOL"></div>
     <div class="title-block">
@@ -158,7 +176,6 @@ export function exportPDF(
 
   <hr class="divider">
 
-  <!-- Supplier & Customer -->
   <div class="parties">
     <div class="party">
       <h3>Seller / Supplier</h3>
@@ -183,28 +200,32 @@ export function exportPDF(
     </div>
   </div>
 
+  ${type === 'pi' && q.trade_terms ? `<div class="trade-terms"><strong>Trade Terms:</strong> ${q.trade_terms}</div>` : ''}
+
   <!-- Items Table -->
   <table class="items">
     <thead><tr>
       <th style="width:28px">#</th>
       <th class="left" style="width:${type === 'quotation' ? '22%' : '35%'}">Model</th>
       ${type === 'quotation' ? '<th class="left" style="width:25%">Description</th><th style="width:6%">MOQ</th>' : ''}
+      ${type === 'pi' ? '<th style="width:8%">PCS</th>' : ''}
       <th style="width:8%">Qty</th>
-      <th style="width:${type === 'quotation' ? '14%' : '18%'}">Price (${currency})</th>
-      <th style="width:${type === 'quotation' ? '14%' : '18%'}">Total (${currency})</th>
+      <th style="width:${type === 'quotation' ? '14%' : '15%'}">Price (${currency})</th>
+      <th style="width:${type === 'quotation' ? '14%' : '15%'}">Total (${currency})</th>
       ${type === 'quotation' ? '<th style="width:12%">Remarks</th>' : ''}
     </tr></thead>
     <tbody>
       ${items.map((item, i) => {
         const p = showPrice(item);
         const t = r2(p * item.quantity);
-        return type === 'quotation'
-          ? `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${item.moq || 1}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`
-          : `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td></tr>`;
+        if (type === 'quotation') {
+          return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${item.moq || 1}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`;
+        }
+        return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.moq || 1}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td></tr>`;
       }).join('')}
     </tbody>
     <tfoot><tr>
-      <td colspan="${colCount}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
+      <td colspan="${type === 'quotation' ? 6 : 4}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
       <td style="text-align:center">${curSym}${r2(grandTotal).toFixed(2)}</td>
       ${type === 'quotation' ? '<td></td>' : ''}
     </tr></tfoot>
@@ -212,33 +233,49 @@ export function exportPDF(
 
   ${type === 'quotation' ? `<div class="note">Exchange Rate: 1 USD = ${q.exchange_rate || 7.25} RMB  |  ${currency === 'USD' ? `RMB Equivalent: ¥${r2(totalRMB).toFixed(2)}` : `USD Equivalent: $${r2(totalUSD).toFixed(2)}`}</div>` : ''}
 
-  <!-- Bank -->
+  ${type === 'pi' ? `
+  <div class="amounts">
+    <div class="row"><span>Total Amount:</span><span>${curSym}${r2(grandTotal).toFixed(2)}</span></div>
+    <div class="row"><span>Deposit (${depRate}%):</span><span>${curSym}${deposit.toFixed(2)}</span></div>
+    <div class="row"><span>Balance (${100-depRate}%):</span><span>${curSym}${balance.toFixed(2)}</span></div>
+    <div class="row total"><span>Total Due:</span><span>${curSym}${r2(grandTotal).toFixed(2)}</span></div>
+    <div class="words">Amount in Words: ${numberToWords(currency === 'USD' ? totalUSD : totalRMB)}</div>
+  </div>
+  ` : ''}
+
   <div class="section">
     <h3>Bank Information</h3>
-    <p>
-      Beneficiary: ${q.bank_beneficiary || 'Dong Yi Technology Co., Limited'}<br>
-      Bank: ${q.bank_name || '____________________'}<br>
-      Account: ${q.bank_account || '____________________'}<br>
-      SWIFT: ${q.bank_swift || '____________________'}
-    </p>
+    <div class="line">
+      Company Name: ${q.bank_beneficiary || 'Dong Yi Technology Co., Limited'}<br>
+      Account No: ${q.bank_account || '____________________'}<br>
+      Bank Name: ${q.bank_name || '____________________'}<br>
+      Bank Address: ${q.bank_address || '____________________'}<br>
+      SWIFT Code: ${q.bank_swift || '____________________'}<br>
+      Bank Code: ${q.bank_code || '____________________'}
+    </div>
   </div>
 
-  <!-- Terms -->
   <div class="section">
     <h3>Terms &amp; Conditions</h3>
-    <p>
+    <div class="line">
+      ${type === 'pi' ? `
+      1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples need full payments.<br>
+      2. All banking charges outside Hong Kong are on the buyer's account.<br>
+      3. Delivery Terms: Within 35 days after payment is confirmed.<br>
+      4. Requests for revision or cancellation of acknowledged orders will not be accepted.<br>
+      ` : `
       Payment Terms: ${q.payment_terms || 'T/T'}<br>
       Delivery Time: ${q.delivery_time_global || q.delivery_time || 'To be confirmed'}<br>
-      Validity: ${q.valid_days || 15} days from the date hereof<br>
-      ${q.notes ? `Remarks: ${q.notes}` : ''}
-    </p>
+      `}
+      Validity: ${q.valid_days || 15} days from the date hereof
+      ${q.notes ? `<br>Remarks: ${q.notes}` : ''}
+    </div>
   </div>
 
-  <!-- Signature -->
   <div class="sig">
     <div>
-      <div style="font-size:9.5px;color:#555">Authorized Signature</div>
-      <div class="line" style="margin-top:24px">Signature &amp; Stamp</div>
+      <div style="font-size:9px;color:#555">Authorized Signature</div>
+      <div class="line" style="margin-top:20px">Signature &amp; Stamp</div>
     </div>
     <div class="eoe">E.&amp;O.E.<br>This document is computer-generated.</div>
   </div>

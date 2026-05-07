@@ -144,11 +144,14 @@ export interface Quotation {
   delivery_time: string;
   delivery_time_global: string;
   notes: string | null;
+  trade_terms: string;
   bank_beneficiary: string;
   bank_name: string | null;
   bank_address: string | null;
   bank_account: string | null;
   bank_swift: string | null;
+  bank_code: string | null;
+  deposit_rate: number;
   status: string;
   created_at: string;
   updated_at: string;

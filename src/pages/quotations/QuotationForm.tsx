@@ -84,6 +84,18 @@ export default function QuotationForm() {
     }
   }, [existing, form]);
 
+  // Auto-fill PI default payment terms when type changes
+  useEffect(() => {
+    if (!isEdit && docType === 'pi') {
+      const current = form.getFieldValue('payment_terms');
+      if (!current) {
+        form.setFieldsValue({
+          payment_terms: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples need full payments.\n2. All banking charges outside Hong Kong are on the buyer\'s account.\n3. Delivery Terms: Within 35 days after payment is confirmed.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
+        });
+      }
+    }
+  }, [docType, isEdit, form]);
+
   // Generate quotation number
   useEffect(() => {
     if (!isEdit) {
@@ -268,6 +280,7 @@ export default function QuotationForm() {
       customer_website: values.customer_website || null,
       customer_address: values.customer_address || null,
       customer_phone: values.customer_phone || null,
+      trade_terms: values.trade_terms || '',
       exchange_rate: values.exchange_rate || 7.25,
       valid_days: values.valid_days || 15,
       payment_terms: values.payment_terms || '',
@@ -279,6 +292,8 @@ export default function QuotationForm() {
       bank_address: values.bank_address || null,
       bank_account: values.bank_account || null,
       bank_swift: values.bank_swift || '',
+      bank_code: values.bank_code || null,
+      deposit_rate: values.deposit_rate || 50,
       status: 'draft',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -397,10 +412,10 @@ export default function QuotationForm() {
           initialValues={{
             exchange_rate: 7.25,
             valid_days: 15,
+            deposit_rate: 50,
             bank_beneficiary: 'Dong Yi Technology Co., Limited',
             bank_name: 'Bank of China, Shenzhen Branch',
             bank_swift: 'BKCHCNBJ45A',
-            payment_terms: 'T/T 30% deposit, 70% before shipment',
             delivery_time_global: '15-20 working days after deposit confirmation',
           }}
         >
@@ -504,9 +519,23 @@ export default function QuotationForm() {
                 <Input placeholder="e.g. 15-20 working days" />
               </Form.Item>
             </Col>
+            <Col xs={24} sm={6}>
+              <Form.Item name="trade_terms" label="Trade Terms / 贸易方式">
+                <Input placeholder="e.g. FOB Shenzhen, EXW, CIF" />
+              </Form.Item>
+            </Col>
+            {!isQuo && (
+              <Col xs={24} sm={6}>
+                <Form.Item name="deposit_rate" label="Deposit % / 首付比例">
+                  <InputNumber min={0} max={100} step={5} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+            )}
             <Col xs={24} sm={12}>
               <Form.Item name="payment_terms" label="Payment Terms / 付款条款">
-                <Input placeholder="e.g. T/T 30% deposit..." />
+                <Input.TextArea rows={isQuo ? 2 : 4}
+                  placeholder={isQuo ? "e.g. T/T 30% deposit..." : "1. 50% T/T advance as deposit...\n2. All banking charges..."}
+                />
               </Form.Item>
             </Col>
             <Col xs={24}>
@@ -521,7 +550,7 @@ export default function QuotationForm() {
           <Typography.Title level={5}>Bank Information / 银行信息</Typography.Title>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item name="bank_beneficiary" label="Beneficiary / 收款人">
+              <Form.Item name="bank_beneficiary" label="Company Name / 收款人">
                 <Input />
               </Form.Item>
             </Col>
@@ -540,9 +569,14 @@ export default function QuotationForm() {
                 <Input placeholder="e.g. BKCHCNBJ45A" />
               </Form.Item>
             </Col>
-            <Col xs={24}>
+            <Col xs={24} sm={12}>
               <Form.Item name="bank_address" label="Bank Address / 银行地址">
-                <Input placeholder="Bank address" />
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="bank_code" label="Bank Code / 银行代码">
+                <Input placeholder="e.g. 123456" />
               </Form.Item>
             </Col>
           </Row>
