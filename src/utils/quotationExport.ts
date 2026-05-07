@@ -108,8 +108,9 @@ export function exportPDF(
 ) {
   const title = type === 'quotation' ? 'QUOTATION' : 'INVOICE';
   const validUntil = new Date(new Date(q.created_at).getTime() + (q.valid_days || 15) * 86400000);
-  const totalUSD = items.reduce((s, i) => s + Number(i.unit_price_usd) * i.quantity, 0);
-  const totalRMB = items.reduce((s, i) => s + Number(i.unit_price_rmb) * i.quantity, 0);
+  const itemQty = (i: QuotationItem) => type === 'quotation' ? (i.moq || 1) : i.quantity;
+  const totalUSD = items.reduce((s, i) => s + Number(i.unit_price_usd) * itemQty(i), 0);
+  const totalRMB = items.reduce((s, i) => s + Number(i.unit_price_rmb) * itemQty(i), 0);
   const curSym = currency === 'USD' ? 'US$' : '¥';
   const showPrice = (i: QuotationItem) => currency === 'USD' ? Number(i.unit_price_usd) : Number(i.unit_price_rmb);
   const grandTotal = currency === 'USD' ? totalUSD : totalRMB;
@@ -219,11 +220,11 @@ export function exportPDF(
     <tbody>
       ${items.map((item, i) => {
         const p = showPrice(item);
-        const t = r2(p * item.quantity);
         if (type === 'quotation') {
-          return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${item.moq || 1}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`;
+          const qt = item.moq || 1;
+          return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${qt}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${r2(p * qt).toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`;
         }
-        return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td></tr>`;
+        return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${r2(p * item.quantity).toFixed(2)}</td></tr>`;
       }).join('')}
     </tbody>
     <tfoot><tr>
