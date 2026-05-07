@@ -34,7 +34,7 @@ export function exportExcel(
   d.push(['Dong Yi Technology Co., Limited', '', '', '', q.customer_company || '', '', '', '']);
   d.push([`Contact: Sales Dept`, '', '', '', `Contact: ${q.customer_contact || ''}`, '', '', '']);
   d.push([`Tel: +86-755-XXXXXXXX`, '', '', '', `Tel: ${q.customer_phone || ''}`, '', '', '']);
-  d.push([`Web: www.wowohcool.com`, '', '', '', `Web: ${q.customer_website || ''}`, '', '', '']);
+  d.push([`Web: www.wowohcool.com`, '', '', '', `Tel: ${q.customer_phone || ''}`, '', '', '']);
   d.push([`Address: Shenzhen, China`, '', '', '', `Address: ${q.customer_address || ''}`, '', '', '']);
   d.push([]);
   d.push([]);
@@ -195,7 +195,6 @@ export function exportPDF(
       <div class="info">
         Contact: ${q.customer_contact || '____________________'}<br>
         Tel: ${q.customer_phone || '____________________'}<br>
-        Web: ${q.customer_website || '____________________'}<br>
         Address: ${q.customer_address || '____________________'}
       </div>
     </div>

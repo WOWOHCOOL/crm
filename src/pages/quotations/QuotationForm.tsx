@@ -204,7 +204,7 @@ export default function QuotationForm() {
         quotation_no: values.quotation_no,
         customer_company: values.customer_company || null,
         customer_contact: values.customer_contact || null,
-        customer_website: values.customer_website || null,
+        customer_website: null,
         customer_address: values.customer_address || null,
         customer_phone: values.customer_phone || null,
         exchange_rate: values.exchange_rate || 7.25,
@@ -289,8 +289,8 @@ export default function QuotationForm() {
       customer_id: values.customer_id || null,
       customer_company: values.customer_company || null,
       customer_contact: values.customer_contact || null,
-      customer_website: values.customer_website || null,
-      customer_address: values.customer_address || null,
+      customer_website: null,
+	        customer_address: values.customer_address || null,
       customer_phone: values.customer_phone || null,
       trade_terms: values.trade_terms || '',
       exchange_rate: values.exchange_rate || 7.25,
@@ -455,7 +455,6 @@ export default function QuotationForm() {
                         customer_company: c.company || c.name,
                         customer_contact: c.name,
                         customer_phone: c.phone || '',
-                        customer_website: c.website || '',
                         customer_address: c.address || '',
                       });
                     }
@@ -475,11 +474,6 @@ export default function QuotationForm() {
             <Col xs={24} sm={12}>
               <Form.Item name="customer_contact" label="Contact Person / 联系人">
                 <Input placeholder="Contact name" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="customer_website" label="Website / 网址">
-                <Input placeholder="e.g. www.abc-trading.com" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
