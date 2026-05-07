@@ -268,20 +268,23 @@ export default function QuotationForm() {
     const sellerWeb = 'www.wowohcool.com';
     const sellerAddr = 'Shenzhen, Guangdong, China';
 
-    const cols = docType === 'quotation' ? 10 : 7;
+    const priceLabel = currency === 'USD' ? 'Price (USD)' : 'Price (RMB)';
+    const totalLabel = currency === 'USD' ? 'Total (USD)' : 'Total (RMB)';
+    const curSym = currency === 'USD' ? '$' : '¥';
+    const totalVal = currency === 'USD' ? totalUSD : totalRMB;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wsData: any[] = [];
 
-    // === HEADER: Logo + Title ===
-    wsData.push(['WOWOHCOOL', '', '', '', title, '', '', '', '', '']);
-    wsData.push([sellerName, '', '', '', `No: ${values.quotation_no}`, '', '', '', '', '']);
-    wsData.push([sellerWeb, '', '', '', `Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
+    // === HEADER ===
+    wsData.push(['', '', '', '', title, '', '', '', '', '']);
+    wsData.push(['', '', '', '', `No: ${values.quotation_no}`, '', '', '', '', '']);
+    wsData.push(['', '', '', '', `Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
     const validUntil = new Date(Date.now() + (values.valid_days || 15) * 86400000);
     wsData.push(['', '', '', '', `Valid Until: ${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
     wsData.push([]);
 
-    // === SUPPLIER (SELLER) vs CUSTOMER (BUYER) ===
+    // === SELLER vs BUYER ===
     wsData.push(['SELLER / SUPPLIER:', '', '', '', 'BUYER / CUSTOMER:', '', '', '', '', '']);
     wsData.push([sellerName, '', '', '', values.customer_company || '____________________', '', '', '', '', '']);
     wsData.push([`Contact: ${sellerContact}`, '', '', '', `Contact: ${values.customer_contact || '____________________'}`, '', '', '', '', '']);
@@ -292,23 +295,28 @@ export default function QuotationForm() {
     wsData.push([]);
     wsData.push([]);
 
-    // === ITEMS TABLE HEADER ===
+    // === ITEMS TABLE (single currency) ===
     if (docType === 'quotation') {
-      wsData.push(['#', 'Product Model', 'Description', 'MOQ', 'Qty', 'Unit Price (USD)', 'Unit Price (RMB)', 'Total (USD)', 'Total (RMB)', 'Remarks']);
+      wsData.push(['#', 'Model', 'Description', 'MOQ', 'Qty', priceLabel, totalLabel, 'Remarks']);
     } else {
-      wsData.push(['#', 'Product Model', 'Qty', 'Unit Price (USD)', 'Unit Price (RMB)', 'Total (USD)', 'Total (RMB)']);
+      wsData.push(['#', 'Model', 'Qty', priceLabel, totalLabel]);
     }
 
     items.forEach((item, i) => {
       if (docType === 'quotation') {
-        wsData.push([i + 1, item.official_model, item.description || '', item.moq || 1, item.quantity, item.unit_price_usd, item.unit_price_rmb, r2(item.unit_price_usd * item.quantity), r2(item.unit_price_rmb * item.quantity), item.remarks || '']);
+        wsData.push([i + 1, item.official_model, item.description || '', item.moq || 1, item.quantity,
+          currency === 'USD' ? item.unit_price_usd : item.unit_price_rmb,
+          currency === 'USD' ? r2(item.unit_price_usd * item.quantity) : r2(item.unit_price_rmb * item.quantity),
+          item.remarks || '']);
       } else {
-        wsData.push([i + 1, item.official_model, item.quantity, item.unit_price_usd, item.unit_price_rmb, r2(item.unit_price_usd * item.quantity), r2(item.unit_price_rmb * item.quantity)]);
+        wsData.push([i + 1, item.official_model, item.quantity,
+          currency === 'USD' ? item.unit_price_usd : item.unit_price_rmb,
+          currency === 'USD' ? r2(item.unit_price_usd * item.quantity) : r2(item.unit_price_rmb * item.quantity)]);
       }
     });
 
     wsData.push([]);
-    wsData.push([`TOTAL AMOUNT: USD $${totalUSD.toFixed(2)}  /  RMB ¥${totalRMB.toFixed(2)}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`TOTAL AMOUNT: ${curSym}${totalVal.toFixed(2)}`, '', '', '', '', '', '', '', '', '']);
     wsData.push([]);
 
     // === BANK INFO ===
@@ -372,10 +380,10 @@ export default function QuotationForm() {
     { title: 'MOQ', key: 'moq', width: 60, render: (_: unknown, __: unknown, i: number) => (
       <InputNumber min={1} value={items[i].moq || 1} onChange={(v) => updateItemField(items[i]._key, 'moq', v ?? 1)} size="small" style={{ width: 55 }} />
     )},
-    { title: '数量', key: 'qty', width: 60, render: (_: unknown, __: unknown, i: number) => (
+    { title: 'Qty', key: 'qty', width: 60, render: (_: unknown, __: unknown, i: number) => (
       <InputNumber min={1} value={items[i].quantity} onChange={(v) => updateItemField(items[i]._key, 'quantity', v ?? 1)} size="small" style={{ width: 55 }} />
     )},
-    { title: currency === 'RMB' ? '单价 ¥' : '单价 $', key: 'price', width: 130,
+    { title: 'Price', key: 'price', width: 130,
       render: (_: unknown, __: unknown, i: number) => {
         const item = items[i];
         const field = currency === 'RMB' ? 'unit_price_rmb' : 'unit_price_usd';
@@ -386,7 +394,7 @@ export default function QuotationForm() {
         );
       },
     },
-    { title: currency === 'RMB' ? '合计 ¥' : '合计 $', key: 'total', width: 110,
+    { title: 'Total', key: 'total', width: 110,
       render: (_: unknown, __: unknown, i: number) => {
         const item = items[i];
         const total = currency === 'RMB' ? item.unit_price_rmb * item.quantity : item.unit_price_usd * item.quantity;
