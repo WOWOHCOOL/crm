@@ -261,21 +261,38 @@ export default function QuotationForm() {
     const values = form.getFieldsValue();
     const wb = XLSX.utils.book_new();
     const title = docType === 'quotation' ? 'QUOTATION' : 'PROFORMA INVOICE';
+    const sellerName = 'Dong Yi Technology Co., Limited';
+    const sellerContact = 'Sales Department';
+    const sellerTel = '+86-755-XXXXXXXX';
+    const sellerEmail = 'sales@wowohcool.com';
+    const sellerWeb = 'www.wowohcool.com';
+    const sellerAddr = 'Shenzhen, Guangdong, China';
+
+    const cols = docType === 'quotation' ? 10 : 7;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wsData: any[] = [];
 
-    wsData.push([title, '', '', '', '', '', '']);
-    wsData.push([`No: ${values.quotation_no}`, '', '', '', '', '', '']);
-    wsData.push([`Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '', '']);
+    // === HEADER: Logo + Title ===
+    wsData.push(['WOWOHCOOL', '', '', '', title, '', '', '', '', '']);
+    wsData.push([sellerName, '', '', '', `No: ${values.quotation_no}`, '', '', '', '', '']);
+    wsData.push([sellerWeb, '', '', '', `Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
+    const validUntil = new Date(Date.now() + (values.valid_days || 15) * 86400000);
+    wsData.push(['', '', '', '', `Valid Until: ${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, '', '', '', '', '']);
     wsData.push([]);
-    wsData.push(['SUPPLIER:', '', '', '', 'CUSTOMER:', '', '']);
-    wsData.push(['Dong Yi Technology Co., Limited', '', '', '', values.customer_company || '', '', '']);
-    wsData.push(['www.wowohcool.com', '', '', '', values.customer_contact || '', '', '']);
+
+    // === SUPPLIER (SELLER) vs CUSTOMER (BUYER) ===
+    wsData.push(['SELLER / SUPPLIER:', '', '', '', 'BUYER / CUSTOMER:', '', '', '', '', '']);
+    wsData.push([sellerName, '', '', '', values.customer_company || '____________________', '', '', '', '', '']);
+    wsData.push([`Contact: ${sellerContact}`, '', '', '', `Contact: ${values.customer_contact || '____________________'}`, '', '', '', '', '']);
+    wsData.push([`Tel: ${sellerTel}`, '', '', '', `Tel: ${values.customer_phone || '____________________'}`, '', '', '', '', '']);
+    wsData.push([`Email: ${sellerEmail}`, '', '', '', `Web: ${values.customer_website || '____________________'}`, '', '', '', '', '']);
+    wsData.push([`Web: ${sellerWeb}`, '', '', '', `Address: ${values.customer_address || '____________________'}`, '', '', '', '', '']);
+    wsData.push([`Address: ${sellerAddr}`, '', '', '', '', '', '', '', '', '']);
     wsData.push([]);
     wsData.push([]);
 
-    // Headers
+    // === ITEMS TABLE HEADER ===
     if (docType === 'quotation') {
       wsData.push(['#', 'Product Model', 'Description', 'MOQ', 'Qty', 'Unit Price (USD)', 'Unit Price (RMB)', 'Total (USD)', 'Total (RMB)', 'Remarks']);
     } else {
@@ -291,22 +308,36 @@ export default function QuotationForm() {
     });
 
     wsData.push([]);
-    wsData.push([`Total USD: $${totalUSD.toFixed(2)}`, '', '', '', '', '', '']);
-    wsData.push([`Total RMB: ¥${totalRMB.toFixed(2)}`, '', '', '', '', '', '']);
+    wsData.push([`TOTAL AMOUNT: USD $${totalUSD.toFixed(2)}  /  RMB ¥${totalRMB.toFixed(2)}`, '', '', '', '', '', '', '', '', '']);
     wsData.push([]);
-    wsData.push(['Bank Information:', '', '', '', '', '', '']);
-    wsData.push([`Beneficiary: ${values.bank_beneficiary || ''}`, '', '', '', '', '', '']);
-    wsData.push([`Bank: ${values.bank_name || ''}`, '', '', '', '', '', '']);
-    wsData.push([`Account: ${values.bank_account || ''}`, '', '', '', '', '', '']);
-    wsData.push([`SWIFT: ${values.bank_swift || ''}`, '', '', '', '', '', '']);
+
+    // === BANK INFO ===
+    wsData.push(['BANK INFORMATION:', '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Beneficiary: ${values.bank_beneficiary || sellerName}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Bank Name: ${values.bank_name || '____________________'}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Bank Address: ${values.bank_address || '____________________'}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Account No.: ${values.bank_account || '____________________'}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`SWIFT Code: ${values.bank_swift || '____________________'}`, '', '', '', '', '', '', '', '', '']);
     wsData.push([]);
-    wsData.push([`Payment: ${values.payment_terms || ''}`, '', '', '', '', '', '']);
-    wsData.push([`Delivery: ${values.delivery_time_global || ''}`, '', '', '', '', '', '']);
+
+    // === TERMS ===
+    wsData.push(['TERMS & CONDITIONS:', '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Payment Terms: ${values.payment_terms || 'T/T'}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Delivery Time: ${values.delivery_time_global || 'To be confirmed'}`, '', '', '', '', '', '', '', '', '']);
+    wsData.push([`Validity: ${values.valid_days || 15} days from the date hereof`, '', '', '', '', '', '', '', '', '']);
+    if (values.notes) {
+      wsData.push([`Remarks: ${values.notes}`, '', '', '', '', '', '', '', '', '']);
+    }
+    wsData.push([]);
+    wsData.push(['Authorized Signature:', '', '', '', '', '', '', '', '', '']);
+    wsData.push([]);
+    wsData.push(['_________________________', '', '', '', '', '', '', '', '', '']);
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = docType === 'quotation'
-      ? [{ wch: 5 }, { wch: 22 }, { wch: 28 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }]
+    const colWidths = docType === 'quotation'
+      ? [{ wch: 5 }, { wch: 22 }, { wch: 25 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }]
       : [{ wch: 5 }, { wch: 25 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+    ws['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, title);
     XLSX.writeFile(wb, `${values.quotation_no || 'export'}.xlsx`);
