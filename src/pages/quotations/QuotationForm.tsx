@@ -341,12 +341,15 @@ export default function QuotationForm() {
           placeholder="Specifications, features..." style={{ width: 170, fontSize: 12 }} />
       ),
     }] : []),
-    { title: 'MOQ', key: 'moq', width: 60, render: (_: unknown, __: unknown, i: number) => (
-      <InputNumber min={1} value={items[i].moq || 1} onChange={(v) => updateItemField(items[i]._key, 'moq', v ?? 1)} size="small" style={{ width: 55 }} />
-    )},
-    { title: 'Qty', key: 'qty', width: 60, render: (_: unknown, __: unknown, i: number) => (
-      <InputNumber min={1} value={items[i].quantity} onChange={(v) => updateItemField(items[i]._key, 'quantity', v ?? 1)} size="small" style={{ width: 55 }} />
-    )},
+    ...(isQuo ? [{
+      title: 'Qty', key: 'moq', width: 60,
+      render: (_: unknown, __: unknown, i: number) => <span style={{ fontWeight: 500 }}>{items[i].moq || 1}</span>,
+    }] : [{
+      title: 'Qty', key: 'qty', width: 60,
+      render: (_: unknown, __: unknown, i: number) => (
+        <InputNumber min={1} value={items[i].quantity} onChange={(v) => updateItemField(items[i]._key, 'quantity', v ?? 1)} size="small" style={{ width: 55 }} />
+      ),
+    }]),
     { title: 'Price', key: 'price', width: 130,
       render: (_: unknown, __: unknown, i: number) => {
         const item = items[i];
@@ -475,7 +478,7 @@ export default function QuotationForm() {
             locale={{ emptyText: `请点击"从商品库选择"添加产品` }}
             summary={() => items.length > 0 ? (
               <Table.Summary.Row>
-                <Table.Summary.Cell index={0} align="right" colSpan={isQuo ? 6 : 4}>
+                <Table.Summary.Cell index={0} align="right" colSpan={isQuo ? 6 : 5}>
                   <strong>Total / 合计：</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1}>

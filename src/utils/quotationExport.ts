@@ -18,7 +18,9 @@ export function exportExcel(
   currency: 'USD' | 'RMB',
 ) {
   const curSym = currency === 'USD' ? '$' : '¥';
-  const totalVal = items.reduce((s, i) => s + (currency === 'USD' ? Number(i.unit_price_usd) : Number(i.unit_price_rmb)) * i.quantity, 0);
+  // QUO uses moq as quantity, PI uses quantity
+  const qty = (i: QuotationItem) => Number(i.moq || 1);
+  const totalVal = items.reduce((s, i) => s + (currency === 'USD' ? Number(i.unit_price_usd) : Number(i.unit_price_rmb)) * qty(i), 0);
   const validUntil = new Date(new Date(q.created_at).getTime() + (q.valid_days || 15) * 86400000);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,10 +40,10 @@ export function exportExcel(
   d.push([]);
   d.push([]);
 
-  d.push(['#', 'Model', 'Description', 'MOQ', 'Qty', `Price (${currency})`, `Total (${currency})`, 'Remarks']);
+  d.push(['#', 'Model', 'Description', 'Qty', `Price (${currency})`, `Total (${currency})`, 'Remarks']);
   items.forEach((item, i) => {
     const p = currency === 'USD' ? Number(item.unit_price_usd) : Number(item.unit_price_rmb);
-    d.push([i + 1, item.official_model, item.description || '', item.moq || 1, item.quantity, p, r2(p * item.quantity), item.remarks || '']);
+    d.push([i + 1, item.official_model, item.description || '', qty(item), p, r2(p * qty(item)), item.remarks || '']);
   });
   d.push([]);
   d.push([`TOTAL: ${curSym}${r2(totalVal).toFixed(2)}`, '', '', '', '', '', '', '']);
@@ -207,8 +209,8 @@ export function exportPDF(
     <thead><tr>
       <th style="width:28px">#</th>
       <th class="left" style="width:${type === 'quotation' ? '22%' : '35%'}">Model</th>
-      ${type === 'quotation' ? '<th class="left" style="width:25%">Description</th><th style="width:6%">MOQ</th>' : ''}
-      ${type === 'pi' ? '<th style="width:8%">PCS</th>' : ''}
+      ${type === 'quotation' ? '<th class="left" style="width:25%">Description</th><th style="width:8%">Qty</th>' : ''}
+
       <th style="width:8%">Qty</th>
       <th style="width:${type === 'quotation' ? '14%' : '15%'}">Price (${currency})</th>
       <th style="width:${type === 'quotation' ? '14%' : '15%'}">Total (${currency})</th>
@@ -221,11 +223,11 @@ export function exportPDF(
         if (type === 'quotation') {
           return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${item.moq || 1}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`;
         }
-        return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.moq || 1}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td></tr>`;
+        return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${t.toFixed(2)}</td></tr>`;
       }).join('')}
     </tbody>
     <tfoot><tr>
-      <td colspan="${type === 'quotation' ? 6 : 4}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
+      <td colspan="${type === 'quotation' ? 5 : 3}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
       <td style="text-align:center">${curSym}${r2(grandTotal).toFixed(2)}</td>
       ${type === 'quotation' ? '<td></td>' : ''}
     </tr></tfoot>
