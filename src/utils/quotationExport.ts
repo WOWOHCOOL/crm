@@ -243,6 +243,7 @@ export function exportPDF(
   </div>
   ` : ''}
 
+  ${type === 'pi' ? `
   <div class="section">
     <h3>Bank Information</h3>
     <div class="line">
@@ -254,6 +255,7 @@ export function exportPDF(
       Bank Code: ${q.bank_code || '____________________'}
     </div>
   </div>
+  ` : ''}
 
   <div class="section">
     <h3>Terms &amp; Conditions</h3>

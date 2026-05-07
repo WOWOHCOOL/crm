@@ -547,39 +547,43 @@ export default function QuotationForm() {
 
           <Divider />
 
-          <Typography.Title level={5}>Bank Information / 银行信息</Typography.Title>
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item name="bank_beneficiary" label="Company Name / 收款人">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="bank_name" label="Bank Name / 银行名称">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="bank_account" label="Account No. / 银行账号">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="bank_swift" label="SWIFT Code">
-                <Input placeholder="e.g. BKCHCNBJ45A" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="bank_address" label="Bank Address / 银行地址">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="bank_code" label="Bank Code / 银行代码">
-                <Input placeholder="e.g. 123456" />
-              </Form.Item>
-            </Col>
-          </Row>
+          {!isQuo && (
+            <>
+              <Typography.Title level={5}>Bank Information / 银行信息</Typography.Title>
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="bank_beneficiary" label="Company Name / 收款人">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="bank_name" label="Bank Name / 银行名称">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="bank_account" label="Account No. / 银行账号">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="bank_swift" label="SWIFT Code">
+                    <Input placeholder="e.g. BKCHCNBJ45A" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="bank_address" label="Bank Address / 银行地址">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="bank_code" label="Bank Code / 银行代码">
+                    <Input placeholder="e.g. 123456" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
         </Form>
       </Card>
 
