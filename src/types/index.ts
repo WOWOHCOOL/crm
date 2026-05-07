@@ -81,3 +81,32 @@ export interface OrderItem {
   user_id: string;
   products?: Product | null;
 }
+
+export interface Organization {
+  id: string;
+  name: string;
+  invite_code: string;
+  created_at: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  org_id: string;
+  user_id: string;
+  role: 'owner' | 'member';
+  created_at: string;
+}
+
+export interface OrgInfo {
+  org_id: string;
+  org_name: string;
+  invite_code: string;
+  role: 'owner' | 'member';
+}
+
+export interface OrgMemberInfo {
+  user_id: string;
+  email: string;
+  role: 'owner' | 'member';
+  created_at: string;
+}

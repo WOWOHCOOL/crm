@@ -15,27 +15,19 @@ import {
   LogoutOutlined,
   KeyOutlined,
   LockOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabase';
 
 const { Header, Sider, Content, Footer } = Layout;
 
-const menuItems: MenuProps['items'] = [
-  { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
-  { key: '/products', icon: <ShoppingOutlined />, label: '商品管理' },
-  { key: '/finance', icon: <DollarOutlined />, label: '财务记账' },
-  { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理' },
-  { key: '/reports', icon: <BarChartOutlined />, label: '财务报表' },
-];
-
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
-  const { user, signOut } = useAuth();
+  const { user, signOut, orgInfo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -45,6 +37,18 @@ export default function MainLayout() {
   const selectedKey = '/' + location.pathname.split('/').filter(Boolean)[0] || '/';
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
+
+  const isOwner = orgInfo?.role === 'owner';
+
+  const menuItems: MenuProps['items'] = [
+    { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
+    { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
+    { key: '/products', icon: <ShoppingOutlined />, label: '商品管理' },
+    { key: '/finance', icon: <DollarOutlined />, label: '财务记账' },
+    { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理' },
+    { key: '/reports', icon: <BarChartOutlined />, label: '财务报表' },
+    ...(isOwner ? [{ key: '/org', icon: <SettingOutlined />, label: '团队管理' }] : []),
+  ];
 
   const handleChangePassword = async (values: { newPassword: string }) => {
     setPasswordLoading(true);
@@ -59,8 +63,15 @@ export default function MainLayout() {
     passwordForm.resetFields();
   };
 
+  const userSubtitle = isOwner ? '主账号' : '子账号';
+
   const userMenuItems: MenuProps['items'] = [
-    { key: 'name', label: displayName, disabled: true },
+    { key: 'name', label: (
+      <div>
+        <div style={{ fontWeight: 500 }}>{displayName}</div>
+        <div style={{ fontSize: 12, color: '#999' }}>{userSubtitle} · {orgInfo?.org_name}</div>
+      </div>
+    ), disabled: true },
     { type: 'divider' },
     {
       key: 'changePassword',
@@ -68,6 +79,12 @@ export default function MainLayout() {
       label: '修改密码',
       onClick: () => setPasswordModalOpen(true),
     },
+    ...(isOwner ? [{
+      key: 'orgManage',
+      icon: <SettingOutlined />,
+      label: '团队管理',
+      onClick: () => navigate('/org'),
+    }] : []),
     { type: 'divider' },
     {
       key: 'logout',
@@ -142,7 +159,7 @@ export default function MainLayout() {
           <Outlet />
         </Content>
         <Footer style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
-          © snowy {new Date().getFullYear()} WowohCool CRM
+          &copy; snowy {new Date().getFullYear()} WowohCool CRM
         </Footer>
       </Layout>
 
