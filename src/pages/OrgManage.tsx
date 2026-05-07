@@ -99,7 +99,7 @@ export default function OrgManage() {
     account: '科目', quotation: '报价单', pi: 'PI',
   };
 
-  const nonOwnerMembers = (members ?? []).filter(m => m.role === 'member');
+  const nonOwnerMembers = (members ?? []).filter(m => m.role !== 'owner');
 
   return (
     <div>
