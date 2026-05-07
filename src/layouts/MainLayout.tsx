@@ -67,13 +67,13 @@ export default function MainLayout() {
     passwordForm.resetFields();
   };
 
-  const roleLabel = orgInfo?.role === 'owner' ? '主账号' : orgInfo?.role === 'admin' ? '管理员' : '子账号';
+  const roleLabel = isOwner ? '主账号' : '';
 
   const userMenuItems: MenuProps['items'] = [
     { key: 'name', label: (
       <div>
         <div style={{ fontWeight: 500 }}>{displayName}</div>
-        <div style={{ fontSize: 12, color: '#999' }}>{roleLabel} · {orgInfo?.org_name}</div>
+        <div style={{ fontSize: 12, color: '#999' }}>{roleLabel ? `${roleLabel} · ` : ''}{orgInfo?.org_name}</div>
       </div>
     ), disabled: true },
     { type: 'divider' },
