@@ -209,9 +209,9 @@ export function exportPDF(
     <thead><tr>
       <th style="width:28px">#</th>
       <th class="left" style="width:${type === 'quotation' ? '22%' : '35%'}">Model</th>
-      ${type === 'quotation' ? '<th class="left" style="width:25%">Description</th><th style="width:8%">Qty</th>' : ''}
-
-      <th style="width:8%">Qty</th>
+      ${type === 'quotation'
+        ? '<th class="left" style="width:25%">Description</th><th style="width:8%">Qty</th>'
+        : '<th style="width:8%">Qty</th>'}
       <th style="width:${type === 'quotation' ? '14%' : '15%'}">Price (${currency})</th>
       <th style="width:${type === 'quotation' ? '14%' : '15%'}">Total (${currency})</th>
       ${type === 'quotation' ? '<th style="width:12%">Remarks</th>' : ''}
@@ -227,7 +227,7 @@ export function exportPDF(
       }).join('')}
     </tbody>
     <tfoot><tr>
-      <td colspan="${type === 'quotation' ? 5 : 3}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
+      <td colspan="${type === 'quotation' ? 5 : 4}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
       <td style="text-align:center">${curSym}${r2(grandTotal).toFixed(2)}</td>
       ${type === 'quotation' ? '<td></td>' : ''}
     </tr></tfoot>

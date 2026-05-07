@@ -342,8 +342,10 @@ export default function QuotationForm() {
       ),
     }] : []),
     ...(isQuo ? [{
-      title: 'Qty', key: 'moq', width: 60,
-      render: (_: unknown, __: unknown, i: number) => <span style={{ fontWeight: 500 }}>{items[i].moq || 1}</span>,
+      title: 'MOQ', key: 'moq', width: 60,
+      render: (_: unknown, __: unknown, i: number) => (
+        <InputNumber min={1} value={items[i].moq || 1} onChange={(v) => updateItemField(items[i]._key, 'moq', v ?? 1)} size="small" style={{ width: 55 }} />
+      ),
     }] : [{
       title: 'Qty', key: 'qty', width: 60,
       render: (_: unknown, __: unknown, i: number) => (
