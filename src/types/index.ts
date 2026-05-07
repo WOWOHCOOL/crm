@@ -164,6 +164,7 @@ export interface Quotation {
   delivery_time: string;
   delivery_time_global: string;
   notes: string | null;
+  customer_id: string | null;
   trade_terms: string;
   bank_beneficiary: string;
   bank_name: string | null;

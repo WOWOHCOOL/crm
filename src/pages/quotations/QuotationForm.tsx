@@ -7,7 +7,7 @@ import {
 import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Product, QuotationItem, Quotation } from '../../types';
+import type { Product, QuotationItem, Quotation, Customer } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
 
@@ -111,6 +111,14 @@ export default function QuotationForm() {
     queryFn: async () => {
       const { data } = await supabase.from('products').select('*').order('official_model');
       return (data ?? []) as (Product & { image_url?: string | null })[];
+    },
+  });
+
+  const { data: customers } = useQuery({
+    queryKey: ['customers-select-all'],
+    queryFn: async () => {
+      const { data } = await supabase.from('customers').select('id,name,company,phone,website,address').order('name');
+      return (data ?? []) as Pick<Customer, 'id' | 'name' | 'company' | 'phone' | 'website' | 'address'>[];
     },
   });
 
@@ -278,6 +286,7 @@ export default function QuotationForm() {
       id: id || '',
       type: docType,
       quotation_no: values.quotation_no || '',
+      customer_id: values.customer_id || null,
       customer_company: values.customer_company || null,
       customer_contact: values.customer_contact || null,
       customer_website: values.customer_website || null,
@@ -429,6 +438,35 @@ export default function QuotationForm() {
           }}
         >
           <Row gutter={16}>
+            <Col xs={24}>
+              <Form.Item name="customer_id" hidden />
+              <Form.Item label="Link to Customer / 关联客户">
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Search & select existing customer..."
+                  filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                  onChange={(val) => {
+                    if (!val) return;
+                    const c = customers?.find(x => x.id === val);
+                    if (c) {
+                      form.setFieldsValue({
+                        customer_id: c.id,
+                        customer_company: c.company || c.name,
+                        customer_contact: c.name,
+                        customer_phone: c.phone || '',
+                        customer_website: c.website || '',
+                        customer_address: c.address || '',
+                      });
+                    }
+                  }}
+                  options={(customers ?? []).map(c => ({
+                    label: `${c.company || c.name}${c.phone ? ` (${c.phone})` : ''}`,
+                    value: c.id,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="customer_company" label="Customer Company / 客户公司">
                 <Input placeholder="e.g. ABC Trading Co., Ltd." />

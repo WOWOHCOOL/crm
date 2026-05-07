@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, message, Row, Col } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, message, Row, Col, Tabs } from 'antd';
+import { ArrowLeftOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Order } from '../../types';
+import type { Order, Quotation } from '../../types';
 import dayjs from 'dayjs';
 
 const orderTypeLabels: Record<string, string> = {
@@ -57,6 +57,15 @@ export default function CustomerDetail() {
         .eq('customer_id', id)
         .order('date', { ascending: false });
       return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const { data: quotations } = useQuery({
+    queryKey: ['customer-quotations', id],
+    queryFn: async () => {
+      const { data } = await supabase.from('quotations').select('*').eq('customer_id', id).order('created_at', { ascending: false });
+      return (data ?? []) as Quotation[];
     },
     enabled: !!id,
   });
@@ -124,52 +133,74 @@ export default function CustomerDetail() {
         </Descriptions>
       </Card>
 
-      <Card
-        title="订单记录"
-        extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setOrderModal(true)}>新建订单</Button>}
-        style={{ marginBottom: 24 }}
-      >
-        {(orders ?? []).length === 0 ? (
-          <div style={{ color: '#999', textAlign: 'center', padding: 24 }}>暂无订单</div>
-        ) : (
-          (orders ?? []).map((order) => (
-            <Card
-              key={order.id}
-              size="small"
-              style={{ marginBottom: 12 }}
-              title={
-                <Space>
-                  <Tag color={orderTypeColors[order.order_type]}>{orderTypeLabels[order.order_type]}</Tag>
-                  <span>PI: {order.pi_number || '-'}</span>
-                  <span>{order.date}</span>
-                  {order.total_amount && <span style={{ fontWeight: 600 }}>¥{Number(order.total_amount).toFixed(2)}</span>}
-                </Space>
-              }
-            >
-              {order.order_items && order.order_items.length > 0 ? (
-                <Table
-                  dataSource={(order.order_items ?? []) as unknown as readonly Record<string, unknown>[]}
-                  rowKey="id"
-                  pagination={false}
-                  size="small"
-                  columns={[
-                    { title: '型号', dataIndex: 'model', key: 'model' },
-                    { title: '数量', dataIndex: 'quantity', key: 'quantity' },
-                    { title: '单价', dataIndex: 'unit_price', key: 'unit_price', render: (v: number) => `¥${Number(v).toFixed(2)}` },
-                    { title: '小计', key: 'subtotal', render: (_: unknown, r: Record<string, unknown>) => `¥${(Number(r.quantity) * Number(r.unit_price)).toFixed(2)}` },
-                  ]}
-                />
-              ) : (
-                <div style={{ color: '#999', fontSize: 12 }}>暂无明细</div>
-              )}
-              {order.notes && <div style={{ marginTop: 8, color: '#666', fontSize: 13 }}>备注：{order.notes}</div>}
-            </Card>
-          ))
-        )}
-      </Card>
-
-      <Card title={`收支记录（收入 ¥${totalIncome.toFixed(2)} / 支出 ¥${totalExpense.toFixed(2)}）`}>
-        <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" />
+      <Card style={{ marginBottom: 24 }}
+        extra={<Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setOrderModal(true)}>新建订单</Button>}>
+        <Tabs defaultActiveKey="orders" items={[
+          {
+            key: 'orders',
+            label: `订单 (${(orders ?? []).length})`,
+            children: (orders ?? []).length === 0 ? (
+              <div style={{ color: '#999', textAlign: 'center', padding: 24 }}>暂无订单</div>
+            ) : (
+              (orders ?? []).map((order) => (
+                <Card key={order.id} size="small" style={{ marginBottom: 12 }}
+                  title={
+                    <Space>
+                      <Tag color={orderTypeColors[order.order_type]}>{orderTypeLabels[order.order_type]}</Tag>
+                      <span>PI: {order.pi_number || '-'}</span>
+                      <span>{order.date}</span>
+                      {order.total_amount && <span style={{ fontWeight: 600 }}>¥{Number(order.total_amount).toFixed(2)}</span>}
+                    </Space>
+                  }>
+                  {order.order_items && order.order_items.length > 0 ? (
+                    <Table dataSource={(order.order_items ?? []) as unknown as readonly Record<string, unknown>[]}
+                      rowKey="id" pagination={false} size="small"
+                      columns={[
+                        { title: '型号', dataIndex: 'model', key: 'model' },
+                        { title: '数量', dataIndex: 'quantity', key: 'quantity' },
+                        { title: '单价', dataIndex: 'unit_price', key: 'unit_price', render: (v: number) => `¥${Number(v).toFixed(2)}` },
+                        { title: '小计', key: 'subtotal', render: (_: unknown, r: Record<string, unknown>) => `¥${(Number(r.quantity) * Number(r.unit_price)).toFixed(2)}` },
+                      ]} />
+                  ) : <div style={{ color: '#999', fontSize: 12 }}>暂无明细</div>}
+                  {order.notes && <div style={{ marginTop: 8, color: '#666', fontSize: 13 }}>备注：{order.notes}</div>}
+                </Card>
+              ))
+            ),
+          },
+          {
+            key: 'quotations',
+            label: `报价单 (${(quotations ?? []).filter(q => q.type === 'quotation').length})`,
+            children: (
+              <Table dataSource={(quotations ?? []).filter(q => q.type === 'quotation')}
+                rowKey="id" size="small" pagination={false}
+                columns={[
+                  { title: '编号', dataIndex: 'quotation_no', key: 'quotation_no' },
+                  { title: '日期', dataIndex: 'created_at', key: 'created_at', render: (v: string) => new Date(v).toLocaleDateString('zh-CN') },
+                  { title: '有效期', dataIndex: 'valid_days', key: 'valid_days', render: (v: number) => `${v}天` },
+                ]}
+                locale={{ emptyText: '暂无报价单' }} />
+            ),
+          },
+          {
+            key: 'pi',
+            label: `PI (${(quotations ?? []).filter(q => q.type === 'pi').length})`,
+            children: (
+              <Table dataSource={(quotations ?? []).filter(q => q.type === 'pi')}
+                rowKey="id" size="small" pagination={false}
+                columns={[
+                  { title: '编号', dataIndex: 'quotation_no', key: 'quotation_no' },
+                  { title: '日期', dataIndex: 'created_at', key: 'created_at', render: (v: string) => new Date(v).toLocaleDateString('zh-CN') },
+                  { title: '客户', dataIndex: 'customer_company', key: 'customer_company', render: (v: string | null) => v || '-' },
+                ]}
+                locale={{ emptyText: '暂无PI' }} />
+            ),
+          },
+          {
+            key: 'finance',
+            label: `收支 (收入 ¥${totalIncome.toFixed(0)} / 支出 ¥${totalExpense.toFixed(0)})`,
+            children: <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" />,
+          },
+        ]} />
       </Card>
 
       <Modal
