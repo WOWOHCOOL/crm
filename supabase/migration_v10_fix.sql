@@ -1,6 +1,21 @@
 -- ============================================================
--- CRM v10 fix - 修正 order_items RLS（quotation_id → order_id）
+-- CRM v10 fix - 创建缺失函数 + 修正 order_items RLS
 -- ============================================================
+
+-- 补创建函数（v10 可能因错误未完全执行）
+CREATE OR REPLACE FUNCTION current_user_is_admin_or_owner()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM organization_members
+    WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- 扩展 role 允许值（幂等）
+ALTER TABLE organization_members DROP CONSTRAINT IF EXISTS organization_members_role_check;
+ALTER TABLE organization_members ADD CONSTRAINT organization_members_role_check CHECK (role IN ('owner', 'admin', 'member'));
+
+-- 修正 order_items 和 quotation_items 的 RLS
 DROP POLICY IF EXISTS "order_items_select" ON order_items;
 DROP POLICY IF EXISTS "order_items_update" ON order_items;
 DROP POLICY IF EXISTS "order_items_delete" ON order_items;
