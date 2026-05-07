@@ -16,6 +16,7 @@ import {
   KeyOutlined,
   LockOutlined,
   SettingOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabase';
@@ -44,6 +45,7 @@ export default function MainLayout() {
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
     { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
     { key: '/products', icon: <ShoppingOutlined />, label: '商品管理' },
+    { key: '/quotations', icon: <FileTextOutlined />, label: '报价管理' },
     { key: '/finance', icon: <DollarOutlined />, label: '财务记账' },
     { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理' },
     { key: '/reports', icon: <BarChartOutlined />, label: '财务报表' },

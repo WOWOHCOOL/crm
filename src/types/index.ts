@@ -110,3 +110,42 @@ export interface OrgMemberInfo {
   role: 'owner' | 'member';
   created_at: string;
 }
+
+export interface QuotationItem {
+  id: string;
+  quotation_id: string;
+  product_id: string | null;
+  official_model: string;
+  supplier_model: string | null;
+  quantity: number;
+  unit_price_rmb: number;
+  unit_price_usd: number;
+  supply_price: number | null;
+  created_at: string;
+}
+
+export interface Quotation {
+  id: string;
+  quotation_no: string;
+  customer_company: string | null;
+  customer_contact: string | null;
+  customer_website: string | null;
+  customer_address: string | null;
+  customer_phone: string | null;
+  exchange_rate: number;
+  valid_days: number;
+  payment_terms: string;
+  delivery_time: string;
+  notes: string | null;
+  bank_beneficiary: string;
+  bank_name: string | null;
+  bank_address: string | null;
+  bank_account: string | null;
+  bank_swift: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  org_id: string | null;
+  quotation_items?: QuotationItem[];
+}

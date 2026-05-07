@@ -14,6 +14,9 @@ import TransactionList from './pages/finance/TransactionList';
 import AccountManage from './pages/finance/AccountManage';
 import Reports from './pages/reports/Reports';
 import ProductList from './pages/products/ProductList';
+import QuotationList from './pages/quotations/QuotationList';
+import QuotationForm from './pages/quotations/QuotationForm';
+import QuotationPrint from './pages/quotations/QuotationPrint';
 import OrgManage from './pages/OrgManage';
 
 const queryClient = new QueryClient({
@@ -76,6 +79,14 @@ function App() {
                 }
               />
               <Route
+                path="/quotations/:id/print"
+                element={
+                  <ProtectedRoute>
+                    <QuotationPrint />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/"
                 element={
                   <ProtectedRoute>
@@ -92,6 +103,8 @@ function App() {
                 <Route path="finance" element={<TransactionList />} />
                 <Route path="accounts" element={<AccountManage />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="quotations" element={<QuotationList />} />
+                <Route path="quotations/new" element={<QuotationForm />} />
                 <Route path="org" element={<OrgManage />} />
               </Route>
             </Routes>
