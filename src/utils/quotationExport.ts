@@ -77,7 +77,7 @@ export function exportPDF(
   type: 'quotation' | 'pi',
   currency: 'USD' | 'RMB',
 ) {
-  const title = type === 'quotation' ? 'QUOTATION' : 'PROFORMA INVOICE';
+  const title = type === 'quotation' ? 'QUOTATION' : 'INVOICE';
   const validUntil = new Date(new Date(q.created_at).getTime() + (q.valid_days || 15) * 86400000);
   const totalUSD = items.reduce((s, i) => s + Number(i.unit_price_usd) * i.quantity, 0);
   const totalRMB = items.reduce((s, i) => s + Number(i.unit_price_rmb) * i.quantity, 0);
