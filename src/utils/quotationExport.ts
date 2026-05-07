@@ -39,7 +39,7 @@ export function exportExcel(
   d.push([]);
   d.push([]);
 
-  d.push(['#', 'Model', 'Description', 'Qty', 'Price', 'Remarks']);
+  d.push(['#', 'Model', 'Description', 'MOQ', 'Price', 'Remarks']);
   items.forEach((item, i) => {
     const p = currency === 'USD' ? Number(item.unit_price_usd) : Number(item.unit_price_rmb);
     d.push([i + 1, item.official_model, item.description || '', qty(item), `${curSym}${p.toFixed(2)}`, item.remarks || '']);
@@ -209,7 +209,7 @@ export function exportPDF(
       <th style="width:28px">#</th>
       <th class="left" style="width:${type === 'quotation' ? '22%' : '35%'}">Model</th>
       ${type === 'quotation'
-        ? '<th class="left" style="width:25%">Description</th><th style="width:8%">Qty</th>'
+        ? '<th class="left" style="width:25%">Description</th><th style="width:8%">MOQ</th>'
         : '<th style="width:8%">Qty</th>'}
       <th style="width:${type === 'quotation' ? '20%' : '15%'}">Price (${currency})</th>
       ${type === 'pi' ? `<th style="width:15%">Total (${currency})</th>` : ''}
@@ -225,11 +225,10 @@ export function exportPDF(
         return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${r2(p * item.quantity).toFixed(2)}</td></tr>`;
       }).join('')}
     </tbody>
-    <tfoot><tr>
-      <td colspan="${type === 'quotation' ? 5 : 4}" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
+    ${type === 'pi' ? `<tfoot><tr>
+      <td colspan="4" style="text-align:right;padding-right:8px">TOTAL DUE:</td>
       <td style="text-align:center">${curSym}${r2(grandTotal).toFixed(2)}</td>
-      ${type === 'quotation' ? '<td></td>' : ''}
-    </tr></tfoot>
+    </tr></tfoot>` : ''}
   </table>
 
   ${type === 'quotation' ? `<div class="note">Exchange Rate: 1 USD = ${q.exchange_rate || 7.25} RMB  |  ${currency === 'USD' ? `RMB Equivalent: ¥${r2(totalRMB).toFixed(2)}` : `USD Equivalent: $${r2(totalUSD).toFixed(2)}`}</div>` : ''}
