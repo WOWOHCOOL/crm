@@ -112,6 +112,26 @@ export interface OrgMemberInfo {
   created_at: string;
 }
 
+export interface OperationLog {
+  id: string;
+  user_email: string;
+  action: string;
+  entity: string;
+  description: string;
+  created_at: string;
+}
+
+export const ALL_PERMISSIONS = [
+  { key: 'customers', label: '客户管理' },
+  { key: 'products', label: '商品管理' },
+  { key: 'finance', label: '财务记账' },
+  { key: 'accounts', label: '科目管理' },
+  { key: 'reports', label: '财务报表' },
+  { key: 'quotations', label: '报价管理' },
+] as const;
+
+export type Permission = (typeof ALL_PERMISSIONS)[number]['key'];
+
 export interface QuotationItem {
   id: string;
   quotation_id: string;

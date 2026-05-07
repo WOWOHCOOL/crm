@@ -28,7 +28,7 @@ export default function MainLayout() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
-  const { user, signOut, orgInfo } = useAuth();
+  const { user, signOut, orgInfo, permissions, isOwner } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -40,17 +40,17 @@ export default function MainLayout() {
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
 
-  const isOwner = orgInfo?.role === 'owner';
+  const hasPerm = (k: string) => isOwner || permissions.includes(k as never);
 
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-    { key: '/customers', icon: <TeamOutlined />, label: '客户管理' },
-    { key: '/products', icon: <ShoppingOutlined />, label: '商品管理' },
-    { key: '/quotations/quo', icon: <FileTextOutlined />, label: '报价单 (QUO)' },
-    { key: '/quotations/pi', icon: <FileTextOutlined />, label: 'PI管理 (PI)' },
-    { key: '/finance', icon: <DollarOutlined />, label: '财务记账' },
-    { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理' },
-    { key: '/reports', icon: <BarChartOutlined />, label: '财务报表' },
+    { key: '/customers', icon: <TeamOutlined />, label: '客户管理', style: hasPerm('customers') ? {} : { display: 'none' } },
+    { key: '/products', icon: <ShoppingOutlined />, label: '商品管理', style: hasPerm('products') ? {} : { display: 'none' } },
+    { key: '/quotations/quo', icon: <FileTextOutlined />, label: '报价单 (QUO)', style: hasPerm('quotations') ? {} : { display: 'none' } },
+    { key: '/quotations/pi', icon: <FileTextOutlined />, label: 'PI管理 (PI)', style: hasPerm('quotations') ? {} : { display: 'none' } },
+    { key: '/finance', icon: <DollarOutlined />, label: '财务记账', style: hasPerm('finance') ? {} : { display: 'none' } },
+    { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理', style: hasPerm('accounts') ? {} : { display: 'none' } },
+    { key: '/reports', icon: <BarChartOutlined />, label: '财务报表', style: hasPerm('reports') ? {} : { display: 'none' } },
     ...(isOwner ? [{ key: '/org', icon: <SettingOutlined />, label: '团队管理' }] : []),
   ];
 

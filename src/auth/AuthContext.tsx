@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { supabase } from '../supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import type { OrgInfo } from '../types';
+import type { OrgInfo, Permission } from '../types';
 
 interface AuthState {
   user: User | null;
@@ -9,6 +9,8 @@ interface AuthState {
   loading: boolean;
   orgInfo: OrgInfo | null;
   orgLoading: boolean;
+  permissions: Permission[];
+  isOwner: boolean;
   signUp: (email: string, password: string, name: string, inviteCode: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -26,6 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [orgInfo, setOrgInfo] = useState<OrgInfo | null>(null);
   const [orgLoading, setOrgLoading] = useState(true);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const { data } = await supabase.rpc('get_my_permissions');
+      if (Array.isArray(data)) setPermissions(data as Permission[]);
+    } catch { /* ignore */ }
+  }, []);
+
+  const isOwner = orgInfo?.role === 'owner';
 
   const fetchOrg = useCallback(async () => {
     setOrgLoading(true);
@@ -52,6 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * 导致 AFTER INSERT 触发器读不到 invite_code，不会自动创建组织成员。
    * 所以登录后需要主动调用 consume_pending_invite 来补处理。
    */
+  const loadPermissions = useCallback(async () => {
+    try {
+      const { data } = await supabase.rpc('get_my_permissions');
+      if (Array.isArray(data)) setPermissions(data as Permission[]);
+    } catch { /* ignore */ }
+  }, []);
+
   const initOrg = useCallback(async () => {
     setOrgLoading(true);
     try {
@@ -60,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (orgError) throw orgError;
       if (orgData?.org_id) {
         setOrgInfo(orgData as OrgInfo);
+        loadPermissions();
         setOrgLoading(false);
         return;
       }
@@ -71,16 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: newOrgData } = await supabase.rpc('get_my_org');
         if (newOrgData?.org_id) {
           setOrgInfo(newOrgData as OrgInfo);
+          loadPermissions();
           setOrgLoading(false);
           return;
         }
       }
 
-      // 确实没有组织
       setOrgInfo(null);
     } catch {
       setOrgInfo(null);
     } finally {
+      loadPermissions();
       setOrgLoading(false);
     }
   }, []);
@@ -161,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, loading, orgInfo, orgLoading,
+      permissions, isOwner,
       signUp, signIn, signOut,
       createOrg, joinWithInviteCode, refreshOrg,
       hasOrgSetup,
