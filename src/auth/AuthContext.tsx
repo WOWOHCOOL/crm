@@ -13,6 +13,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   createOrg: (name: string) => Promise<{ error?: string }>;
+  joinWithInviteCode: (inviteCode: string) => Promise<{ error?: string }>;
   refreshOrg: () => Promise<void>;
   hasOrgSetup: boolean;
 }
@@ -144,6 +145,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
+  const joinWithInviteCode = async (inviteCode: string) => {
+    const { data, error } = await supabase.rpc('join_with_invite_code', { invite_code: inviteCode.toUpperCase() });
+    if (error) return { error: error.message };
+    const result = data as { error?: string; success?: boolean };
+    if (result.error) return { error: result.error };
+    await fetchOrg();
+    return {};
+  };
+
   const refreshOrg = fetchOrg;
 
   const hasOrgSetup = !!orgInfo;
@@ -152,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, session, loading, orgInfo, orgLoading,
       signUp, signIn, signOut,
-      createOrg, refreshOrg,
+      createOrg, joinWithInviteCode, refreshOrg,
       hasOrgSetup,
     }}>
       {children}

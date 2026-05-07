@@ -356,6 +356,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 已有用户使用邀请码加入组织（用于注册时无邀请码，后来拿到邀请码的场景）
+CREATE OR REPLACE FUNCTION join_with_invite_code(invite_code TEXT)
+RETURNS JSON AS $$
+DECLARE
+  v_org_id UUID;
+  v_user_id UUID;
+BEGIN
+  v_user_id := auth.uid();
+
+  -- 检查是否已加入组织
+  IF EXISTS (SELECT 1 FROM organization_members WHERE user_id = v_user_id) THEN
+    RETURN json_build_object('error', '您已加入其他团队');
+  END IF;
+
+  -- 查找邀请码
+  SELECT org_id INTO v_org_id FROM registration_tokens WHERE code = invite_code AND used = false;
+  IF v_org_id IS NULL THEN
+    RETURN json_build_object('error', '邀请码无效或已使用');
+  END IF;
+
+  -- 消耗邀请码并加入组织
+  UPDATE registration_tokens SET used = true, used_by = v_user_id, used_at = NOW() WHERE code = invite_code;
+  INSERT INTO organization_members (org_id, user_id, role) VALUES (v_org_id, v_user_id, 'member');
+
+  RETURN json_build_object('success', true, 'org_id', v_org_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ============================================================
 -- 11. Seed：初始管理员邀请码（用于首次注册）
 -- ============================================================
