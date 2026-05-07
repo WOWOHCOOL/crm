@@ -532,7 +532,7 @@ export default function QuotationForm() {
           />
 
           <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-            * 默认价格 = 建议报价，未设置则 = 供货价 × 1.2。汇率：{Number(exchangeRate).toFixed(4)}
+            * 默认价格取商品建议报价。汇率：{Number(exchangeRate).toFixed(4)}
             {isQuo ? ' | 图片和详情仅报价单显示，PI不含图片和详情' : ''}
           </div>
 
