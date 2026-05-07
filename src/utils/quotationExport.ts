@@ -18,9 +18,8 @@ export function exportExcel(
   currency: 'USD' | 'RMB',
 ) {
   const curSym = currency === 'USD' ? '$' : '¥';
-  // QUO uses moq as quantity, PI uses quantity
+  // QUO uses moq as quantity
   const qty = (i: QuotationItem) => Number(i.moq || 1);
-  const totalVal = items.reduce((s, i) => s + (currency === 'USD' ? Number(i.unit_price_usd) : Number(i.unit_price_rmb)) * qty(i), 0);
   const validUntil = new Date(new Date(q.created_at).getTime() + (q.valid_days || 15) * 86400000);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,13 +39,12 @@ export function exportExcel(
   d.push([]);
   d.push([]);
 
-  d.push(['#', 'Model', 'Description', 'Qty', `Price (${currency})`, `Total (${currency})`, 'Remarks']);
+  d.push(['#', 'Model', 'Description', 'Qty', 'Price', 'Remarks']);
   items.forEach((item, i) => {
     const p = currency === 'USD' ? Number(item.unit_price_usd) : Number(item.unit_price_rmb);
-    d.push([i + 1, item.official_model, item.description || '', qty(item), p, r2(p * qty(item)), item.remarks || '']);
+    d.push([i + 1, item.official_model, item.description || '', qty(item), `${curSym}${p.toFixed(2)}`, item.remarks || '']);
   });
   d.push([]);
-  d.push([`TOTAL: ${curSym}${r2(totalVal).toFixed(2)}`, '', '', '', '', '', '', '']);
   d.push([]);
 
   d.push(['BANK INFORMATION', '', '', '', '', '', '', '']);
@@ -63,7 +61,7 @@ export function exportExcel(
   if (q.notes) d.push([`Notes: ${q.notes}`, '', '', '', '', '', '', '']);
 
   const ws = XLSX.utils.aoa_to_sheet(d);
-  ws['!cols'] = [{ wch: 5 }, { wch: 22 }, { wch: 25 }, { wch: 6 }, { wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 18 }];
+  ws['!cols'] = [{ wch: 5 }, { wch: 22 }, { wch: 25 }, { wch: 6 }, { wch: 14 }, { wch: 20 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'QUOTATION');
@@ -213,16 +211,16 @@ export function exportPDF(
       ${type === 'quotation'
         ? '<th class="left" style="width:25%">Description</th><th style="width:8%">Qty</th>'
         : '<th style="width:8%">Qty</th>'}
-      <th style="width:${type === 'quotation' ? '14%' : '15%'}">Price (${currency})</th>
-      <th style="width:${type === 'quotation' ? '14%' : '15%'}">Total (${currency})</th>
-      ${type === 'quotation' ? '<th style="width:12%">Remarks</th>' : ''}
+      <th style="width:${type === 'quotation' ? '20%' : '15%'}">Price (${currency})</th>
+      ${type === 'pi' ? `<th style="width:15%">Total (${currency})</th>` : ''}
+      ${type === 'quotation' ? '<th style="width:15%">Remarks</th>' : ''}
     </tr></thead>
     <tbody>
       ${items.map((item, i) => {
         const p = showPrice(item);
         if (type === 'quotation') {
           const qt = item.moq || 1;
-          return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${qt}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${r2(p * qt).toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`;
+          return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td class="left">${item.description || '-'}</td><td>${qt}</td><td>${curSym}${p.toFixed(2)}</td><td>${item.remarks || ''}</td></tr>`;
         }
         return `<tr><td>${i+1}</td><td class="left">${item.official_model}</td><td>${item.quantity}</td><td>${curSym}${p.toFixed(2)}</td><td>${curSym}${r2(p * item.quantity).toFixed(2)}</td></tr>`;
       }).join('')}

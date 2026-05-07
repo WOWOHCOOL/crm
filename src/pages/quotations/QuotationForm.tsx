@@ -363,13 +363,14 @@ export default function QuotationForm() {
         );
       },
     },
-    { title: 'Total', key: 'total', width: 110,
+    ...(isQuo ? [] : [{
+      title: 'Total', key: 'total', width: 110,
       render: (_: unknown, __: unknown, i: number) => {
         const item = items[i];
         const total = currency === 'RMB' ? item.unit_price_rmb * item.quantity : item.unit_price_usd * item.quantity;
         return <span style={{ fontWeight: 500 }}>{currency === 'RMB' ? '¥' : '$'}{total.toFixed(2)}</span>;
       },
-    },
+    }]),
     ...(isQuo ? [{
       title: '备注', key: 'remarks', width: 140,
       render: (_: unknown, __: unknown, i: number) => (
@@ -478,9 +479,9 @@ export default function QuotationForm() {
             pagination={false}
             size="small"
             locale={{ emptyText: `请点击"从商品库选择"添加产品` }}
-            summary={() => items.length > 0 ? (
+            summary={() => !isQuo && items.length > 0 ? (
               <Table.Summary.Row>
-                <Table.Summary.Cell index={0} align="right" colSpan={isQuo ? 6 : 5}>
+                <Table.Summary.Cell index={0} align="right" colSpan={5}>
                   <strong>Total / 合计：</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1}>
@@ -490,7 +491,6 @@ export default function QuotationForm() {
                   <Tag>{currency === 'RMB' ? `≈ $${totalUSD.toFixed(2)}` : `≈ ¥${totalRMB.toFixed(2)}`}</Tag>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={3} />
-                {isQuo && <Table.Summary.Cell index={4} />}
               </Table.Summary.Row>
             ) : null}
           />
