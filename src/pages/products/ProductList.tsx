@@ -54,15 +54,16 @@ export default function ProductList() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('products').delete().eq('id', id);
+      const { data, error } = await supabase.from('products').delete().eq('id', id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('无权删除此商品（可能由其他成员创建）');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       message.success('商品已删除');
     },
-    onError: () => message.error('删除失败，可能有关联订单'),
+    onError: (error: Error) => message.error(error.message),
   });
 
   const openEdit = (record: Product) => {

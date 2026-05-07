@@ -75,13 +75,17 @@ export default function AccountManage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => { await supabase.from('accounts').delete().eq('id', id); },
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from('accounts').delete().eq('id', id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('无权删除此科目（可能由其他成员创建），请联系主账号处理');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
       message.success('科目已删除');
     },
-    onError: () => message.error('删除失败，可能有流水关联此科目'),
+    onError: (error: Error) => message.error(error.message),
   });
 
   const initMutation = useMutation({

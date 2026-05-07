@@ -405,8 +405,12 @@ CREATE POLICY "products_select" ON products FOR SELECT USING (
   auth.uid() = user_id OR users_in_same_org(user_id)
 );
 CREATE POLICY "products_insert" ON products FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "products_update" ON products FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "products_delete" ON products FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "products_update" ON products FOR UPDATE USING (
+  auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
+);
+CREATE POLICY "products_delete" ON products FOR DELETE USING (
+  auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
+);
 
 -- -------- 科目（同组织全部可见） --------
 DROP POLICY IF EXISTS "users_manage_own_accounts" ON accounts;
@@ -418,8 +422,12 @@ CREATE POLICY "accounts_select" ON accounts FOR SELECT USING (
   auth.uid() = user_id OR users_in_same_org(user_id)
 );
 CREATE POLICY "accounts_insert" ON accounts FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "accounts_update" ON accounts FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "accounts_delete" ON accounts FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "accounts_update" ON accounts FOR UPDATE USING (
+  auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
+);
+CREATE POLICY "accounts_delete" ON accounts FOR DELETE USING (
+  auth.uid() = user_id OR (current_user_is_org_owner() AND users_in_same_org(user_id))
+);
 
 -- -------- 客户（成员看自己，主账号看全部） --------
 DROP POLICY IF EXISTS "users_manage_own_customers" ON customers;
