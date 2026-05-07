@@ -50,6 +50,7 @@ export interface Product {
   supplier_name: string | null;
   supply_price: number | null;
   tax_included: boolean;
+  image_url: string | null;
   created_at: string;
   user_id: string;
 }
@@ -118,14 +119,19 @@ export interface QuotationItem {
   official_model: string;
   supplier_model: string | null;
   quantity: number;
+  moq: number;
   unit_price_rmb: number;
   unit_price_usd: number;
   supply_price: number | null;
+  description: string | null;
+  remarks: string | null;
   created_at: string;
+  products?: Product | null;
 }
 
 export interface Quotation {
   id: string;
+  type: 'quotation' | 'pi';
   quotation_no: string;
   customer_company: string | null;
   customer_contact: string | null;
@@ -136,6 +142,7 @@ export interface Quotation {
   valid_days: number;
   payment_terms: string;
   delivery_time: string;
+  delivery_time_global: string;
   notes: string | null;
   bank_beneficiary: string;
   bank_name: string | null;

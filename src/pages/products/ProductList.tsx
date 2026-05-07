@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
-  message, Popconfirm, Card, Row, Col, Tag,
+  message, Popconfirm, Card, Row, Col, Tag, Image,
 } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -73,6 +73,12 @@ export default function ProductList() {
   };
 
   const columns = [
+    {
+      title: '图片', dataIndex: 'image_url', key: 'image_url', width: 60,
+      render: (url: string | null) => url
+        ? <Image src={url} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4 }} preview={false} />
+        : <div style={{ width: 36, height: 36, background: '#f5f5f5', borderRadius: 4 }} />,
+    },
     { title: '官网型号', dataIndex: 'official_model', key: 'official_model', width: 180 },
     { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 180 },
     { title: '供应商名称', dataIndex: 'supplier_name', key: 'supplier_name', width: 150 },
@@ -155,6 +161,11 @@ export default function ProductList() {
             <Col xs={24} sm={12}>
               <Form.Item name="tax_included" label="是否含税" valuePropName="checked" initialValue={false}>
                 <Switch checkedChildren="含税" unCheckedChildren="不含" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="image_url" label="产品图片链接">
+                <Input placeholder="https://example.com/product.jpg" />
               </Form.Item>
             </Col>
           </Row>
