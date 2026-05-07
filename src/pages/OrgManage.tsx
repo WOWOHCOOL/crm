@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Card, Table, Tag, Button, message, Space, Typography, Tooltip, Popconfirm } from 'antd';
-import { CopyOutlined, ReloadOutlined, UserOutlined, PlusOutlined, KeyOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Button, message, Space, Typography, Tooltip } from 'antd';
+import { CopyOutlined, UserOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import { useAuth } from '../auth/AuthContext';
 import type { OrgMemberInfo } from '../types';
 
 export default function OrgManage() {
-  const { orgInfo, refreshOrg } = useAuth();
+  const { orgInfo } = useAuth();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState<string | null>(null);
 
