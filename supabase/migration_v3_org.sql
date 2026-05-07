@@ -318,6 +318,44 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 登录后消耗待处理的邀请码（因触发器可能读不到 metadata）
+CREATE OR REPLACE FUNCTION consume_pending_invite()
+RETURNS JSON AS $$
+DECLARE
+  v_code TEXT;
+  v_org_id UUID;
+  v_user_id UUID;
+BEGIN
+  v_user_id := auth.uid();
+
+  -- 查找当前用户注册时携带的邀请码
+  SELECT raw_user_meta_data->>'invite_code' INTO v_code
+  FROM auth.users WHERE id = v_user_id;
+
+  -- 没有邀请码，直接返回空
+  IF v_code IS NULL THEN
+    RETURN json_build_object('consumed', false, 'reason', 'no_invite_code');
+  END IF;
+
+  -- 已经加入了组织，跳过
+  IF EXISTS (SELECT 1 FROM organization_members WHERE user_id = v_user_id) THEN
+    RETURN json_build_object('consumed', false, 'reason', 'already_member');
+  END IF;
+
+  -- 查找并消耗邀请码
+  SELECT org_id INTO v_org_id FROM registration_tokens WHERE code = v_code AND used = false;
+  IF v_org_id IS NULL THEN
+    RETURN json_build_object('consumed', false, 'reason', 'token_invalid_or_used');
+  END IF;
+
+  UPDATE registration_tokens SET used = true, used_by = v_user_id, used_at = NOW() WHERE code = v_code;
+
+  INSERT INTO organization_members (org_id, user_id, role) VALUES (v_org_id, v_user_id, 'member');
+
+  RETURN json_build_object('consumed', true, 'org_id', v_org_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ============================================================
 -- 11. Seed：初始管理员邀请码（用于首次注册）
 -- ============================================================

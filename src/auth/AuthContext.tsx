@@ -43,13 +43,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /**
+   * 初始化组织信息：先查已有组织，没有则尝试消耗待处理的邀请码
+   *
+   * 需要两步的原因：
+   * Supabase Auth 创建用户时，raw_user_meta_data 在 INSERT 之后才设置，
+   * 导致 AFTER INSERT 触发器读不到 invite_code，不会自动创建组织成员。
+   * 所以登录后需要主动调用 consume_pending_invite 来补处理。
+   */
+  const initOrg = useCallback(async () => {
+    setOrgLoading(true);
+    try {
+      // 第一步：查是否有已有组织
+      const { data: orgData, error: orgError } = await supabase.rpc('get_my_org');
+      if (orgError) throw orgError;
+      if (orgData?.org_id) {
+        setOrgInfo(orgData as OrgInfo);
+        setOrgLoading(false);
+        return;
+      }
+
+      // 第二步：没有组织 → 尝试消耗待处理邀请码
+      const { data: inviteResult, error: inviteError } = await supabase.rpc('consume_pending_invite');
+      if (!inviteError && inviteResult?.consumed) {
+        // 消耗成功，重新获取组织信息
+        const { data: newOrgData } = await supabase.rpc('get_my_org');
+        if (newOrgData?.org_id) {
+          setOrgInfo(newOrgData as OrgInfo);
+          setOrgLoading(false);
+          return;
+        }
+      }
+
+      // 确实没有组织
+      setOrgInfo(null);
+    } catch {
+      setOrgInfo(null);
+    } finally {
+      setOrgLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
-        fetchOrg();
+        initOrg();
       } else {
         setOrgLoading(false);
       }
@@ -59,14 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchOrg();
+        initOrg();
       } else {
         setOrgInfo(null);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchOrg]);
+  }, [initOrg]);
 
   const signUp = async (email: string, password: string, name: string, inviteCode: string) => {
     const { error } = await supabase.auth.signUp({
