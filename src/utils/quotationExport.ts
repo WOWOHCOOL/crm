@@ -152,7 +152,6 @@ export function exportPDF(
   .section p, .section .line { font-size:9px; color:#555; line-height:1.6; margin:0; }
   .sig { margin-top:24px; display:flex; justify-content:space-between; align-items:flex-end; }
   .sig .line { width:150px; border-top:1px solid #333; padding-top:3px; font-size:8.5px; color:#999; }
-  .sig .eoe { font-size:8px; color:#aaa; text-align:right; }
   .print-btn { text-align:center; padding:8px 0 10px; }
   .print-btn button { padding:5px 18px; font-size:11px; cursor:pointer; border:1px solid #999; background:#fff; border-radius:3px; }
   .print-btn button:hover { background:#f5f5f5; }
@@ -268,7 +267,6 @@ export function exportPDF(
       <div style="font-size:9px;color:#555">Authorized Signature</div>
       <div class="line" style="margin-top:20px">Signature &amp; Stamp</div>
     </div>
-    <div class="eoe">E.&amp;O.E.<br>This document is computer-generated.</div>
   </div>
 
 </div></body></html>`;
