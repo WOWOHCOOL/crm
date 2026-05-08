@@ -74,10 +74,16 @@ export default function PurchaseForm() {
   const { data: products } = useQuery({
     queryKey: ['products-select'],
     queryFn: async () => {
-      const { data } = await supabase.from('products').select('id, official_model, supplier_model, supply_price, color, material, weight, size, specifications, package_includes').order('official_model');
-      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model' | 'supply_price' | 'color' | 'material' | 'weight' | 'size' | 'specifications' | 'package_includes'>[];
+      const { data } = await supabase.from('products').select('id, official_model, supplier_model').order('official_model');
+      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model'>[];
     },
   });
+
+  // Fetch full product details for auto-fill when a product is selected in an item row
+  const fetchProductDetail = async (productId: string) => {
+    const { data } = await supabase.from('products').select('supply_price, color, material, weight, size, specifications, package_includes').eq('id', productId).single();
+    return data as Pick<Product, 'supply_price' | 'color' | 'material' | 'weight' | 'size' | 'specifications' | 'package_includes'> | null;
+  };
 
   const { data: existingOrder } = useQuery({
     queryKey: ['purchase-order', id],
@@ -138,15 +144,25 @@ export default function PurchaseForm() {
         const product = products?.find(p => p.id === value);
         if (product) {
           updated.model = product.supplier_model || product.official_model;
-          updated.unit_price = product.supply_price || 0;
-          updated.color = product.color || '';
-          const specs: string[] = [];
-          if (product.specifications) specs.push(product.specifications);
-          if (product.material) specs.push(`材质: ${product.material}`);
-          if (product.weight) specs.push(`重量: ${product.weight}`);
-          if (product.size) specs.push(`尺寸: ${product.size}`);
-          if (product.package_includes) specs.push(`包装: ${product.package_includes}`);
-          updated.description = specs.join('；');
+          // Fetch full details for price, color, specs
+          fetchProductDetail(value as string).then((detail) => {
+            if (!detail) return;
+            setItems(prev => prev.map(item => {
+              if (item.key !== key) return item;
+              const specs: string[] = [];
+              if (detail.specifications) specs.push(detail.specifications);
+              if (detail.material) specs.push(`材质: ${detail.material}`);
+              if (detail.weight) specs.push(`重量: ${detail.weight}`);
+              if (detail.size) specs.push(`尺寸: ${detail.size}`);
+              if (detail.package_includes) specs.push(`包装: ${detail.package_includes}`);
+              return {
+                ...item,
+                unit_price: detail.supply_price || 0,
+                color: detail.color || '',
+                description: specs.join('；'),
+              };
+            }));
+          });
         }
       }
       return updated;
