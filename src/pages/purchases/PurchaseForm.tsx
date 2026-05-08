@@ -276,7 +276,7 @@ export default function PurchaseForm() {
             </Col>
           </Row>
 
-          <Divider orientation="left" style={{ fontSize: 14 }}>采购商品</Divider>
+          <Divider style={{ fontSize: 14 }}>采购商品</Divider>
 
           <Table
             dataSource={items.map((item, i) => ({ ...item, _index: i }))}
