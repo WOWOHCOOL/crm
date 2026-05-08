@@ -324,9 +324,10 @@ export default function PurchaseForm() {
       },
     },
     {
-      title: '备注', dataIndex: 'remarks', key: 'remarks', width: 120,
+      title: '备注', dataIndex: 'remarks', key: 'remarks', width: 160,
       render: (v: string, _: unknown, index: number) => (
-        <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'remarks', e.target.value)} />
+        <Input size="small" value={v} placeholder="交货周期/注意事项"
+          onChange={(e) => updateItem(items[index].key, 'remarks', e.target.value)} />
       ),
     },
     {
