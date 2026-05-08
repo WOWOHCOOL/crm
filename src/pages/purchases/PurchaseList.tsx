@@ -2,12 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   Table, Button, Space, Tag, Card, Popconfirm, message,
 } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { PurchaseOrder, PurchaseStatus } from '../../types';
+import type { PurchaseOrder, PurchaseItem, PurchaseStatus, Supplier } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import { logOperation } from '../../utils/log';
+import { exportPurchasePDF } from '../../utils/purchaseExport';
 
 const statusLabels: Record<PurchaseStatus, string> = {
   draft: '草稿',
@@ -44,6 +45,18 @@ export default function PurchaseList() {
     refetchOnMount: true,
   });
 
+  const handleDownload = async (order: PurchaseOrder) => {
+    const { data: supData } = await supabase
+      .from('purchase_orders')
+      .select('*, purchase_items(*), suppliers(*)')
+      .eq('id', order.id)
+      .single();
+    if (!supData) { message.error('获取数据失败'); return; }
+    const items = (supData.purchase_items ?? []) as PurchaseItem[];
+    const supplier = supData.suppliers as Supplier | null;
+    exportPurchasePDF(supData as PurchaseOrder, items, supplier);
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
@@ -73,10 +86,11 @@ export default function PurchaseList() {
       render: (v: PurchaseStatus) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
     },
     {
-      title: '操作', key: 'actions', width: 160,
+      title: '操作', key: 'actions', width: 200,
       render: (_: unknown, record: PurchaseOrder) => (
         <Space>
           <Button size="small" onClick={() => navigate(`/purchases/edit/${record.id}`)}>查看</Button>
+          <Button size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(record)}>PDF</Button>
           {canEdit && record.status === 'draft' && (
             <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
               <Button size="small" danger>删除</Button>
