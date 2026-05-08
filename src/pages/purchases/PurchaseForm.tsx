@@ -286,19 +286,15 @@ export default function PurchaseForm() {
       ),
     },
     {
-      title: '品名', dataIndex: 'product_name', key: 'product_name', width: 110,
-      render: (v: string) => <span style={{ fontSize: 13 }}>{v}</span>,
-    },
-    {
       title: '颜色', dataIndex: 'color', key: 'color', width: 70,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'color', e.target.value)} />
       ),
     },
     {
-      title: '描述/规格', dataIndex: 'description', key: 'description', width: 200,
+      title: '描述/规格', dataIndex: 'description', key: 'description', width: 300,
       render: (v: string, _: unknown, index: number) => (
-        <Input.TextArea size="small" rows={2} value={v}
+        <Input.TextArea size="small" rows={3} value={v}
           onChange={(e) => updateItem(items[index].key, 'description', e.target.value)} />
       ),
     },
@@ -402,7 +398,7 @@ export default function PurchaseForm() {
             rowKey="key"
             pagination={false}
             size="small"
-            scroll={{ x: 900 }}
+            scroll={{ x: 1000 }}
             locale={{ emptyText: '暂无商品，点击下方按钮添加' }}
           />
 

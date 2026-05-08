@@ -144,8 +144,7 @@ export function exportPurchasePDF(
   <table class="items">
     <thead><tr>
       <th style="width:24px">序号</th>
-      <th class="left" style="width:10%">型号</th>
-      <th class="left" style="width:12%">品名</th>
+      <th class="left" style="width:12%">型号</th>
       <th style="width:6%">颜色</th>
       <th class="left" style="width:22%">描述/规格</th>
       <th style="width:7%">数量</th>
@@ -158,7 +157,6 @@ export function exportPurchasePDF(
         <tr>
           <td>${i + 1}</td>
           <td class="left">${item.model || ''}</td>
-          <td class="left">${item.product_name || ''}</td>
           <td>${item.color || ''}</td>
           <td class="left">${item.description || ''}</td>
           <td>${item.quantity}</td>
