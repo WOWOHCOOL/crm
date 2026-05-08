@@ -7,10 +7,9 @@ import {
 import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Product, PurchaseOrder } from '../../types';
+import type { Product, PurchaseOrder, PurchaseItem, Supplier } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportPurchasePDF } from '../../utils/purchaseExport';
-import type { Supplier } from '../../types';
 import dayjs from 'dayjs';
 
 export default function PurchaseForm() {
