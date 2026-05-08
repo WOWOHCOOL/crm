@@ -144,25 +144,27 @@ export function exportPurchasePDF(
   <table class="items">
     <thead><tr>
       <th style="width:28px">序号</th>
-      <th class="left" style="width:18%">名称</th>
+      <th class="left" style="width:14%">名称</th>
+      <th style="width:8%">颜色</th>
       <th style="width:10%">数量（PCS）</th>
       <th style="width:8%">单位</th>
-      <th style="width:13%">单价（RMB）</th>
-      <th style="width:13%">金额</th>
-      <th style="width:12%">交货周期</th>
-      <th class="left" style="width:16%">备注</th>
+      <th style="width:12%">单价（RMB）</th>
+      <th style="width:12%">金额</th>
+      <th style="width:10%">交货周期</th>
+      <th class="left" style="width:14%">备注</th>
     </tr></thead>
     <tbody>
       ${items.map((item, i) => `
         <tr>
           <td>${i + 1}</td>
-          <td class="left">${item.model || item.description || ''}</td>
+          <td class="left">${item.model || ''}</td>
+          <td>${item.color || ''}</td>
           <td>${item.quantity}</td>
           <td>PCS</td>
           <td>${Number(item.unit_price).toFixed(2)}</td>
           <td>${r2(item.quantity * item.unit_price).toFixed(2)}</td>
           <td></td>
-          <td class="left"></td>
+          <td class="left">${item.description || ''}</td>
         </tr>
       `).join('')}
     </tbody>

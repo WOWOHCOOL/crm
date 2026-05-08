@@ -24,6 +24,7 @@ export default function PurchaseForm() {
     key: string;
     product_id: string | null;
     model: string;
+    color: string;
     description: string;
     quantity: number;
     unit_price: number;
@@ -73,8 +74,8 @@ export default function PurchaseForm() {
   const { data: products } = useQuery({
     queryKey: ['products-select'],
     queryFn: async () => {
-      const { data } = await supabase.from('products').select('id, official_model, supplier_model, supply_price, specifications').order('official_model');
-      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model' | 'supply_price' | 'specifications'>[];
+      const { data } = await supabase.from('products').select('id, official_model, supplier_model, supply_price, color, material, weight, size, specifications, package_includes').order('official_model');
+      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model' | 'supply_price' | 'color' | 'material' | 'weight' | 'size' | 'specifications' | 'package_includes'>[];
     },
   });
 
@@ -104,6 +105,7 @@ export default function PurchaseForm() {
         key: item.id as string,
         product_id: item.product_id as string | null,
         model: (item.model as string) || '',
+        color: (item.color as string) || '',
         description: (item.description as string) || '',
         quantity: item.quantity as number,
         unit_price: item.unit_price as number,
@@ -116,6 +118,7 @@ export default function PurchaseForm() {
       key: Date.now().toString(),
       product_id: null,
       model: '',
+      color: '',
       description: '',
       quantity: 1,
       unit_price: 0,
@@ -130,13 +133,20 @@ export default function PurchaseForm() {
     setItems(items.map(i => {
       if (i.key !== key) return i;
       const updated = { ...i, [field]: value };
-      // Auto-fill model, price and description when product is selected
+      // Auto-fill model, price, color and description when product is selected
       if (field === 'product_id' && value) {
         const product = products?.find(p => p.id === value);
         if (product) {
           updated.model = product.supplier_model || product.official_model;
           updated.unit_price = product.supply_price || 0;
-          if (product.specifications) updated.description = product.specifications;
+          updated.color = product.color || '';
+          const specs: string[] = [];
+          if (product.specifications) specs.push(product.specifications);
+          if (product.material) specs.push(`材质: ${product.material}`);
+          if (product.weight) specs.push(`重量: ${product.weight}`);
+          if (product.size) specs.push(`尺寸: ${product.size}`);
+          if (product.package_includes) specs.push(`包装: ${product.package_includes}`);
+          updated.description = specs.join('；');
         }
       }
       return updated;
@@ -180,6 +190,7 @@ export default function PurchaseForm() {
             purchase_order_id: id,
             product_id: item.product_id || null,
             model: item.model || null,
+            color: item.color || null,
             description: item.description || null,
             quantity: item.quantity,
             unit_price: item.unit_price,
@@ -198,6 +209,7 @@ export default function PurchaseForm() {
             purchase_order_id: newOrder.id,
             product_id: item.product_id || null,
             model: item.model || null,
+            color: item.color || null,
             description: item.description || null,
             quantity: item.quantity,
             unit_price: item.unit_price,
@@ -241,6 +253,12 @@ export default function PurchaseForm() {
       title: '型号', dataIndex: 'model', key: 'model', width: 140,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'model', e.target.value)} />
+      ),
+    },
+    {
+      title: '颜色', dataIndex: 'color', key: 'color', width: 90,
+      render: (v: string, _: unknown, index: number) => (
+        <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'color', e.target.value)} />
       ),
     },
     {
@@ -294,6 +312,7 @@ export default function PurchaseForm() {
               purchase_order_id: existingOrder.id,
               product_id: i.product_id as string | null,
               model: i.model as string | null,
+              color: i.color as string | null,
               description: i.description as string | null,
               quantity: i.quantity as number,
               unit_price: i.unit_price as number,
