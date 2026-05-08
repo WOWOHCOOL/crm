@@ -53,6 +53,12 @@ export interface Product {
   tax_included: boolean;
   image_url: string | null;
   supplier_id: string | null;
+  color: string | null;
+  material: string | null;
+  weight: string | null;
+  size: string | null;
+  specifications: string | null;
+  package_includes: string | null;
   created_at: string;
   user_id: string;
 }

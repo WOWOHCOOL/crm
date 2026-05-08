@@ -302,6 +302,39 @@ export default function ProductList() {
               </Form.Item>
             </Col>
           </Row>
+          <div style={{ fontWeight: 600, marginBottom: 8, marginTop: 8, fontSize: 14 }}>产品参数</div>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="color" label="颜色">
+                <Input placeholder="如：黑色、白色" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="material" label="材质">
+                <Input placeholder="如：ABS塑料、金属" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="weight" label="重量">
+                <Input placeholder="如：200g" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="size" label="尺寸">
+                <Input placeholder="如：15×10×5cm" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="specifications" label="规格参数">
+                <Input.TextArea rows={2} placeholder="技术规格参数" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="package_includes" label="包装内容">
+                <Input placeholder="如：主机×1、数据线×1、说明书×1" />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
 
@@ -379,6 +412,12 @@ export default function ProductList() {
                   ? <Image src={detailProduct.image_url} style={{ maxWidth: 120, maxHeight: 80, objectFit: 'contain' }} />
                   : '-'}
               </Descriptions.Item>
+              <Descriptions.Item label="颜色">{detailProduct.color || '-'}</Descriptions.Item>
+              <Descriptions.Item label="材质">{detailProduct.material || '-'}</Descriptions.Item>
+              <Descriptions.Item label="重量">{detailProduct.weight || '-'}</Descriptions.Item>
+              <Descriptions.Item label="尺寸">{detailProduct.size || '-'}</Descriptions.Item>
+              <Descriptions.Item label="规格参数" span={2}>{detailProduct.specifications || '-'}</Descriptions.Item>
+              <Descriptions.Item label="包装内容" span={2}>{detailProduct.package_includes || '-'}</Descriptions.Item>
             </Descriptions>
 
             <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>采购记录</div>
