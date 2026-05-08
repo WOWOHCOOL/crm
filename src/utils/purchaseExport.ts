@@ -179,11 +179,11 @@ export function exportPurchasePDF(
     <p class="clause">2、在制作本合同指定产品时乙方需要根据甲方要求制作，工艺、款式以双方最终确定的样品为准；</p>
     <p class="clause">3、付款方式：20%预付定金，验货通过后提货支付尾款80%。</p>
     <p class="clause" style="text-indent:2em">乙方账号信息：</p>
-    <p class="clause" style="text-indent:2em">纳税识别号：____________________</p>
-    <p class="clause" style="text-indent:2em">开  户  名：____________________</p>
-    <p class="clause" style="text-indent:2em">账      号：____________________</p>
-    <p class="clause" style="text-indent:2em">开  户  行：____________________</p>
-    ${supplier?.bank_info ? `<p class="clause" style="text-indent:2em;color:#666">（银行信息：${supplier.bank_info.replace(/\n/g, '；')}）</p>` : ''}
+    <p class="clause" style="text-indent:2em">纳税识别号：${supplier?.tax_id || '____________________'}</p>
+    <p class="clause" style="text-indent:2em">开  户  名：${supplier?.bank_account_name || '____________________'}</p>
+    <p class="clause" style="text-indent:2em">账      号：${supplier?.bank_account_number || '____________________'}</p>
+    <p class="clause" style="text-indent:2em">开  户  行：${supplier?.bank_name || '____________________'}</p>
+    ${supplier?.bank_info ? `<p class="clause" style="text-indent:2em;color:#666">（${supplier.bank_info.replace(/\n/g, '；')}）</p>` : ''}
     <p class="clause">4、若产品验收不合格，则乙方应当立即返工，直至验货合格。（产品加塑料袋，塑料袋必须包含窒息危险警告和气孔，其他包装物料由甲方提供，乙方包装成品交货。请注意，出口纸箱任何一侧不能超过63厘米，毛重不得超过18Kg。）</p>
     <p class="clause">5、甲方有权利对本合同指定产品的质量、价格和服务进行监督和验审。</p>
     <p class="clause">6、乙方所提供的产品应以与甲方确认的最终样品质量为准，不得以次充好供应给甲方。否则，因此引起的一切不良后果，均由乙方承担。</p>

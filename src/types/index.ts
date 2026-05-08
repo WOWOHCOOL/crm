@@ -143,6 +143,10 @@ export interface Supplier {
   address: string | null;
   payment_terms: string | null;
   bank_info: string | null;
+  tax_id: string | null;
+  bank_account_name: string | null;
+  bank_account_number: string | null;
+  bank_name: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

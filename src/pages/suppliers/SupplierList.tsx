@@ -189,8 +189,22 @@ export default function SupplierList() {
           <Form.Item name="address" label="地址">
             <Input />
           </Form.Item>
-          <Form.Item name="bank_info" label="银行信息">
-            <Input.TextArea rows={2} placeholder="用于 PI 自动填充" />
+          <Form.Item name="tax_id" label="纳税识别号">
+            <Input placeholder="统一社会信用代码" />
+          </Form.Item>
+          <Space style={{ width: '100%' }} size={16}>
+            <Form.Item name="bank_account_name" label="开户名" style={{ flex: 1 }}>
+              <Input placeholder="公司全称" />
+            </Form.Item>
+            <Form.Item name="bank_account_number" label="账号" style={{ flex: 1 }}>
+              <Input placeholder="银行账号" />
+            </Form.Item>
+          </Space>
+          <Form.Item name="bank_name" label="开户行">
+            <Input placeholder="如：中国银行深圳分行" />
+          </Form.Item>
+          <Form.Item name="bank_info" label="其他银行信息">
+            <Input.TextArea rows={2} placeholder="其他银行备注（选填）" />
           </Form.Item>
           <Form.Item name="notes" label="备注">
             <Input.TextArea rows={2} />
@@ -213,7 +227,11 @@ export default function SupplierList() {
               <Descriptions.Item label="邮箱">{detailSupplier.email || '-'}</Descriptions.Item>
               <Descriptions.Item label="付款条件">{detailSupplier.payment_terms || '-'}</Descriptions.Item>
               <Descriptions.Item label="地址" span={2}>{detailSupplier.address || '-'}</Descriptions.Item>
-              <Descriptions.Item label="银行信息" span={2}>{detailSupplier.bank_info || '-'}</Descriptions.Item>
+              <Descriptions.Item label="纳税识别号">{detailSupplier.tax_id || '-'}</Descriptions.Item>
+              <Descriptions.Item label="开户名">{detailSupplier.bank_account_name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="账号">{detailSupplier.bank_account_number || '-'}</Descriptions.Item>
+              <Descriptions.Item label="开户行">{detailSupplier.bank_name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="其他银行信息" span={2}>{detailSupplier.bank_info || '-'}</Descriptions.Item>
               <Descriptions.Item label="备注" span={2}>{detailSupplier.notes || '-'}</Descriptions.Item>
             </Descriptions>
 
