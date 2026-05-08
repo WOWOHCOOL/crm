@@ -89,7 +89,7 @@ export default function PurchaseList() {
       title: '操作', key: 'actions', width: 200,
       render: (_: unknown, record: PurchaseOrder) => (
         <Space>
-          <Button size="small" onClick={() => navigate(`/purchases/edit/${record.id}`)}>查看</Button>
+          <Button size="small" onClick={() => navigate(`/purchases/edit/${record.id}`)}>{record.status === 'draft' ? '编辑' : '查看'}</Button>
           <Button size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(record)}>PDF</Button>
           {canEdit && record.status === 'draft' && (
             <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
