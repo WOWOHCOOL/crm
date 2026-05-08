@@ -119,9 +119,15 @@ export default function QuotationForm() {
   useEffect(() => {
     if (!isEdit && docType === 'pi') {
       const current = form.getFieldValue('payment_terms');
+      const currentTc = form.getFieldValue('terms_conditions');
       if (!current) {
         form.setFieldsValue({
-          payment_terms: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples need full payments.\n2. All banking charges outside Hong Kong are on the buyer\'s account.\n3. Delivery Terms: Within 35 days after payment is confirmed.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
+          payment_terms: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.\n2. All banking charges outside Hong Kong are to be borne by the buyer.\n3. Delivery Terms: Within 35 days after payment confirmation.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
+        });
+      }
+      if (!currentTc) {
+        form.setFieldsValue({
+          terms_conditions: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.\n2. All banking charges outside Hong Kong are to be borne by the buyer.\n3. Delivery Terms: Within 35 days after payment confirmation.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
         });
       }
     }
@@ -340,6 +346,7 @@ export default function QuotationForm() {
       bank_code: values.bank_code || null,
       bank_selection: bankSelection || null,
       paypal_account: values.paypal_account || null,
+      terms_conditions: values.terms_conditions || null,
       deposit_rate: values.deposit_rate || 50,
       status: 'draft',
       created_at: new Date().toISOString(),
@@ -673,6 +680,14 @@ export default function QuotationForm() {
                   </Form.Item>
                 </Col>
               </Row>
+
+              <Typography.Title level={5} style={{ marginTop: 8 }}>Terms & Conditions / 条款条件</Typography.Title>
+              <Form.Item name="terms_conditions">
+                <Input.TextArea rows={6} placeholder="1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.
+2. All banking charges outside Hong Kong are to be borne by the buyer.
+3. Delivery Terms: Within 35 days after payment confirmation.
+4. Requests for revision or cancellation of acknowledged orders will not be accepted." />
+              </Form.Item>
             </>
           )}
         </Form>

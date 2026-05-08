@@ -257,22 +257,22 @@ export function exportPDF(
   </div>
   ` : ''}
 
+  ${type === 'pi' ? `
   <div class="section">
     <h3>Terms &amp; Conditions</h3>
     <div class="line">
-      ${type === 'pi' ? `
-      1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples need full payments.<br>
-      2. All banking charges outside Hong Kong are on the buyer's account.<br>
-      3. Delivery Terms: Within 35 days after payment is confirmed.<br>
-      4. Requests for revision or cancellation of acknowledged orders will not be accepted.<br>
-      ` : `
-      Payment Terms: ${q.payment_terms || 'T/T'}<br>
-      Delivery Time: ${q.delivery_time_global || q.delivery_time || 'To be confirmed'}<br>
-      `}
+      ${(q.terms_conditions || '').split('\n').filter(Boolean).map(line => `${line}<br>`).join('')}
+      Validity: ${q.valid_days || 15} days from the date hereof.
+    </div>
+  </div>` : `
+  <div class="section">
+    <h3>Terms &amp; Conditions</h3>
+    <div class="line">
+      ${(q.terms_conditions || '').split('\n').filter(Boolean).map(line => `${line}<br>`).join('')}
       Validity: ${q.valid_days || 15} days from the date hereof
       ${q.notes ? `<br>Remarks: ${q.notes}` : ''}
     </div>
-  </div>
+  </div>`}
 
   <div class="sig">
     <div>
