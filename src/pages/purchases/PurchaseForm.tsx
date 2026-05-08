@@ -79,10 +79,12 @@ export default function PurchaseForm() {
     },
   });
 
-  // Fetch full product details for auto-fill when a product is selected in an item row
+  // Fetch full product details for auto-fill when a product is selected
   const fetchProductDetail = async (productId: string) => {
-    const { data } = await supabase.from('products').select('supply_price, color, material, weight, size, specifications, package_includes').eq('id', productId).single();
-    return data as Pick<Product, 'supply_price' | 'color' | 'material' | 'weight' | 'size' | 'specifications' | 'package_includes'> | null;
+    // Try with new columns first (v16+), fallback to basic
+    const { data } = await supabase.from('products').select('supply_price, color, material, weight, size, specifications, package_includes').eq('id', productId).maybeSingle();
+    if (data) return data as Pick<Product, 'supply_price' | 'color' | 'material' | 'weight' | 'size' | 'specifications' | 'package_includes'>;
+    return null;
   };
 
   const { data: existingOrder } = useQuery({
