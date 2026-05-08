@@ -454,16 +454,6 @@ export default function QuotationForm() {
         </Space>
       } extra={
         <Space>
-          {!isEdit && (
-            <Segmented
-              value={docType}
-              onChange={(v) => setDocType(v as 'quotation' | 'pi')}
-              options={[
-                { label: '报价单', value: 'quotation' },
-                { label: 'PI', value: 'pi' },
-              ]}
-            />
-          )}
           {isQuo && <Button onClick={handleExportExcel} icon={<DownloadOutlined />}>Excel</Button>}
           <Button onClick={handleExportPDF} icon={<DownloadOutlined />}>PDF</Button>
           <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
