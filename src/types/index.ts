@@ -122,6 +122,22 @@ export interface OperationLog {
   created_at: string;
 }
 
+export interface Task {
+  id: string;
+  org_id: string;
+  customer_id: string | null;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  reminder_time: string | null;
+  status: 'pending' | 'completed' | 'cancelled';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  customers?: Customer | null;
+}
+
 export const ALL_PERMISSIONS = [
   { key: 'customers', label: '客户管理' },
   { key: 'products', label: '商品管理' },
@@ -129,6 +145,7 @@ export const ALL_PERMISSIONS = [
   { key: 'accounts', label: '科目管理' },
   { key: 'reports', label: '财务报表' },
   { key: 'quotations', label: '报价管理' },
+  { key: 'tasks', label: '任务跟进' },
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number]['key'];

@@ -4,7 +4,7 @@ import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input
 import { ArrowLeftOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Order, Quotation } from '../../types';
+import type { Order, Quotation, Task } from '../../types';
 import dayjs from 'dayjs';
 
 const orderTypeLabels: Record<string, string> = {
@@ -66,6 +66,15 @@ export default function CustomerDetail() {
     queryFn: async () => {
       const { data } = await supabase.from('quotations').select('*').eq('customer_id', id).order('created_at', { ascending: false });
       return (data ?? []) as Quotation[];
+    },
+    enabled: !!id,
+  });
+
+  const { data: tasks } = useQuery({
+    queryKey: ['customer-tasks', id],
+    queryFn: async () => {
+      const { data } = await supabase.from('tasks').select('*').eq('customer_id', id).order('due_date', { ascending: true, nullsLast: true });
+      return (data ?? []) as Task[];
     },
     enabled: !!id,
   });
@@ -199,6 +208,38 @@ export default function CustomerDetail() {
             key: 'finance',
             label: `收支 (收入 ¥${totalIncome.toFixed(0)} / 支出 ¥${totalExpense.toFixed(0)})`,
             children: <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" />,
+          },
+          {
+            key: 'tasks',
+            label: `跟进任务 (${(tasks ?? []).filter(t => t.status === 'pending').length})`,
+            children: (
+              <Table dataSource={tasks ?? []}
+                rowKey="id" size="small" pagination={false}
+                columns={[
+                  {
+                    title: '状态', dataIndex: 'status', key: 'status', width: 70,
+                    render: (v: string) => {
+                      const colors: Record<string, string> = { pending: 'orange', completed: 'green', cancelled: 'default' };
+                      const labels: Record<string, string> = { pending: '待处理', completed: '已完成', cancelled: '已取消' };
+                      return <Tag color={colors[v]}>{labels[v]}</Tag>;
+                    },
+                  },
+                  { title: '标题', dataIndex: 'title', key: 'title', width: 180 },
+                  {
+                    title: '优先级', dataIndex: 'priority', key: 'priority', width: 70,
+                    render: (v: string) => {
+                      const colors: Record<string, string> = { low: 'default', normal: 'blue', high: 'orange', urgent: 'red' };
+                      const labels: Record<string, string> = { low: '低', normal: '中', high: '高', urgent: '紧急' };
+                      return <Tag color={colors[v]}>{labels[v]}</Tag>;
+                    },
+                  },
+                  {
+                    title: '截止日期', dataIndex: 'due_date', key: 'due_date', width: 110,
+                    render: (v: string | null) => v ? dayjs(v).format('YYYY-MM-DD') : '-',
+                  },
+                ]}
+                locale={{ emptyText: '暂无跟进任务' }} />
+            ),
           },
         ]} />
       </Card>

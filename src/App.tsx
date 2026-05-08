@@ -18,6 +18,7 @@ import QuotationQuoList from './pages/quotations/QuotationQuoList';
 import QuotationPIList from './pages/quotations/QuotationPIList';
 import QuotationForm from './pages/quotations/QuotationForm';
 import OrgManage from './pages/OrgManage';
+import TaskList from './pages/tasks/TaskList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,6 +102,7 @@ function App() {
                 <Route path="quotations/new" element={<QuotationForm />} />
                 <Route path="quotations/edit/:id" element={<QuotationForm />} />
                 <Route path="org" element={<OrgManage />} />
+                <Route path="tasks" element={<TaskList />} />
               </Route>
             </Routes>
           </AuthProvider>
