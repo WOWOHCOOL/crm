@@ -10,6 +10,7 @@ import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation, Customer } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
+import dayjs from 'dayjs';
 
 function r2(v: number): number {
   return Math.round(v * 100) / 100;
