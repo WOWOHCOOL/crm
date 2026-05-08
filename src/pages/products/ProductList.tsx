@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
-  message, Popconfirm, Card, Row, Col, Tag, Image, Upload, Descriptions,
+  message, Popconfirm, Card, Row, Col, Tag, Image, Upload, Descriptions, Select,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, InboxOutlined, EyeOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -304,10 +304,9 @@ export default function ProductList() {
                   showSearch
                   placeholder="从供应商资料选择"
                   optionFilterProp="label"
-                  onChange={(val) => {
+                  onChange={(val: string | undefined) => {
                     const supplier = suppliersList?.find(s => s.id === val);
                     if (supplier) form.setFieldValue('supplier_name', supplier.name);
-                    else form.setFieldValue('supplier_name', form.getFieldValue('supplier_name'));
                   }}
                   options={(suppliersList ?? []).map(s => ({ label: s.name, value: s.id }))}
                 />
