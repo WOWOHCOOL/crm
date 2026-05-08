@@ -146,6 +146,18 @@ export default function ProductList() {
     logOperation('product', 'import', undefined, `批量导入 ${success} 条`);
   };
 
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['官网型号', '供应商型号', '供应商名称', '供货价', '建议报价', '含税', '产品图片'],
+      ['Model-X100', 'SN-2024-A001', '示例供应商', '120', '180', '是', 'https://example.com/image.jpg'],
+      ['Model-Y200', 'SN-2024-B002', '', '85', '130', '否', ''],
+    ]);
+    ws['!cols'] = [{ wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 36 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '商品导入模板');
+    XLSX.writeFile(wb, '商品导入模板.xlsx');
+  };
+
   const importColumns = [
     { title: '官网型号', dataIndex: '官网型号', key: 'official_model', ellipsis: true },
     { title: '供应商型号', dataIndex: '供应商型号', key: 'supplier_model', ellipsis: true },
@@ -204,6 +216,7 @@ export default function ProductList() {
             <Button icon={<InboxOutlined />} onClick={() => setImportModalOpen(true)}>
               导入 Excel
             </Button>
+            <Button type="link" size="small" onClick={downloadTemplate}>下载模板</Button>
           </Space>}
         </Space>
         <Table
