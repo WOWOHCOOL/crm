@@ -18,7 +18,6 @@ import {
   KeyOutlined,
   LockOutlined,
   SettingOutlined,
-  FileTextOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabase';
@@ -28,6 +27,13 @@ const { Header, Sider, Content, Footer } = Layout;
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    const p = location.pathname;
+    const groups: string[] = [];
+    if (p.startsWith('/customers') || p.startsWith('/quotations')) groups.push('customers-group');
+    if (p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
+    return groups;
+  });
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
   const { user, signOut, orgInfo, permissions, isOwner, isAdmin } = useAuth();
@@ -48,7 +54,14 @@ export default function MainLayout() {
 
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-    { key: '/customers', icon: <TeamOutlined />, label: '客户管理', style: hasPerm('customers') ? {} : { display: 'none' } },
+    ...(hasPerm('customers') ? [{
+      key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
+      children: [
+        { key: '/customers', label: '客户列表' },
+        { key: '/quotations/quo', label: '报价单 (QUO)' },
+        { key: '/quotations/pi', label: 'PI管理 (PI)' },
+      ],
+    }] : []),
     { key: '/products', icon: <ShoppingOutlined />, label: '商品管理', style: hasPerm('products') ? {} : { display: 'none' } },
     { key: '/tasks', icon: <BellOutlined />, label: '任务跟进', style: hasPerm('tasks') ? {} : { display: 'none' } },
     ...(hasPerm('products') ? [{
@@ -58,8 +71,6 @@ export default function MainLayout() {
         { key: '/purchases', label: '采购订单' },
       ],
     }] : []),
-    { key: '/quotations/quo', icon: <FileTextOutlined />, label: '报价单 (QUO)', style: hasPerm('quotations') ? {} : { display: 'none' } },
-    { key: '/quotations/pi', icon: <FileTextOutlined />, label: 'PI管理 (PI)', style: hasPerm('quotations') ? {} : { display: 'none' } },
     { key: '/finance', icon: <DollarOutlined />, label: '财务记账', style: hasPerm('finance') ? {} : { display: 'none' } },
     { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理', style: hasPerm('accounts') ? {} : { display: 'none' } },
     { key: '/reports', icon: <BarChartOutlined />, label: '财务报表', style: hasPerm('reports') ? {} : { display: 'none' } },
@@ -142,6 +153,8 @@ export default function MainLayout() {
           mode="inline"
           selectedKeys={[selectedKey]}
           items={menuItems}
+          openKeys={openKeys}
+          onOpenChange={setOpenKeys}
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
