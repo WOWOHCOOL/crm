@@ -96,7 +96,7 @@ export default function OrgManage() {
   const actionLabels: Record<string, string> = { create: '新建', update: '编辑', delete: '删除' };
   const entityLabels: Record<string, string> = {
     customer: '客户', product: '商品', transaction: '流水',
-    account: '科目', quotation: '报价单', pi: 'PI',
+    account: '科目', quotation: '报价单', pi: 'PI', task: '任务',
   };
 
   const nonOwnerMembers = (members ?? []).filter(m => m.role !== 'owner');
