@@ -251,7 +251,8 @@ export function exportPDF(
       Bank Name: ${q.bank_name || '____________________'}<br>
       Bank Address: ${q.bank_address || '____________________'}<br>
       SWIFT Code: ${q.bank_swift || '____________________'}<br>
-      Bank Code: ${q.bank_code || '____________________'}
+      Bank Code: ${q.bank_code || '____________________'}<br>
+      ${q.paypal_account ? `Paypal Account: ${q.paypal_account} (Only for sample fee)` : ''}
     </div>
   </div>
   ` : ''}

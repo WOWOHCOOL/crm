@@ -266,6 +266,8 @@ export interface Quotation {
   bank_account: string | null;
   bank_swift: string | null;
   bank_code: string | null;
+  bank_selection: string | null;
+  paypal_account: string | null;
   deposit_rate: number;
   status: string;
   created_at: string;

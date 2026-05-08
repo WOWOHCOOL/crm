@@ -43,6 +43,35 @@ export default function QuotationForm() {
   const [form] = Form.useForm();
   const [docType, setDocType] = useState<'quotation' | 'pi'>(defaultType);
   const [currency, setCurrency] = useState<'RMB' | 'USD'>('RMB');
+  const [bankSelection, setBankSelection] = useState<string>('');
+
+  const bankPresets: Record<string, Record<string, string>> = {
+    dbs: {
+      bank_beneficiary: 'Dong Yi Technology Co., Limited',
+      bank_account: '79969272875',
+      bank_name: 'DBS Bank (Hong Kong) Limited',
+      bank_address: '11th Floor, The Center, 99 Queen\'s Road Central, Central, Hong Kong',
+      bank_swift: 'DHBKHKHH',
+      bank_code: '016  (Branch code : 478)',
+      paypal_account: '85319917@qq.com',
+    },
+    jpmorgan: {
+      bank_beneficiary: 'Dong Yi Technology Co., Limited',
+      bank_account: '63003691017',
+      bank_name: 'JPMorgan Chase Bank N.A., Hong Kong Branch',
+      bank_address: '18/F, 20/F, 22-29/F, CHATER HOUSE, 8 CONNAUGHT ROAD CENTRAL, HONG KONG',
+      bank_swift: 'CHASHKHH',
+      bank_code: '007 (Branch Code: 863)',
+      paypal_account: '85319917@qq.com',
+    },
+  };
+
+  const handleBankSelect = (val: string) => {
+    setBankSelection(val);
+    if (val && bankPresets[val]) {
+      form.setFieldsValue(bankPresets[val]);
+    }
+  };
   const [items, setItems] = useState<Array<QuotationItem & { _key: number; _image_url?: string | null }>>([]);
   const [productModal, setProductModal] = useState(false);
   const [productSearch, setProductSearch] = useState('');
@@ -74,6 +103,7 @@ export default function QuotationForm() {
         ...existing,
         exchange_rate: existing.exchange_rate,
       });
+      if (existing.bank_selection) setBankSelection(existing.bank_selection);
       const qItems = (existing.quotation_items ?? []).map((item, i) => ({
         ...item,
         _key: i + 1,
@@ -219,6 +249,8 @@ export default function QuotationForm() {
         bank_address: values.bank_address || null,
         bank_account: values.bank_account || null,
         bank_swift: values.bank_swift || '',
+        bank_selection: bankSelection || null,
+        paypal_account: values.paypal_account || null,
         status: 'draft',
         user_id: user.id,
       };
@@ -591,6 +623,17 @@ export default function QuotationForm() {
           {!isQuo && (
             <>
               <Typography.Title level={5}>Bank Information / 银行信息</Typography.Title>
+              <div style={{ marginBottom: 12 }}>
+                <Segmented
+                  value={bankSelection || ''}
+                  onChange={handleBankSelect}
+                  options={[
+                    { label: '自定义', value: '' },
+                    { label: '星展银行（香港）', value: 'dbs' },
+                    { label: '摩根大通银行（香港）', value: 'jpmorgan' },
+                  ]}
+                />
+              </div>
               <Row gutter={16}>
                 <Col xs={24} sm={12}>
                   <Form.Item name="bank_beneficiary" label="Company Name / 收款人">
@@ -609,7 +652,7 @@ export default function QuotationForm() {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item name="bank_swift" label="SWIFT Code">
-                    <Input placeholder="e.g. BKCHCNBJ45A" />
+                    <Input placeholder="e.g. DHBKHKHH" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
@@ -619,7 +662,12 @@ export default function QuotationForm() {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item name="bank_code" label="Bank Code / 银行代码">
-                    <Input placeholder="e.g. 123456" />
+                    <Input placeholder="e.g. 016" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24}>
+                  <Form.Item name="paypal_account" label="Paypal Account（样品费）">
+                    <Input placeholder="85319917@qq.com" />
                   </Form.Item>
                 </Col>
               </Row>
