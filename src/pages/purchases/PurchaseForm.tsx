@@ -401,7 +401,6 @@ export default function PurchaseForm() {
             rowKey="key"
             pagination={false}
             size="small"
-            scroll={{ x: 1000 }}
             locale={{ emptyText: '暂无商品，点击下方按钮添加' }}
           />
 
@@ -412,10 +411,6 @@ export default function PurchaseForm() {
           <div style={{ textAlign: 'right', marginTop: 16, fontSize: 16, fontWeight: 600 }}>
             合计：¥{totalAmount.toFixed(2)}
           </div>
-
-          <Form.Item name="notes" label="备注" style={{ marginTop: 16 }}>
-            <Input.TextArea rows={2} />
-          </Form.Item>
 
           <Space style={{ marginTop: 16 }}>
             <Button type="primary" onClick={handleSubmit} loading={saving}>
