@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
@@ -28,6 +28,27 @@ export default function PurchaseForm() {
     unit_price: number;
   }[]>([]);
   const [saving, setSaving] = useState(false);
+  const today = dayjs().format('YYYYMMDD');
+
+  // Auto-generate order number for new orders
+  const { data: todayCount } = useQuery({
+    queryKey: ['purchase-order-count', today],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('purchase_orders')
+        .select('*', { count: 'exact', head: true })
+        .like('order_no', `CG-${today}-%`);
+      return (count ?? 0) + 1;
+    },
+    enabled: !isEdit,
+  });
+
+  // Auto-fill order number when count is loaded
+  useEffect(() => {
+    if (!isEdit && todayCount && !form.getFieldValue('order_no')) {
+      form.setFieldValue('order_no', `CG-${today}-DY-${todayCount}`);
+    }
+  }, [isEdit, todayCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers-select'],
@@ -134,7 +155,7 @@ export default function PurchaseForm() {
 
     const orderData = {
       supplier_id: values.supplier_id || null,
-      order_no: values.order_no || `PO-${dayjs().format('YYYYMMDD')}-${Date.now().toString().slice(-4)}`,
+      order_no: values.order_no || `CG-${today}-DY-${todayCount || 1}`,
       order_date: values.order_date ? dayjs(values.order_date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
       total_amount: totalAmount,
       status: 'draft',
