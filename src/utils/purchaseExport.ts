@@ -125,9 +125,9 @@ export function exportPurchasePDF(
     <table>
       <tr>
         <td class="half" valign="top">
-          <strong>采购方（甲方）：</strong>东易科技有限公司<br>
-          联系人：____________________<br>
-          电话：____________________
+          <strong>采购方（甲方）：</strong>${order.buyer_name || '东易科技有限公司'}<br>
+          联系人：${order.buyer_contact || '____________________'}<br>
+          电话：${order.buyer_phone || '____________________'}
         </td>
         <td class="half" valign="top">
           <strong>供应商（乙方）：</strong>${supplier?.name || '____________________'}<br>
@@ -202,7 +202,7 @@ export function exportPurchasePDF(
 
   <div class="sig">
     <div class="box">
-      <div class="title">甲方（盖章）：东易科技有限公司</div>
+      <div class="title">甲方（盖章）：${order.buyer_name || '东易科技有限公司'}</div>
       <div>代表人签字：</div>
       <div class="line">甲方签字盖章</div>
     </div>

@@ -171,6 +171,9 @@ export interface PurchaseOrder {
   total_amount: number | null;
   status: PurchaseStatus;
   payment_terms: string | null;
+  buyer_name: string | null;
+  buyer_contact: string | null;
+  buyer_phone: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

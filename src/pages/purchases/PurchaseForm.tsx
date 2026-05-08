@@ -110,6 +110,9 @@ export default function PurchaseForm() {
         order_no: existingOrder.order_no,
         order_date: existingOrder.order_date ? dayjs(existingOrder.order_date) : dayjs(),
         payment_terms: existingOrder.payment_terms,
+        buyer_name: existingOrder.buyer_name,
+        buyer_contact: existingOrder.buyer_contact,
+        buyer_phone: existingOrder.buyer_phone,
       });
       setItems((existingOrder.purchase_items ?? []).map((item) => ({
         key: item.id as string,
@@ -234,6 +237,9 @@ export default function PurchaseForm() {
       total_amount: totalAmount,
       status: 'draft',
       payment_terms: values.payment_terms || null,
+      buyer_name: values.buyer_name || '东易科技有限公司',
+      buyer_contact: values.buyer_contact || null,
+      buyer_phone: values.buyer_phone || null,
       user_id: user.id,
     };
 
@@ -423,6 +429,25 @@ export default function PurchaseForm() {
             <Col xs={24}>
               <Form.Item name="payment_terms" label="付款方式" initialValue="20%预付定金，验货通过后提货支付尾款80%">
                 <Input placeholder="如：30%预付，70%发货前付清" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Typography.Title level={5} style={{ marginTop: 4, fontSize: 13 }}>采购方信息</Typography.Title>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="buyer_name" label="采购方公司名称" initialValue="东易科技有限公司">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={6}>
+              <Form.Item name="buyer_contact" label="联系人">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={6}>
+              <Form.Item name="buyer_phone" label="电话">
+                <Input />
               </Form.Item>
             </Col>
           </Row>
