@@ -579,7 +579,6 @@ export default function QuotationForm() {
 
           <Divider />
 
-          <Typography.Title level={5}>Settings / 设置与条款</Typography.Title>
           <Row gutter={16}>
             <Col xs={24} sm={6}>
               <Form.Item name="exchange_rate" label="Exchange Rate / 汇率">
@@ -597,11 +596,6 @@ export default function QuotationForm() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={6}>
-              <Form.Item name="delivery_time_global" label="Delivery / 交货时间">
-                <Input placeholder="e.g. 15-20 working days" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={6}>
               <Form.Item name="trade_terms" label="Trade Terms / 贸易方式">
                 <Input placeholder="e.g. FOB Shenzhen, EXW, CIF" />
               </Form.Item>
@@ -613,18 +607,7 @@ export default function QuotationForm() {
                 </Form.Item>
               </Col>
             )}
-            <Col xs={24} sm={12}>
-              <Form.Item name="payment_terms" label="Payment Terms / 付款条款">
-                <Input.TextArea rows={isQuo ? 2 : 4}
-                  placeholder={isQuo ? "e.g. T/T 30% deposit..." : "1. 50% T/T advance as deposit...\n2. All banking charges..."}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <Form.Item name="notes" label="Notes / 备注">
-                <Input.TextArea rows={2} placeholder="Additional notes / terms" />
-              </Form.Item>
-            </Col>
+          </Row>
           </Row>
 
           <Divider />

@@ -55,8 +55,7 @@ export function exportExcel(
   d.push([]);
 
   d.push(['TERMS', '', '', '', '', '', '', '']);
-  d.push([`Payment: ${q.payment_terms || ''}`, '', '', '', '', '', '', '']);
-  d.push([`Delivery: ${q.delivery_time_global || q.delivery_time || ''}`, '', '', '', '', '', '', '']);
+  d.push([`Terms: ${(q.terms_conditions || q.payment_terms || '').split('\n')[0]}`, '', '', '', '', '', '', '']);
   d.push([`Validity: ${q.valid_days || 15} days`, '', '', '', '', '', '', '']);
   if (q.notes) d.push([`Notes: ${q.notes}`, '', '', '', '', '', '', '']);
 
