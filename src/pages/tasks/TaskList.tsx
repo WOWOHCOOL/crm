@@ -45,7 +45,7 @@ const priorityOptions = [
 ];
 
 export default function TaskList() {
-  const { isOwner, isAdmin } = useAuth();
+  const { isOwner, isAdmin, orgInfo } = useAuth();
   const canEdit = isOwner || isAdmin;
   const queryClient = useQueryClient();
 
@@ -108,7 +108,8 @@ export default function TaskList() {
         const { error } = await supabase.from('tasks').update(payload).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('tasks').insert([{ ...payload, user_id: user.id }]);
+        if (!orgInfo?.org_id) throw new Error('未找到组织信息');
+        const { error } = await supabase.from('tasks').insert([{ ...payload, org_id: orgInfo.org_id, user_id: user.id }]);
         if (error) throw error;
       }
     },
