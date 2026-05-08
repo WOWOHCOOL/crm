@@ -35,6 +35,24 @@ export default function SupplierList() {
     refetchOnMount: true,
   });
 
+  // Get purchase stats per supplier
+  const { data: purchaseStats } = useQuery({
+    queryKey: ['purchase-stats'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('purchase_orders')
+        .select('supplier_id, total_amount');
+      const counts: Record<string, { count: number; amount: number }> = {};
+      (data ?? []).forEach((p: { supplier_id: string | null; total_amount: number | null }) => {
+        if (!p.supplier_id) return;
+        if (!counts[p.supplier_id]) counts[p.supplier_id] = { count: 0, amount: 0 };
+        counts[p.supplier_id].count++;
+        counts[p.supplier_id].amount += Number(p.total_amount || 0);
+      });
+      return counts;
+    },
+  });
+
   // Get product count per supplier
   const { data: productCounts } = useQuery({
     queryKey: ['product-counts-by-supplier'],
@@ -128,9 +146,14 @@ export default function SupplierList() {
 
   const columns = [
     { title: '供应商名称', dataIndex: 'name', key: 'name', render: (v: string, r: Supplier) => <a onClick={() => showDetail(r)}>{v}</a> },
-    { title: '联系人', dataIndex: 'contact_person', key: 'contact_person', width: 120 },
-    { title: '电话', dataIndex: 'phone', key: 'phone', width: 140 },
-    { title: '产品数', key: 'productCount', width: 80, render: (_: unknown, r: Supplier) => <Tag>{productCounts?.[r.id] || 0}</Tag> },
+    { title: '联系人', dataIndex: 'contact_person', key: 'contact_person', width: 100 },
+    { title: '电话', dataIndex: 'phone', key: 'phone', width: 120 },
+    { title: '产品数', key: 'productCount', width: 70, render: (_: unknown, r: Supplier) => <Tag>{productCounts?.[r.id] || 0}</Tag> },
+    { title: '采购次数', key: 'purchaseCount', width: 80, render: (_: unknown, r: Supplier) => purchaseStats?.[r.id]?.count || 0 },
+    { title: '采购金额', key: 'purchaseAmount', width: 120, render: (_: unknown, r: Supplier) => {
+      const amt = purchaseStats?.[r.id]?.amount || 0;
+      return amt ? `¥${Number(amt).toFixed(2)}` : '-';
+    } },
     ...(canEdit ? [{
       title: '操作', key: 'actions', width: 140,
       render: (_: unknown, record: Supplier) => (
