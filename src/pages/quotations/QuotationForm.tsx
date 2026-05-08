@@ -77,6 +77,7 @@ export default function QuotationForm() {
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [terms, setTerms] = useState<string[]>([]);
 
   const exchangeRate = Form.useWatch('exchange_rate', form) ?? 7.25;
 
@@ -104,6 +105,9 @@ export default function QuotationForm() {
         exchange_rate: existing.exchange_rate,
       });
       if (existing.bank_selection) setBankSelection(existing.bank_selection);
+      if (existing.terms_conditions) {
+        setTerms(existing.terms_conditions.split('\n').filter(Boolean));
+      }
       const qItems = (existing.quotation_items ?? []).map((item, i) => ({
         ...item,
         _key: i + 1,
@@ -117,15 +121,17 @@ export default function QuotationForm() {
 
   // Auto-fill default terms for new documents
   useEffect(() => {
-    if (!isEdit) {
-      const tc = form.getFieldValue('terms_conditions');
-      if (!tc) {
-        form.setFieldsValue({
-          terms_conditions: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.\n2. All banking charges outside Hong Kong are to be borne by the buyer.\n3. Delivery Terms: Within 35 days after payment confirmation.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
-        });
-      }
+    if (!isEdit && terms.length === 0) {
+      const defaults = [
+        '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.',
+        '2. All banking charges outside Hong Kong are to be borne by the buyer.',
+        '3. Delivery Terms: Within 35 days after payment confirmation.',
+        '4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
+      ];
+      setTerms(defaults);
+      form.setFieldsValue({ terms_conditions: defaults.join('\n') });
     }
-  }, [docType, isEdit, form]);
+  }, [docType, isEdit, form]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Generate quotation number
   useEffect(() => {
@@ -662,12 +668,50 @@ export default function QuotationForm() {
           {isQuo && (
             <>
               <Typography.Title level={5}>Terms & Conditions / 条款条件</Typography.Title>
-              <Form.Item name="terms_conditions">
-                <Input.TextArea rows={6} placeholder="1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.
-2. All banking charges outside Hong Kong are to be borne by the buyer.
-3. Delivery Terms: Within 35 days after payment confirmation.
-4. Requests for revision or cancellation of acknowledged orders will not be accepted." />
+              <Form.Item name="terms_conditions" hidden>
+                <Input />
               </Form.Item>
+              <Table
+                dataSource={terms.map((t, i) => ({ text: t, key: i }))}
+                columns={[
+                  { title: '序号', dataIndex: 'key', key: 'key', width: 50, render: (v: number) => v + 1 },
+                  {
+                    title: '条款内容', dataIndex: 'text', key: 'text',
+                    render: (v: string, _: unknown, index: number) => (
+                      <Input size="small" value={v}
+                        onChange={(e) => {
+                          const next = [...terms];
+                          next[index] = e.target.value;
+                          setTerms(next);
+                          form.setFieldValue('terms_conditions', next.join('\n'));
+                        }} />
+                    ),
+                  },
+                  {
+                    title: '', key: 'actions', width: 40,
+                    render: (_: unknown, __: unknown, index: number) => (
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />}
+                        onClick={() => {
+                          const next = terms.filter((_, i) => i !== index);
+                          setTerms(next);
+                          form.setFieldValue('terms_conditions', next.join('\n'));
+                        }} />
+                    ),
+                  },
+                ]}
+                rowKey="key"
+                pagination={false}
+                size="small"
+              />
+              <Button type="dashed" size="small" icon={<PlusOutlined />}
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  const next = [...terms, ''];
+                  setTerms(next);
+                  form.setFieldValue('terms_conditions', next.join('\n'));
+                }}>
+                添加条款
+              </Button>
             </>
           )}
         </Form>
