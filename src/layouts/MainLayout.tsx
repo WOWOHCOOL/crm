@@ -5,6 +5,7 @@ import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
+  BellOutlined,
   DollarOutlined,
   ShopOutlined,
   AccountBookOutlined,
@@ -53,12 +54,12 @@ export default function MainLayout() {
 
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
+    ...(hasPerm('tasks') ? [{ key: '/tasks', icon: <BellOutlined />, label: '任务跟进' }] : []),
     ...(hasPerm('customers') ? [{
       key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
       children: [
         { key: '/customers', label: '客户列表' },
         { key: '/orders', label: '采购订单（PO）' },
-        ...(hasPerm('tasks') ? [{ key: '/tasks', label: '任务跟进' }] : []),
         { key: '/quotations/quo', label: '报价单 (QUO)' },
         { key: '/quotations/pi', label: '形式发票（PI）' },
       ],
