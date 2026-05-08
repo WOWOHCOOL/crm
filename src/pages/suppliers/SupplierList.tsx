@@ -132,7 +132,7 @@ export default function SupplierList() {
 
   return (
     <div>
-      <Card>
+      <Card title="供应商资料">
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
           <Input
             placeholder="搜索供应商名称/联系人"

@@ -9,7 +9,6 @@ import {
   BellOutlined,
   DollarOutlined,
   ShopOutlined,
-  ShoppingCartOutlined,
   AccountBookOutlined,
   BarChartOutlined,
   MenuFoldOutlined,
@@ -39,7 +38,9 @@ export default function MainLayout() {
   const isMobile = window.innerWidth < 768;
 
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const selectedKey = pathParts.length >= 2 ? '/' + pathParts.slice(0, 2).join('/') : '/' + (pathParts[0] || '');
+  let selectedKey = '/' + (pathParts[0] || '');
+  if (pathParts.length >= 2 && pathParts[0] === 'purchases') selectedKey = '/purchases';
+  if (pathParts.length >= 2 && pathParts[0] === 'quotations') selectedKey = '/' + pathParts.slice(0, 2).join('/');
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
 
@@ -50,8 +51,13 @@ export default function MainLayout() {
     { key: '/customers', icon: <TeamOutlined />, label: '客户管理', style: hasPerm('customers') ? {} : { display: 'none' } },
     { key: '/products', icon: <ShoppingOutlined />, label: '商品管理', style: hasPerm('products') ? {} : { display: 'none' } },
     { key: '/tasks', icon: <BellOutlined />, label: '任务跟进', style: hasPerm('tasks') ? {} : { display: 'none' } },
-    { key: '/suppliers', icon: <ShopOutlined />, label: '供应商管理', style: hasPerm('products') ? {} : { display: 'none' } },
-    { key: '/purchases', icon: <ShoppingCartOutlined />, label: '采购订单', style: hasPerm('products') ? {} : { display: 'none' } },
+    ...(hasPerm('products') ? [{
+      key: 'supplier-group', icon: <ShopOutlined />, label: '供应商管理',
+      children: [
+        { key: '/suppliers', label: '供应商资料' },
+        { key: '/purchases', label: '采购订单' },
+      ],
+    }] : []),
     { key: '/quotations/quo', icon: <FileTextOutlined />, label: '报价单 (QUO)', style: hasPerm('quotations') ? {} : { display: 'none' } },
     { key: '/quotations/pi', icon: <FileTextOutlined />, label: 'PI管理 (PI)', style: hasPerm('quotations') ? {} : { display: 'none' } },
     { key: '/finance', icon: <DollarOutlined />, label: '财务记账', style: hasPerm('finance') ? {} : { display: 'none' } },
