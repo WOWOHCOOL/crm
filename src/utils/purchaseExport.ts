@@ -71,14 +71,15 @@ export function exportPurchasePDF(
   .page { max-width:100%; }
 
   .header { text-align:center; margin-bottom:14px; }
-  .header h1 { font-size:20px; font-weight:700; letter-spacing:6px; }
+  .header { text-align:center; margin-bottom:6px; }
+  .header h1 { font-size:20px; font-weight:700; letter-spacing:6px; margin-bottom:2px; }
+  .header .meta { font-size:9px; color:#666; display:flex; justify-content:space-between; }
   .divider { border:none; border-top:2px solid #333; margin:0 0 10px 0; }
 
   .info { margin-bottom:10px; font-size:10px; }
   .info table { width:100%; border-collapse:collapse; }
   .info td { padding:1px 4px; vertical-align:top; }
-  .info .left { width:60%; }
-  .info .right { width:40%; text-align:right; }
+  .info .half { width:50%; }
   .info .label { color:#666; white-space:nowrap; }
 
   .section-title { font-weight:600; font-size:10.5px; margin:8px 0 4px 0; }
@@ -112,6 +113,10 @@ export function exportPurchasePDF(
 
   <div class="header">
     <h1>采 购 订 单</h1>
+    <div class="meta">
+      <span>编号：${order.order_no}</span>
+      <span>日期：${fmtDate(order.order_date)}</span>
+    </div>
   </div>
 
   <hr class="divider">
@@ -119,23 +124,12 @@ export function exportPurchasePDF(
   <div class="info">
     <table>
       <tr>
-        <td class="left" valign="top">
+        <td class="half" valign="top">
           <strong>采购方（甲方）：</strong>东易科技有限公司<br>
-          联系人：${supplier?.contact_person || '____________________'}<br>
-          电话：${supplier?.phone || '____________________'}
+          联系人：____________________<br>
+          电话：____________________
         </td>
-        <td class="right" valign="top">
-          日期：${fmtDate(order.order_date)}<br>
-          编号：${order.order_no}
-        </td>
-      </tr>
-    </table>
-  </div>
-
-  <div class="info">
-    <table>
-      <tr>
-        <td class="left" valign="top">
+        <td class="half" valign="top">
           <strong>供应商（乙方）：</strong>${supplier?.name || '____________________'}<br>
           联系人：${supplier?.contact_person || '____________________'}<br>
           电话：${supplier?.phone || '____________________'}<br>
