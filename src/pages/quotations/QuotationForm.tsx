@@ -10,14 +10,13 @@ import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation, Customer } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
-import dayjs from 'dayjs';
-
 function r2(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
 async function generateNo(type: 'QUO' | 'PI'): Promise<string> {
-  const today = dayjs().format('YYYYMMDD');
+  const d = new Date();
+  const today = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   const { data: seq } = await supabase.rpc('get_next_seq', { p_prefix: type, p_date: today });
   return `${type}-${today}-DY${String(seq || 1).padStart(2, '0')}`;
 }
