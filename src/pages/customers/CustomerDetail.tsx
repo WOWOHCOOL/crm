@@ -209,7 +209,9 @@ export default function CustomerDetail() {
           <Descriptions.Item label="公司">{customer?.company ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="国家">{customer?.country ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="电话">{customer?.phone ?? '-'}</Descriptions.Item>
-          <Descriptions.Item label="邮箱">{customer?.email ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="邮箱1">{customer?.email ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="邮箱2">{customer?.email2 ?? '-'}</Descriptions.Item>
+          <Descriptions.Item label="邮箱3">{customer?.email3 ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="WhatsApp">{customer?.whatsapp ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="LinkedIn">{customer?.linkedin ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="官网">{customer?.website ? <a href={customer.website} target="_blank" rel="noreferrer">{customer.website}</a> : '-'}</Descriptions.Item>

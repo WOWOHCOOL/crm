@@ -4,6 +4,8 @@ export interface Customer {
   company: string | null;
   phone: string | null;
   email: string | null;
+  email2: string | null;
+  email3: string | null;
   whatsapp: string | null;
   linkedin: string | null;
   website: string | null;

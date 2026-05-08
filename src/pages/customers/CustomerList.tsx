@@ -162,8 +162,18 @@ export default function CustomerList() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="email" label="邮箱">
-                <Input />
+              <Form.Item name="email" label="邮箱1">
+                <Input placeholder="主邮箱" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email2" label="邮箱2">
+                <Input placeholder="备用邮箱" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email3" label="邮箱3">
+                <Input placeholder="其他邮箱" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
