@@ -144,27 +144,29 @@ export function exportPurchasePDF(
   <table class="items">
     <thead><tr>
       <th style="width:28px">序号</th>
-      <th class="left" style="width:14%">名称</th>
-      <th style="width:8%">颜色</th>
-      <th style="width:10%">数量（PCS）</th>
-      <th style="width:8%">单位</th>
-      <th style="width:12%">单价（RMB）</th>
-      <th style="width:12%">金额</th>
-      <th style="width:10%">交货周期</th>
+      <th class="left" style="width:11%">型号</th>
+      <th class="left" style="width:11%">品名</th>
+      <th style="width:7%">颜色</th>
       <th class="left" style="width:14%">描述/规格</th>
+      <th style="width:8%">数量</th>
+      <th style="width:11%">单价（RMB）</th>
+      <th style="width:11%">金额</th>
+      <th style="width:8%">交货周期</th>
+      <th class="left" style="width:11%">备注</th>
     </tr></thead>
     <tbody>
       ${items.map((item, i) => `
         <tr>
           <td>${i + 1}</td>
           <td class="left">${item.model || ''}</td>
+          <td class="left">${item.product_name || ''}</td>
           <td>${item.color || ''}</td>
+          <td class="left">${item.description || ''}</td>
           <td>${item.quantity}</td>
-          <td>PCS</td>
           <td>${Number(item.unit_price).toFixed(2)}</td>
           <td>${r2(item.quantity * item.unit_price).toFixed(2)}</td>
           <td></td>
-          <td class="left">${item.description || ''}</td>
+          <td class="left">${item.remarks || ''}</td>
         </tr>
       `).join('')}
     </tbody>

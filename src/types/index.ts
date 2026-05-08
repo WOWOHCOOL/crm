@@ -182,8 +182,10 @@ export interface PurchaseItem {
   purchase_order_id: string;
   product_id: string | null;
   model: string | null;
+  product_name: string | null;
   color: string | null;
   description: string | null;
+  remarks: string | null;
   quantity: number;
   unit_price: number;
   created_at: string;

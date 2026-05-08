@@ -24,8 +24,10 @@ export default function PurchaseForm() {
     key: string;
     product_id: string | null;
     model: string;
+    product_name: string;
     color: string;
     description: string;
+    remarks: string;
     quantity: number;
     unit_price: number;
   }[]>([]);
@@ -113,8 +115,10 @@ export default function PurchaseForm() {
         key: item.id as string,
         product_id: item.product_id as string | null,
         model: (item.model as string) || '',
+        product_name: (item.product_name as string) || '',
         color: (item.color as string) || '',
         description: (item.description as string) || '',
+        remarks: (item.remarks as string) || '',
         quantity: item.quantity as number,
         unit_price: item.unit_price as number,
       })));
@@ -126,8 +130,10 @@ export default function PurchaseForm() {
       key: Date.now().toString(),
       product_id: null,
       model: '',
+      product_name: '',
       color: '',
       description: '',
+      remarks: '',
       quantity: 1,
       unit_price: 0,
     }]);
@@ -141,11 +147,12 @@ export default function PurchaseForm() {
     setItems(items.map(i => {
       if (i.key !== key) return i;
       const updated = { ...i, [field]: value };
-      // Auto-fill model, price, color and description when product is selected
+      // Auto-fill all fields when product is selected
       if (field === 'product_id' && value) {
         const product = products?.find(p => p.id === value);
         if (product) {
-          updated.model = product.supplier_model || product.official_model;
+          updated.model = product.supplier_model || '';
+          updated.product_name = product.official_model || '';
           // Fetch full details for price, color, specs
           fetchProductDetail(value as string).then((detail) => {
             if (!detail) return;
@@ -208,8 +215,10 @@ export default function PurchaseForm() {
             purchase_order_id: id,
             product_id: item.product_id || null,
             model: item.model || null,
+            product_name: item.product_name || null,
             color: item.color || null,
             description: item.description || null,
+            remarks: item.remarks || null,
             quantity: item.quantity,
             unit_price: item.unit_price,
             user_id: user.id,
@@ -227,8 +236,10 @@ export default function PurchaseForm() {
             purchase_order_id: newOrder.id,
             product_id: item.product_id || null,
             model: item.model || null,
+            product_name: item.product_name || null,
             color: item.color || null,
             description: item.description || null,
+            remarks: item.remarks || null,
             quantity: item.quantity,
             unit_price: item.unit_price,
             user_id: user.id,
@@ -250,13 +261,14 @@ export default function PurchaseForm() {
 
   const itemColumns = [
     {
-      title: '产品', dataIndex: 'product_id', key: 'product_id', width: 200,
+      title: '产品', dataIndex: 'product_id', key: 'product_id', width: 170,
       render: (v: string | null, _: unknown, index: number) => (
         <Select
           showSearch
           allowClear
-          placeholder="搜索选择产品"
+          placeholder="搜索"
           style={{ width: '100%' }}
+          size="small"
           value={v}
           onChange={(val) => updateItem(items[index].key, 'product_id', val)}
           optionFilterProp="label"
@@ -268,43 +280,55 @@ export default function PurchaseForm() {
       ),
     },
     {
-      title: '型号', dataIndex: 'model', key: 'model', width: 140,
+      title: '型号', dataIndex: 'model', key: 'model', width: 120,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'model', e.target.value)} />
       ),
     },
     {
-      title: '颜色', dataIndex: 'color', key: 'color', width: 90,
+      title: '品名', dataIndex: 'product_name', key: 'product_name', width: 120,
+      render: (v: string, _: unknown, index: number) => (
+        <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'product_name', e.target.value)} />
+      ),
+    },
+    {
+      title: '颜色', dataIndex: 'color', key: 'color', width: 80,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'color', e.target.value)} />
       ),
     },
     {
-      title: '描述', dataIndex: 'description', key: 'description',
+      title: '描述/规格', dataIndex: 'description', key: 'description',
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'description', e.target.value)} />
       ),
     },
     {
-      title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80,
+      title: '数量', dataIndex: 'quantity', key: 'quantity', width: 70,
       render: (v: number, _: unknown, index: number) => (
         <InputNumber size="small" min={1} style={{ width: '100%' }}
           value={v} onChange={(val) => updateItem(items[index].key, 'quantity', val || 1)} />
       ),
     },
     {
-      title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 110,
+      title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 100,
       render: (v: number, _: unknown, index: number) => (
         <InputNumber size="small" min={0} precision={2} prefix="¥" style={{ width: '100%' }}
           value={v} onChange={(val) => updateItem(items[index].key, 'unit_price', val || 0)} />
       ),
     },
     {
-      title: '小计', key: 'subtotal', width: 100,
+      title: '小计', key: 'subtotal', width: 90,
       render: (_: unknown, __: unknown, index: number) => {
         const item = items[index];
         return `¥${(item.quantity * item.unit_price).toFixed(2)}`;
       },
+    },
+    {
+      title: '备注', dataIndex: 'remarks', key: 'remarks', width: 120,
+      render: (v: string, _: unknown, index: number) => (
+        <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'remarks', e.target.value)} />
+      ),
     },
     {
       title: '', key: 'actions', width: 40,
@@ -330,8 +354,10 @@ export default function PurchaseForm() {
               purchase_order_id: existingOrder.id,
               product_id: i.product_id as string | null,
               model: i.model as string | null,
+              product_name: i.product_name as string | null,
               color: i.color as string | null,
               description: i.description as string | null,
+              remarks: i.remarks as string | null,
               quantity: i.quantity as number,
               unit_price: i.unit_price as number,
               created_at: i.created_at as string,
