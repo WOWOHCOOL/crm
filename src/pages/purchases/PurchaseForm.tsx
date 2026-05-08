@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
-  message, Row, Col, Popconfirm, DatePicker, Typography,
+  message, Row, Col, Popconfirm, DatePicker, Typography, Modal,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -468,7 +468,7 @@ export default function PurchaseForm() {
           if (selectingIndex === -1) {
             addItemWithProduct(id);
           } else {
-            updateItem(items[selectingIndex].key, 'product_id', id);
+            if (selectingIndex !== null) updateItem(items[selectingIndex].key, 'product_id', id);
           }
           setSelectingIndex(null);
         }} />
