@@ -293,22 +293,18 @@ export default function ProductList() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="supplier_name" label="供应商名称">
-                <Input placeholder="或选择下方供应商自动填充" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="supplier_id" label="选择供应商">
+              <Form.Item name="supplier_name" label="供应商">
                 <Select
                   allowClear
                   showSearch
                   placeholder="从供应商资料选择"
                   optionFilterProp="label"
-                  onChange={(val: string | undefined) => {
-                    const supplier = suppliersList?.find(s => s.id === val);
-                    if (supplier) form.setFieldValue('supplier_name', supplier.name);
+                  onSelect={(val: string) => {
+                    const supplier = suppliersList?.find(s => s.name === val);
+                    form.setFieldValue('supplier_id', supplier?.id || null);
                   }}
-                  options={(suppliersList ?? []).map(s => ({ label: s.name, value: s.id }))}
+                  onClear={() => form.setFieldValue('supplier_id', null)}
+                  options={(suppliersList ?? []).map(s => ({ label: s.name, value: s.name }))}
                 />
               </Form.Item>
             </Col>
