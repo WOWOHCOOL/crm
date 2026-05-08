@@ -103,7 +103,7 @@ export default function PurchaseForm() {
   });
 
   // Load existing data into form
-  useState(() => {
+  useEffect(() => {
     if (existingOrder) {
       form.setFieldsValue({
         supplier_id: existingOrder.supplier_id,
@@ -126,7 +126,7 @@ export default function PurchaseForm() {
         unit_price: item.unit_price as number,
       })));
     }
-  });
+  }, [existingOrder]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addItem = () => {
     setItems([...items, {
