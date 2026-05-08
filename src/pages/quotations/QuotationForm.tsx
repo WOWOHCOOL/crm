@@ -115,17 +115,11 @@ export default function QuotationForm() {
     }
   }, [existing, form]);
 
-  // Auto-fill PI default payment terms when type changes
+  // Auto-fill default terms for new documents
   useEffect(() => {
-    if (!isEdit && docType === 'pi') {
-      const current = form.getFieldValue('payment_terms');
-      const currentTc = form.getFieldValue('terms_conditions');
-      if (!current) {
-        form.setFieldsValue({
-          payment_terms: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.\n2. All banking charges outside Hong Kong are to be borne by the buyer.\n3. Delivery Terms: Within 35 days after payment confirmation.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
-        });
-      }
-      if (!currentTc) {
+    if (!isEdit) {
+      const tc = form.getFieldValue('terms_conditions');
+      if (!tc) {
         form.setFieldsValue({
           terms_conditions: '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.\n2. All banking charges outside Hong Kong are to be borne by the buyer.\n3. Delivery Terms: Within 35 days after payment confirmation.\n4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
         });
