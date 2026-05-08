@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../supabase';
+import { useAuth } from '../auth/AuthContext';
 import dayjs from 'dayjs';
 
 const cardStyle = {
@@ -27,6 +28,8 @@ const cardStyle = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { isOwner, isAdmin } = useAuth();
+  const canViewFinance = isOwner || isAdmin;
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -125,31 +128,32 @@ export default function Dashboard() {
         </span>
       </Typography.Title>
 
-      {/* Stats Cards */}
-      <Row gutter={[12, 12]}>
-        {statCards.map((card, i) => (
-          <Col xs={12} sm={8} lg={4} key={i}>
-            <Card hoverable size="small" style={cardStyle} onClick={() => navigate(card.link)}
-              bodyStyle={{ padding: '14px 16px' }}>
-              <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
-                  <Statistic value={card.value} precision={card.title.includes('率') ? 1 : 0}
-                    suffix={card.suffix} valueStyle={{ fontSize: 18, fontWeight: 600 }}
-                    loading={isLoading} />
-                </div>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 8, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  background: card.bg, color: card.color, fontSize: 18,
-                }}>
-                  {card.icon}
-                </div>
-              </Space>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {canViewFinance && (
+        <Row gutter={[12, 12]}>
+          {statCards.map((card, i) => (
+            <Col xs={12} sm={8} lg={4} key={i}>
+              <Card hoverable size="small" style={cardStyle} onClick={() => navigate(card.link)}
+                bodyStyle={{ padding: '14px 16px' }}>
+                <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
+                    <Statistic value={card.value} precision={card.title.includes('率') ? 1 : 0}
+                      suffix={card.suffix} valueStyle={{ fontSize: 18, fontWeight: 600 }}
+                      loading={isLoading} />
+                  </div>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: card.bg, color: card.color, fontSize: 18,
+                  }}>
+                    {card.icon}
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
 
       {/* Middle Row: Tasks + Quick Actions */}
       <Row gutter={12} style={{ marginTop: 16 }}>
@@ -205,16 +209,17 @@ export default function Dashboard() {
         </Col>
       </Row>
 
-      {/* Recent Transactions */}
-      <Card title={<Space><DollarOutlined style={{ color: '#52c41a' }} />最近流水</Space>}
-        style={{ ...cardStyle, marginTop: 16 }}
-        bodyStyle={{ padding: '12px 16px' }}
-        extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12 }}>查看全部</a>}>
-        {txLoading ? <Spin /> : (
-          <Table dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
-            pagination={false} size="small" scroll={{ x: 400 }} />
-        )}
-      </Card>
+      {canViewFinance && (
+        <Card title={<Space><DollarOutlined style={{ color: '#52c41a' }} />最近流水</Space>}
+          style={{ ...cardStyle, marginTop: 16 }}
+          bodyStyle={{ padding: '12px 16px' }}
+          extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12 }}>查看全部</a>}>
+          {txLoading ? <Spin /> : (
+            <Table dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
+              pagination={false} size="small" scroll={{ x: 400 }} />
+          )}
+        </Card>
+      )}
     </div>
   );
 }
