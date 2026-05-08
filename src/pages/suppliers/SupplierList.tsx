@@ -64,6 +64,20 @@ export default function SupplierList() {
     enabled: !!detailSupplier,
   });
 
+  const { data: supplierPurchases } = useQuery({
+    queryKey: ['supplier-purchases', detailSupplier?.id],
+    queryFn: async () => {
+      if (!detailSupplier) return [];
+      const { data } = await supabase
+        .from('purchase_orders')
+        .select('order_no, order_date, total_amount, status, created_at')
+        .eq('supplier_id', detailSupplier.id)
+        .order('created_at', { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!detailSupplier,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Supplier>) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -249,6 +263,21 @@ export default function SupplierList() {
                 ]} />
             ) : (
               <div style={{ color: '#999', padding: 12 }}>暂无关联产品</div>
+            )}
+
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 15, marginTop: 16 }}>
+              📋 采购记录 ({supplierPurchases?.length || 0})
+            </div>
+            {supplierPurchases && supplierPurchases.length > 0 ? (
+              <Table dataSource={supplierPurchases as Record<string, unknown>[]}
+                rowKey="order_no" size="small" pagination={false}
+                columns={[
+                  { title: '采购单号', dataIndex: 'order_no', key: 'order_no', width: 180 },
+                  { title: '日期', dataIndex: 'order_date', key: 'order_date', width: 100 },
+                  { title: '金额', dataIndex: 'total_amount', key: 'total_amount', width: 100, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
+                ]} />
+            ) : (
+              <div style={{ color: '#999', padding: 12 }}>暂无采购记录</div>
             )}
           </>
         )}
