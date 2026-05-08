@@ -245,6 +245,8 @@ export default function QuotationForm() {
         customer_phone: values.customer_phone || null,
         exchange_rate: values.exchange_rate || 7.25,
         valid_days: values.valid_days || 15,
+        trade_terms: values.trade_terms || null,
+        terms_conditions: terms.length > 0 ? terms.join('\n') : (values.terms_conditions || null),
         payment_terms: values.payment_terms || 'T/T 30% deposit, 70% before shipment',
         delivery_time_global: values.delivery_time_global || '',
         delivery_time: values.delivery_time_global || '',
