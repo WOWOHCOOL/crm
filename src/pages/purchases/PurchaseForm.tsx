@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
-  message, Row, Col, Popconfirm, DatePicker, Divider, Typography,
+  message, Row, Col, Popconfirm, DatePicker, Typography,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -276,7 +276,7 @@ export default function PurchaseForm() {
             </Col>
           </Row>
 
-          <Divider style={{ fontSize: 14 }}>采购商品</Divider>
+          <Typography.Title level={5} style={{ marginTop: 4 }}>采购商品</Typography.Title>
 
           <Table
             dataSource={items.map((item, i) => ({ ...item, _index: i }))}
