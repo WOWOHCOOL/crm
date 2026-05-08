@@ -39,6 +39,14 @@ export default function ProductList() {
     refetchOnMount: true,
   });
 
+  const { data: suppliersList } = useQuery({
+    queryKey: ['suppliers-for-products'],
+    queryFn: async () => {
+      const { data } = await supabase.from('suppliers').select('id, name').order('name');
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Product>) => {
       if (editing) {
@@ -286,7 +294,23 @@ export default function ProductList() {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="supplier_name" label="供应商名称">
-                <Input />
+                <Input placeholder="或选择下方供应商自动填充" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="supplier_id" label="选择供应商">
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="从供应商资料选择"
+                  optionFilterProp="label"
+                  onChange={(val) => {
+                    const supplier = suppliersList?.find(s => s.id === val);
+                    if (supplier) form.setFieldValue('supplier_name', supplier.name);
+                    else form.setFieldValue('supplier_name', form.getFieldValue('supplier_name'));
+                  }}
+                  options={(suppliersList ?? []).map(s => ({ label: s.name, value: s.id }))}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
