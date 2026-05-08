@@ -6,11 +6,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 
 const COLORS = ['#52c41a', '#ff4d4f', '#1677ff', '#faad14', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16'];
+const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16', '#2f54eb', '#7cb305'];
 
 export default function Reports() {
   const [year, setYear] = useState(dayjs().year());
@@ -97,6 +98,76 @@ export default function Reports() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([name, amount], i) => ({ key: i, name, amount }));
+    },
+  });
+
+  // Profit analysis
+  const { data: profitData } = useQuery({
+    queryKey: ['profit-analysis'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('official_model, supplier_name, supply_price, suggested_price');
+      if (!data) return { products: [], totalProfit: 0, avgMargin: 0 };
+      const products = data
+        .filter((p: Record<string, unknown>) => p.supply_price && p.suggested_price)
+        .map((p: Record<string, unknown>) => {
+          const supply = Number(p.supply_price);
+          const suggest = Number(p.suggested_price);
+          const profit = suggest - supply;
+          const margin = suggest > 0 ? (profit / suggest) * 100 : 0;
+          return {
+            name: p.official_model as string,
+            supplier: p.supplier_name as string || '-',
+            supply,
+            suggest,
+            profit: Math.round(profit * 100) / 100,
+            margin: Math.round(margin * 10) / 10,
+          };
+        })
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 20);
+      const totalProfit = products.reduce((s, p) => s + p.profit, 0);
+      const avgMargin = products.length > 0
+        ? Math.round((products.reduce((s, p) => s + p.margin, 0) / products.length) * 10) / 10
+        : 0;
+      return { products, totalProfit, avgMargin, count: products.length };
+    },
+  });
+
+  // Customer statistics
+  const { data: customerStats } = useQuery({
+    queryKey: ['customer-stats'],
+    queryFn: async () => {
+      const { data } = await supabase.from('customers').select('country, source, created_at');
+      if (!data) return { byCountry: [], bySource: [], byMonth: [] };
+
+      const countryMap: Record<string, number> = {};
+      const sourceMap: Record<string, number> = {};
+      const monthMap: Record<string, number> = {};
+
+      data.forEach((c: { country: string | null; source: string | null; created_at: string }) => {
+        const country = c.country || '未知';
+        countryMap[country] = (countryMap[country] || 0) + 1;
+        const source = c.source || '未知';
+        sourceMap[source] = (sourceMap[source] || 0) + 1;
+        const month = c.created_at ? dayjs(c.created_at).format('YYYY-MM') : '未知';
+        monthMap[month] = (monthMap[month] || 0) + 1;
+      });
+
+      const byCountry = Object.entries(countryMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, value]) => ({ name, value }));
+      const bySource = Object.entries(sourceMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value }));
+      const byMonth = Object.entries(monthMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-12)
+        .map(([name, value]) => ({ name, value }));
+
+      return { byCountry, bySource, byMonth };
     },
   });
 
@@ -214,6 +285,76 @@ export default function Reports() {
                 <Tooltip formatter={(v) => `¥${Number(v).toFixed(2)}`} />
                 <Legend />
               </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Profit Analysis */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={8}>
+          <Card title="利润分析" size="small">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Statistic title="产品数（有价格数据）" value={profitData?.count || 0} />
+              <Statistic title="预计总利润" value={profitData?.totalProfit || 0} precision={2} prefix="¥" valueStyle={{ color: '#52c41a' }} />
+              <Statistic title="平均毛利率" value={profitData?.avgMargin || 0} suffix="%" valueStyle={{ color: '#1677ff' }} />
+            </Space>
+          </Card>
+        </Col>
+        <Col xs={24} lg={16}>
+          <Card title="单品利润排行（Top 20）" size="small">
+            <Table dataSource={profitData?.products ?? []} rowKey="name" size="small" pagination={false}
+              columns={[
+                { title: '型号', dataIndex: 'name', key: 'name', ellipsis: true },
+                { title: '供货价', dataIndex: 'supply', key: 'supply', render: (v: number) => `¥${v.toFixed(2)}` },
+                { title: '建议报价', dataIndex: 'suggest', key: 'suggest', render: (v: number) => `¥${v.toFixed(2)}` },
+                { title: '利润', dataIndex: 'profit', key: 'profit', render: (v: number) => `¥${v.toFixed(2)}` },
+                { title: '毛利率', dataIndex: 'margin', key: 'margin', render: (v: number) => `${v}%` },
+              ]}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Customer Statistics */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={8}>
+          <Card title="客户国家分布">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={customerStats?.byCountry ?? []} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#1677ff" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="客户来源分布">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={customerStats?.bySource ?? []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}(${value})`}>
+                  {(customerStats?.bySource ?? []).map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="客户增长趋势（近12月）">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={customerStats?.byMonth ?? []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#52c41a" />
+              </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
