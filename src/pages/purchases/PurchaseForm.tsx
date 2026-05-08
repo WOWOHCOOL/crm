@@ -368,7 +368,7 @@ export default function PurchaseForm() {
             下载 PDF
           </Button>
         ) : null}>
-        <Form form={form} layout="vertical" style={{ maxWidth: 800 }}>
+        <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item name="supplier_id" label="供应商" rules={[{ required: true, message: '请选择供应商' }]}>
