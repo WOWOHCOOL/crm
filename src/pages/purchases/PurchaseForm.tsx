@@ -73,8 +73,8 @@ export default function PurchaseForm() {
   const { data: products } = useQuery({
     queryKey: ['products-select'],
     queryFn: async () => {
-      const { data } = await supabase.from('products').select('id, official_model, supplier_model, supply_price').order('official_model');
-      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model' | 'supply_price'>[];
+      const { data } = await supabase.from('products').select('id, official_model, supplier_model, supply_price, specifications').order('official_model');
+      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model' | 'supply_price' | 'specifications'>[];
     },
   });
 
@@ -130,12 +130,13 @@ export default function PurchaseForm() {
     setItems(items.map(i => {
       if (i.key !== key) return i;
       const updated = { ...i, [field]: value };
-      // Auto-fill model and price when product is selected
+      // Auto-fill model, price and description when product is selected
       if (field === 'product_id' && value) {
         const product = products?.find(p => p.id === value);
         if (product) {
           updated.model = product.supplier_model || product.official_model;
           updated.unit_price = product.supply_price || 0;
+          if (product.specifications) updated.description = product.specifications;
         }
       }
       return updated;
