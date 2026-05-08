@@ -5,7 +5,6 @@ import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
-  ShoppingOutlined,
   DollarOutlined,
   ShopOutlined,
   AccountBookOutlined,
@@ -35,7 +34,7 @@ export default function MainLayout() {
     const p = location.pathname;
     const groups: string[] = [];
     if (p.startsWith('/customers') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
-    if (p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
+    if (p.startsWith('/products') || p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
     return groups;
   });
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -62,10 +61,10 @@ export default function MainLayout() {
         { key: '/quotations/pi', label: 'PI管理 (PI)' },
       ],
     }] : []),
-    { key: '/products', icon: <ShoppingOutlined />, label: '商品管理', style: hasPerm('products') ? {} : { display: 'none' } },
     ...(hasPerm('products') ? [{
       key: 'supplier-group', icon: <ShopOutlined />, label: '供应商管理',
       children: [
+        { key: '/products', label: '商品管理' },
         { key: '/suppliers', label: '供应商资料' },
         { key: '/purchases', label: '采购订单' },
       ],
