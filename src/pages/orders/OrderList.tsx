@@ -118,7 +118,7 @@ export default function OrderList() {
 
   return (
     <div>
-      <Card title="客户订单">
+      <Card title="采购订单（PO）">
         <Table
           dataSource={orders}
           columns={columns}

@@ -103,7 +103,7 @@ export default function PurchaseList() {
 
   return (
     <div>
-      <Card title="采购订单">
+      <Card title="供应商采购单">
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'flex-end' }}>
           {canEdit && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/purchases/new')}>

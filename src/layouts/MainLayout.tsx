@@ -57,10 +57,10 @@ export default function MainLayout() {
       key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
       children: [
         { key: '/customers', label: '客户列表' },
-        { key: '/orders', label: '客户订单' },
+        { key: '/orders', label: '采购订单（PO）' },
         ...(hasPerm('tasks') ? [{ key: '/tasks', label: '任务跟进' }] : []),
         { key: '/quotations/quo', label: '报价单 (QUO)' },
-        { key: '/quotations/pi', label: 'PI管理 (PI)' },
+        { key: '/quotations/pi', label: '形式发票（PI）' },
       ],
     }] : []),
     ...(hasPerm('products') ? [{
@@ -68,7 +68,7 @@ export default function MainLayout() {
       children: [
         { key: '/products', label: '商品管理' },
         { key: '/suppliers', label: '供应商资料' },
-        { key: '/purchases', label: '采购订单' },
+        { key: '/purchases', label: '供应商采购单' },
       ],
     }] : []),
     ...((hasPerm('finance') || hasPerm('accounts')) ? [{
