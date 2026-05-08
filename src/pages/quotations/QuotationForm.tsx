@@ -338,6 +338,8 @@ export default function QuotationForm() {
       bank_account: values.bank_account || null,
       bank_swift: values.bank_swift || '',
       bank_code: values.bank_code || null,
+      bank_selection: bankSelection || null,
+      paypal_account: values.paypal_account || null,
       deposit_rate: values.deposit_rate || 50,
       status: 'draft',
       created_at: new Date().toISOString(),
