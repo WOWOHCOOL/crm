@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
   Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
-  message, Popconfirm, Card, Row, Col, Tag, Image, Upload,
+  message, Popconfirm, Card, Row, Col, Tag, Image, Upload, Descriptions,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, InboxOutlined, EyeOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, Supplier } from '../../types';
@@ -21,6 +21,8 @@ export default function ProductList() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importData, setImportData] = useState<Record<string, unknown>[]>([]);
   const [importLoading, setImportLoading] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const queryClient = useQueryClient();
 
   const { data: products, isLoading } = useQuery({
@@ -83,6 +85,25 @@ export default function ProductList() {
     setEditing(record);
     form.setFieldsValue(record);
     setModalOpen(true);
+  };
+
+  const { data: purchaseHistory } = useQuery({
+    queryKey: ['product-purchases', detailProduct?.id],
+    queryFn: async () => {
+      if (!detailProduct) return [];
+      const { data } = await supabase
+        .from('purchase_items')
+        .select('*, purchase_orders!inner(order_no, order_date, suppliers(name))')
+        .eq('product_id', detailProduct.id)
+        .order('created_at', { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!detailProduct,
+  });
+
+  const showDetail = (record: Product) => {
+    setDetailProduct(record);
+    setDetailOpen(true);
   };
 
   const handleImportFile = (file: File) => {
@@ -188,9 +209,10 @@ export default function ProductList() {
       render: (v: boolean) => <Tag color={v ? 'blue' : 'default'}>{v ? '含税' : '不含'}</Tag>,
     },
     ...(canEdit ? [{
-      title: '操作', key: 'actions', width: 150,
+      title: '操作', key: 'actions', width: 190,
       render: (_: unknown, record: Product) => (
         <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => showDetail(record)}>详情</Button>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
           <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
             <Button size="small" danger>删除</Button>
@@ -326,6 +348,71 @@ export default function ProductList() {
               scroll={{ x: 600, y: 400 }}
             />
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        title={detailProduct ? detailProduct.official_model : '产品详情'}
+        open={detailOpen}
+        onCancel={() => { setDetailOpen(false); setDetailProduct(null); }}
+        footer={null}
+        width={700}
+        destroyOnClose
+      >
+        {detailProduct && (
+          <>
+            <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="官网型号" span={2}>{detailProduct.official_model}</Descriptions.Item>
+              <Descriptions.Item label="供应商型号">{detailProduct.supplier_model || '-'}</Descriptions.Item>
+              <Descriptions.Item label="供应商名称">{detailProduct.supplier_name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="供货价">
+                {detailProduct.supply_price ? `¥${Number(detailProduct.supply_price).toFixed(2)}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="建议报价">
+                {detailProduct.suggested_price ? `¥${Number(detailProduct.suggested_price).toFixed(2)}` : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="含税">
+                <Tag color={detailProduct.tax_included ? 'blue' : 'default'}>{detailProduct.tax_included ? '含税' : '不含'}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="图片">
+                {detailProduct.image_url
+                  ? <Image src={detailProduct.image_url} style={{ maxWidth: 120, maxHeight: 80, objectFit: 'contain' }} />
+                  : '-'}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>采购记录</div>
+            {purchaseHistory && purchaseHistory.length > 0 ? (
+              <Table dataSource={purchaseHistory as Record<string, unknown>[]}
+                rowKey="id" size="small" pagination={false}
+                columns={[
+                  {
+                    title: '采购单号', key: 'order_no', width: 160,
+                    render: (_: unknown, r: Record<string, unknown>) =>
+                      (r.purchase_orders as Record<string, unknown> | null)?.order_no as string || '-',
+                  },
+                  {
+                    title: '日期', key: 'order_date', width: 100,
+                    render: (_: unknown, r: Record<string, unknown>) =>
+                      (r.purchase_orders as Record<string, unknown> | null)?.order_date as string || '-',
+                  },
+                  {
+                    title: '供应商', key: 'supplier', width: 120,
+                    render: (_: unknown, r: Record<string, unknown>) => {
+                      const po = r.purchase_orders as Record<string, unknown> | null;
+                      const s = po?.suppliers as Record<string, unknown> | null;
+                      return s?.name as string || '-';
+                    },
+                  },
+                  { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 60 },
+                  { title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 80, render: (v: number) => `¥${Number(v).toFixed(2)}` },
+                ]}
+                scroll={{ x: 600 }}
+              />
+            ) : (
+              <div style={{ color: '#999', padding: 12 }}>暂无采购记录</div>
+            )}
+          </>
         )}
       </Modal>
     </div>
