@@ -73,7 +73,7 @@ export default function CustomerDetail() {
   const { data: tasks } = useQuery({
     queryKey: ['customer-tasks', id],
     queryFn: async () => {
-      const { data } = await supabase.from('tasks').select('*').eq('customer_id', id).order('due_date', { ascending: true, nullsLast: true });
+      const { data } = await supabase.from('tasks').select('*').eq('customer_id', id).order('due_date', { ascending: true });
       return (data ?? []) as Task[];
     },
     enabled: !!id,

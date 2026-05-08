@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
-  message, Popconfirm, Card, Tag, Image, Upload,
+  message, Popconfirm, Card, Row, Col, Tag, Image, Upload,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

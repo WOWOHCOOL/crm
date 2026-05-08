@@ -62,7 +62,7 @@ export default function TaskList() {
       let query = supabase
         .from('tasks')
         .select('*, customers(name, company)')
-        .order('due_date', { ascending: true, nullsLast: true });
+        .order('due_date', { ascending: true });
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
