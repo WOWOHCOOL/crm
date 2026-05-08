@@ -6,7 +6,6 @@ import {
   DashboardOutlined,
   TeamOutlined,
   ShoppingOutlined,
-  BellOutlined,
   DollarOutlined,
   ShopOutlined,
   AccountBookOutlined,
@@ -35,7 +34,7 @@ export default function MainLayout() {
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const p = location.pathname;
     const groups: string[] = [];
-    if (p.startsWith('/customers') || p.startsWith('/quotations')) groups.push('customers-group');
+    if (p.startsWith('/customers') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
     if (p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
     return groups;
   });
@@ -58,12 +57,12 @@ export default function MainLayout() {
       key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
       children: [
         { key: '/customers', label: '客户列表' },
+        ...(hasPerm('tasks') ? [{ key: '/tasks', label: '任务跟进' }] : []),
         { key: '/quotations/quo', label: '报价单 (QUO)' },
         { key: '/quotations/pi', label: 'PI管理 (PI)' },
       ],
     }] : []),
     { key: '/products', icon: <ShoppingOutlined />, label: '商品管理', style: hasPerm('products') ? {} : { display: 'none' } },
-    { key: '/tasks', icon: <BellOutlined />, label: '任务跟进', style: hasPerm('tasks') ? {} : { display: 'none' } },
     ...(hasPerm('products') ? [{
       key: 'supplier-group', icon: <ShopOutlined />, label: '供应商管理',
       children: [
