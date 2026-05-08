@@ -11,7 +11,7 @@ import { logOperation } from '../../utils/log';
 import { useAuth } from '../../auth/AuthContext';
 
 export default function SupplierList() {
-  const { isOwner, isAdmin } = useAuth();
+  const { isOwner, isAdmin, orgInfo } = useAuth();
   const canEdit = isOwner || isAdmin;
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -72,7 +72,8 @@ export default function SupplierList() {
         const { error } = await supabase.from('suppliers').update(values).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('suppliers').insert([{ ...values, user_id: user.id }]);
+        if (!orgInfo?.org_id) throw new Error('未找到组织信息');
+        const { error } = await supabase.from('suppliers').insert([{ ...values, org_id: orgInfo.org_id, user_id: user.id }]);
         if (error) throw error;
       }
     },

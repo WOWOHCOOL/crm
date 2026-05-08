@@ -7,6 +7,7 @@ import {
 import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
+import { useAuth } from '../../auth/AuthContext';
 import type { Product, PurchaseOrder, PurchaseItem, Supplier } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportPurchasePDF } from '../../utils/purchaseExport';
@@ -16,6 +17,7 @@ export default function PurchaseForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { orgInfo } = useAuth();
   const isEdit = !!id;
   const [form] = Form.useForm();
   const [items, setItems] = useState<{
@@ -151,8 +153,10 @@ export default function PurchaseForm() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { message.error('未登录'); setSaving(false); return; }
+    if (!orgInfo?.org_id) { message.error('未找到组织信息'); setSaving(false); return; }
 
     const orderData = {
+      org_id: orgInfo.org_id,
       supplier_id: values.supplier_id || null,
       order_no: values.order_no || `CG-${today}-DY-${todayCount || 1}`,
       order_date: values.order_date ? dayjs(values.order_date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
