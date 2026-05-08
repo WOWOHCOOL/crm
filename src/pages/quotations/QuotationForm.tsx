@@ -680,16 +680,16 @@ export default function QuotationForm() {
                   </Form.Item>
                 </Col>
               </Row>
+            </>
+          )}
 
-              <Typography.Title level={5} style={{ marginTop: 8 }}>Terms & Conditions / 条款条件</Typography.Title>
-              <Form.Item name="terms_conditions">
-                <Input.TextArea rows={6} placeholder="1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.
+          <Typography.Title level={5}>Terms & Conditions / 条款条件</Typography.Title>
+          <Form.Item name="terms_conditions">
+            <Input.TextArea rows={6} placeholder="1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.
 2. All banking charges outside Hong Kong are to be borne by the buyer.
 3. Delivery Terms: Within 35 days after payment confirmation.
 4. Requests for revision or cancellation of acknowledged orders will not be accepted." />
-              </Form.Item>
-            </>
-          )}
+          </Form.Item>
         </Form>
       </Card>
 
