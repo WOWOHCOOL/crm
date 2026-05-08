@@ -608,7 +608,6 @@ export default function QuotationForm() {
               </Col>
             )}
           </Row>
-          </Row>
 
           <Divider />
 
