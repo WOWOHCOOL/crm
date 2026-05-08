@@ -148,7 +148,9 @@ export default function SupplierList() {
     { title: '供应商名称', dataIndex: 'name', key: 'name', render: (v: string, r: Supplier) => <a onClick={() => showDetail(r)}>{v}</a> },
     { title: '联系人', dataIndex: 'contact_person', key: 'contact_person', width: 100 },
     { title: '电话', dataIndex: 'phone', key: 'phone', width: 120 },
-    { title: '产品数', key: 'productCount', width: 70, render: (_: unknown, r: Supplier) => <Tag>{productCounts?.[r.id] || 0}</Tag> },
+    { title: '产品数', key: 'productCount', width: 70, render: (_: unknown, r: Supplier) => (
+      <a onClick={() => showDetail(r)} style={{ fontWeight: 500 }}>{productCounts?.[r.id] || 0}</a>
+    ) },
     { title: '采购次数', key: 'purchaseCount', width: 80, render: (_: unknown, r: Supplier) => purchaseStats?.[r.id]?.count || 0 },
     { title: '采购金额', key: 'purchaseAmount', width: 120, render: (_: unknown, r: Supplier) => {
       const amt = purchaseStats?.[r.id]?.amount || 0;
