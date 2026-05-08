@@ -77,7 +77,13 @@ export default function QuotationForm() {
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [terms, setTerms] = useState<string[]>([]);
+  const defaultTerms = [
+    '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.',
+    '2. All banking charges outside Hong Kong are to be borne by the buyer.',
+    '3. Delivery Terms: Within 35 days after payment confirmation.',
+    '4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
+  ];
+  const [terms, setTerms] = useState<string[]>(isEdit ? [] : defaultTerms);
 
   const exchangeRate = Form.useWatch('exchange_rate', form) ?? 7.25;
 
@@ -119,19 +125,12 @@ export default function QuotationForm() {
     }
   }, [existing, form]);
 
-  // Auto-fill default terms for new documents
+  // Sync terms to form value on mount
   useEffect(() => {
-    if (!isEdit && terms.length === 0) {
-      const defaults = [
-        '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.',
-        '2. All banking charges outside Hong Kong are to be borne by the buyer.',
-        '3. Delivery Terms: Within 35 days after payment confirmation.',
-        '4. Requests for revision or cancellation of acknowledged orders will not be accepted.',
-      ];
-      setTerms(defaults);
-      form.setFieldsValue({ terms_conditions: defaults.join('\n') });
+    if (!isEdit && terms.length > 0) {
+      form.setFieldsValue({ terms_conditions: terms.join('\n') });
     }
-  }, [docType, isEdit, form]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Generate quotation number
   useEffect(() => {
