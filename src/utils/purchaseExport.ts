@@ -144,7 +144,7 @@ export function exportPurchasePDF(
   <table class="items">
     <thead><tr>
       <th style="width:24px">序号</th>
-      <th class="left" style="width:12%">型号</th>
+      <th class="left" style="width:12%">品名</th>
       <th style="width:6%">颜色</th>
       <th class="left" style="width:22%">描述/规格</th>
       <th style="width:7%">数量</th>

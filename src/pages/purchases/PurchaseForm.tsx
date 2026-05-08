@@ -151,8 +151,11 @@ export default function PurchaseForm() {
       if (field === 'product_id' && value) {
         const product = products?.find(p => p.id === value);
         if (product) {
-          updated.model = product.supplier_model || '';
-          updated.product_name = product.official_model || '';
+          // 品名 = 供应商型号 + 官网型号
+          const sm = product.supplier_model || '';
+          const om = product.official_model || '';
+          updated.model = sm && om ? `${sm} (${om})` : sm || om;
+          updated.product_name = om;
           // Fetch full details for price, color, specs
           fetchProductDetail(value as string).then((detail) => {
             if (!detail) return;
@@ -280,7 +283,7 @@ export default function PurchaseForm() {
       ),
     },
     {
-      title: '型号', dataIndex: 'model', key: 'model', width: 100,
+      title: '品名', dataIndex: 'model', key: 'model', width: 160,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'model', e.target.value)} />
       ),
