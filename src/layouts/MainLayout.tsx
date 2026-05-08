@@ -35,6 +35,7 @@ export default function MainLayout() {
     const groups: string[] = [];
     if (p.startsWith('/customers') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
     if (p.startsWith('/products') || p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
+    if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
     return groups;
   });
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -69,8 +70,13 @@ export default function MainLayout() {
         { key: '/purchases', label: '采购订单' },
       ],
     }] : []),
-    { key: '/finance', icon: <DollarOutlined />, label: '财务记账', style: hasPerm('finance') ? {} : { display: 'none' } },
-    { key: '/accounts', icon: <AccountBookOutlined />, label: '科目管理', style: hasPerm('accounts') ? {} : { display: 'none' } },
+    ...((hasPerm('finance') || hasPerm('accounts')) ? [{
+      key: 'finance-group', icon: <DollarOutlined />, label: '财务记录',
+      children: [
+        ...(hasPerm('finance') ? [{ key: '/finance', label: '财务记账' }] : []),
+        ...(hasPerm('accounts') ? [{ key: '/accounts', label: '科目管理' }] : []),
+      ],
+    }] : []),
     { key: '/reports', icon: <BarChartOutlined />, label: '财务报表', style: hasPerm('reports') ? {} : { display: 'none' } },
     ...(isOwner ? [{ key: '/org', icon: <SettingOutlined />, label: '团队管理' }] : []),
   ];
