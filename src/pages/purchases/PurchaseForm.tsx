@@ -34,25 +34,14 @@ export default function PurchaseForm() {
   const [saving, setSaving] = useState(false);
   const today = dayjs().format('YYYYMMDD');
 
-  // Auto-generate order number for new orders
-  const { data: todayCount } = useQuery({
-    queryKey: ['purchase-order-count', today],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('purchase_orders')
-        .select('*', { count: 'exact', head: true })
-        .like('order_no', `CG-${today}-%`);
-      return (count ?? 0) + 1;
-    },
-    enabled: !isEdit,
-  });
-
-  // Auto-fill order number when count is loaded
+  // Auto-generate order number via atomic DB sequence
   useEffect(() => {
-    if (!isEdit && todayCount && !form.getFieldValue('order_no')) {
-      form.setFieldValue('order_no', `CG-${today}-DY-${todayCount}`);
+    if (!isEdit && !form.getFieldValue('order_no')) {
+      supabase.rpc('get_next_seq', { p_prefix: 'CG', p_date: today }).then(({ data: seq }) => {
+        if (seq) form.setFieldValue('order_no', `CG-${today}-DY-${seq}`);
+      });
     }
-  }, [isEdit, todayCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers-select'],
@@ -232,7 +221,7 @@ export default function PurchaseForm() {
     const orderData: Record<string, unknown> = {
       org_id: orgInfo.org_id,
       supplier_id: values.supplier_id || null,
-      order_no: values.order_no || `CG-${today}-DY-${todayCount || 1}`,
+      order_no: values.order_no || '',
       order_date: values.order_date ? dayjs(values.order_date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
       total_amount: totalAmount,
       status: 'draft',

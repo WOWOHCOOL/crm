@@ -16,21 +16,9 @@ function r2(v: number): number {
 }
 
 async function generateNo(type: 'QUO' | 'PI'): Promise<string> {
-  const now = new Date();
-  const prefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  const pattern = `${type}-${prefix}-DY`;
-  const { data } = await supabase
-    .from('quotations')
-    .select('quotation_no')
-    .like('quotation_no', `${pattern}%`)
-    .order('quotation_no', { ascending: false })
-    .limit(1);
-  let seq = 1;
-  if (data && data.length > 0) {
-    const last = parseInt(data[0].quotation_no.slice(-2), 10);
-    if (!isNaN(last)) seq = last + 1;
-  }
-  return `${type}-${prefix}-DY${String(seq).padStart(2, '0')}`;
+  const today = dayjs().format('YYYYMMDD');
+  const { data: seq } = await supabase.rpc('get_next_seq', { p_prefix: type, p_date: today });
+  return `${type}-${today}-DY${String(seq || 1).padStart(2, '0')}`;
 }
 
 export default function QuotationForm() {
