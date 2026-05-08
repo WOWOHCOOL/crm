@@ -71,7 +71,7 @@ export default function MainLayout() {
       ],
     }] : []),
     ...((hasPerm('finance') || hasPerm('accounts')) ? [{
-      key: 'finance-group', icon: <DollarOutlined />, label: '财务记录',
+      key: 'finance-group', icon: <DollarOutlined />, label: '财务管理',
       children: [
         ...(hasPerm('finance') ? [{ key: '/finance', label: '财务记账' }] : []),
         ...(hasPerm('accounts') ? [{ key: '/accounts', label: '科目管理' }] : []),
