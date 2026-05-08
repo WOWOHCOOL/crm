@@ -151,7 +151,7 @@ export function exportPurchasePDF(
       <th style="width:12%">单价（RMB）</th>
       <th style="width:12%">金额</th>
       <th style="width:10%">交货周期</th>
-      <th class="left" style="width:14%">备注</th>
+      <th class="left" style="width:14%">描述/规格</th>
     </tr></thead>
     <tbody>
       ${items.map((item, i) => `
