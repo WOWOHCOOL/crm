@@ -1,21 +1,74 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Form, Input, Button, message, Tabs, Steps } from 'antd';
+import { Card, Form, Input, Button, message, Tabs, Steps, Checkbox, Spin } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined, WarningOutlined, KeyOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useAuth } from './AuthContext';
 import { isConfigured, supabase } from '../supabase';
+
+const REMEMBER_KEY = 'crm_remember';
+const PASS_KEY = 'crm_remember_pass';
+
+function loadRemembered(): { email: string; password: string; remember: boolean } {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return { email: '', password: '', remember: false };
+}
+
+function saveRemembered(email: string, password: string, remember: boolean) {
+  if (remember) {
+    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email, password: btoa(password), remember }));
+  } else {
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+}
 
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [step, setStep] = useState<'invite' | 'register'>('invite');
   const [validInvite, setValidInvite] = useState<{ code: string } | null>(null);
   const [regForm] = Form.useForm();
+  const [remember, setRemember] = useState(() => loadRemembered().remember);
+  const [loginForm] = Form.useForm();
+
+  // Auto-fill remembered credentials
+  useEffect(() => {
+    const saved = loadRemembered();
+    if (saved.email) {
+      loginForm.setFieldsValue({
+        email: saved.email,
+        password: saved.password ? atob(saved.password) : '',
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check for existing session and auto-login
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/', { replace: true });
+      } else {
+        setChecking(false);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (checking) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Spin size="large" tip="检查登录状态..." />
+      </div>
+    );
+  }
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
+    saveRemembered(values.email, values.password, remember);
     const result = await signIn(values.email, values.password);
     setLoading(false);
     if (result.error) {
@@ -108,7 +161,7 @@ export default function LoginPage() {
         />
 
         {tab === 'login' ? (
-          <Form onFinish={handleLogin} size="large">
+          <Form form={loginForm} onFinish={handleLogin} size="large">
             <Form.Item name="email" rules={[
               { required: true, message: '请输入邮箱' },
               { type: 'email', message: '邮箱格式不正确' },
@@ -119,6 +172,11 @@ export default function LoginPage() {
               { required: true, message: '请输入密码' },
             ]}>
               <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+            </Form.Item>
+            <Form.Item>
+              <Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)}>
+                记住密码
+              </Checkbox>
             </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading} block>
