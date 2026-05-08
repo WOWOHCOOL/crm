@@ -265,8 +265,13 @@ export default function SupplierList() {
               <div style={{ color: '#999', padding: 12 }}>暂无关联产品</div>
             )}
 
-            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 15, marginTop: 16 }}>
-              📋 采购记录 ({supplierPurchases?.length || 0})
+            <div style={{ background: '#f5f5f5', padding: '8px 12px', borderRadius: 6, margin: '16px 0 8px', display: 'flex', gap: 32 }}>
+              <span>采购次数：<strong>{supplierPurchases?.length || 0}</strong> 次</span>
+              <span>累计金额：<strong>¥{Number(supplierPurchases?.reduce((s: number, p: Record<string, unknown>) => s + Number(p.total_amount || 0), 0) || 0).toFixed(2)}</strong></span>
+            </div>
+
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 15 }}>
+              📋 采购记录
             </div>
             {supplierPurchases && supplierPurchases.length > 0 ? (
               <Table dataSource={supplierPurchases as Record<string, unknown>[]}
