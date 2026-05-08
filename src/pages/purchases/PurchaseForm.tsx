@@ -134,7 +134,7 @@ export default function PurchaseForm() {
       if (field === 'product_id' && value) {
         const product = products?.find(p => p.id === value);
         if (product) {
-          updated.model = product.official_model;
+          updated.model = product.supplier_model || product.official_model;
           updated.unit_price = product.supply_price || 0;
         }
       }
@@ -230,7 +230,7 @@ export default function PurchaseForm() {
           onChange={(val) => updateItem(items[index].key, 'product_id', val)}
           optionFilterProp="label"
           options={(products ?? []).map(p => ({
-            label: `${p.official_model}${p.supplier_model ? ` (${p.supplier_model})` : ''}`,
+            label: `${p.supplier_model || p.official_model}${p.supplier_model ? ` (${p.official_model})` : ''}`,
             value: p.id,
           }))}
         />
