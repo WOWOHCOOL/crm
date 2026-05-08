@@ -4,7 +4,7 @@ import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
   message, Row, Col, Popconfirm, DatePicker, Typography,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../auth/AuthContext';
@@ -139,6 +139,41 @@ export default function PurchaseForm() {
     }]);
   };
 
+  const addItemWithProduct = (productId: string) => {
+    const product = products?.find(p => p.id === productId);
+    const newItem = {
+      key: Date.now().toString() + Math.random(),
+      product_id: productId,
+      model: product?.supplier_model || '',
+      product_name: product?.official_model || '',
+      color: '',
+      description: '',
+      remarks: '',
+      quantity: 1,
+      unit_price: 0,
+    };
+    setItems(prev => [...prev, newItem]);
+    // Fetch full details for color, specs, price
+    fetchProductDetail(productId).then((detail) => {
+      if (!detail) return;
+      setItems(prev => prev.map(item => {
+        if (item.key !== newItem.key) return item;
+        const specs: string[] = [];
+        if (detail.specifications) specs.push(detail.specifications);
+        if (detail.material) specs.push(`材质: ${detail.material}`);
+        if (detail.weight) specs.push(`重量: ${detail.weight}`);
+        if (detail.size) specs.push(`尺寸: ${detail.size}`);
+        if (detail.package_includes) specs.push(`包装: ${detail.package_includes}`);
+        return {
+          ...item,
+          unit_price: detail.supply_price || 0,
+          color: detail.color || '',
+          description: specs.join('；'),
+        };
+      }));
+    });
+  };
+
   const removeItem = (key: string) => {
     setItems(items.filter(i => i.key !== key));
   };
@@ -259,24 +294,14 @@ export default function PurchaseForm() {
     }
   };
 
+  const [selectingIndex, setSelectingIndex] = useState<number | null>(null);
+
   const itemColumns = [
     {
-      title: '产品', dataIndex: 'product_id', key: 'product_id', width: 100,
-      render: (v: string | null, _: unknown, index: number) => (
-        <Select
-          showSearch
-          allowClear
-          placeholder="搜索"
-          style={{ width: '100%' }}
-          size="small"
-          value={v}
-          onChange={(val) => updateItem(items[index].key, 'product_id', val)}
-          optionFilterProp="label"
-          options={(products ?? []).map(p => ({
-            label: `${p.supplier_model || p.official_model}${p.supplier_model ? ` (${p.official_model})` : ''}`,
-            value: p.id,
-          }))}
-        />
+      title: '', key: 'select', width: 32,
+      render: (_: unknown, __: unknown, index: number) => (
+        <Button type="text" size="small" icon={<SearchOutlined />}
+          onClick={() => setSelectingIndex(index)} />
       ),
     },
     {
@@ -415,6 +440,7 @@ export default function PurchaseForm() {
 
           <Space style={{ marginTop: 12 }}>
             <Button type="dashed" icon={<PlusOutlined />} onClick={addItem}>添加商品行</Button>
+            <Button icon={<SearchOutlined />} onClick={() => setSelectingIndex(-1)}>从产品库添加</Button>
           </Space>
 
           <div style={{ textAlign: 'right', marginTop: 16, fontSize: 16, fontWeight: 600 }}>
@@ -429,6 +455,62 @@ export default function PurchaseForm() {
           </Space>
         </Form>
       </Card>
+
+      <Modal
+        title="选择产品"
+        open={selectingIndex !== null}
+        onCancel={() => setSelectingIndex(null)}
+        footer={null}
+        width={500}
+        destroyOnClose
+      >
+        <ProductSelector products={products ?? []} onSelect={(id) => {
+          if (selectingIndex === -1) {
+            addItemWithProduct(id);
+          } else {
+            updateItem(items[selectingIndex].key, 'product_id', id);
+          }
+          setSelectingIndex(null);
+        }} />
+      </Modal>
+    </div>
+  );
+}
+
+function ProductSelector({ products, onSelect }: {
+  products: { id: string; official_model: string | null; supplier_model: string | null }[];
+  onSelect: (id: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const filtered = search
+    ? products.filter(p => (p.official_model || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.supplier_model || '').toLowerCase().includes(search.toLowerCase()))
+    : products;
+
+  return (
+    <div>
+      <Input
+        prefix={<SearchOutlined />}
+        placeholder="搜索型号/品名"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: 12 }}
+        autoFocus
+      />
+      <div style={{ maxHeight: 400, overflow: 'auto' }}>
+        {filtered.map(p => (
+          <div key={p.id}
+            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between' }}
+            onClick={() => onSelect(p.id)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f5f5')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+          >
+            <span style={{ fontWeight: 500 }}>{p.supplier_model || p.official_model}</span>
+            <span style={{ color: '#999' }}>{p.official_model}</span>
+          </div>
+        ))}
+        {filtered.length === 0 && <div style={{ color: '#999', textAlign: 'center', padding: 24 }}>无匹配产品</div>}
+      </div>
     </div>
   );
 }

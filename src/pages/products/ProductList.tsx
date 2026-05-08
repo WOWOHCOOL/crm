@@ -140,7 +140,7 @@ export default function ProductList() {
     let success = 0;
     let fail = 0;
     for (const row of importData) {
-      const officialModel = String(row['品名'] || row['官网型号'] || row['official_model'] || '').trim();
+      const officialModel = String(row['官网型号'] || row['official_model'] || '').trim();
       if (!officialModel) { fail++; continue; }
       const { error } = await supabase.from('products').insert([{
         official_model: officialModel,
@@ -169,7 +169,7 @@ export default function ProductList() {
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
-      ['品名', '型号', '供应商名称', '供货价', '建议报价', '含税', '产品图片'],
+      ['官网型号', '供应商型号', '供应商名称', '供货价', '建议报价', '含税', '产品图片'],
       ['Model-X100', 'SN-2024-A001', '示例供应商', '120', '180', '是', 'https://example.com/image.jpg'],
       ['Model-Y200', 'SN-2024-B002', '', '85', '130', '否', ''],
     ]);
@@ -180,8 +180,8 @@ export default function ProductList() {
   };
 
   const importColumns = [
-    { title: '品名', dataIndex: '品名', key: 'official_model', ellipsis: true },
-    { title: '型号', dataIndex: '型号', key: 'supplier_model', ellipsis: true },
+    { title: '官网型号', dataIndex: '官网型号', key: 'official_model', ellipsis: true },
+    { title: '供应商型号', dataIndex: '供应商型号', key: 'supplier_model', ellipsis: true },
     { title: '供应商名称', dataIndex: '供应商名称', key: 'supplier_name', ellipsis: true },
     { title: '供货价', dataIndex: '供货价', key: 'supply_price', width: 100 },
     { title: '建议报价', dataIndex: '建议报价', key: 'suggested_price', width: 100 },
@@ -195,8 +195,8 @@ export default function ProductList() {
         ? <Image src={url} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4 }} preview={false} />
         : <div style={{ width: 36, height: 36, background: '#f5f5f5', borderRadius: 4 }} />,
     },
-    { title: '品名', dataIndex: 'official_model', key: 'official_model', width: 180 },
-    { title: '型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 160 },
+    { title: '官网型号', dataIndex: 'official_model', key: 'official_model', width: 180 },
+    { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 160 },
     {
       title: '供应商', key: 'supplier', width: 150,
       render: (_: unknown, record: Product & { suppliers: { name: string } | null }) =>
@@ -267,13 +267,13 @@ export default function ProductList() {
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
-              <Form.Item name="official_model" label="品名" rules={[{ required: true, message: '请输入品名' }]}>
-                <Input placeholder="官网产品型号" />
+              <Form.Item name="official_model" label="官网型号" rules={[{ required: true, message: '请输入官网型号' }]}>
+                <Input />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="supplier_model" label="型号">
-                <Input placeholder="供应商型号" />
+              <Form.Item name="supplier_model" label="供应商型号">
+                <Input />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
@@ -363,8 +363,8 @@ export default function ProductList() {
             <div style={{ textAlign: 'left', background: '#fafafa', padding: '12px 16px', borderRadius: 6, marginTop: 12, fontSize: 13, color: '#666' }}>
               <p style={{ fontWeight: 600, marginBottom: 4 }}>导入要求：</p>
               <p>• 第一行为表头，列名支持中文或英文</p>
-              <p>• 必填列：<strong>品名</strong> (或 official_model)</p>
-              <p>• 可选列：型号、供应商名称、供货价、建议报价、含税（是/否）、产品图片</p>
+              <p>• 必填列：<strong>官网型号</strong> (或 official_model)</p>
+              <p>• 可选列：供应商型号、供应商名称、供货价、建议报价、含税（是/否）、产品图片</p>
             </div>
           </Upload.Dragger>
         ) : (
@@ -395,8 +395,8 @@ export default function ProductList() {
         {detailProduct && (
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="品名" span={2}>{detailProduct.official_model}</Descriptions.Item>
-              <Descriptions.Item label="型号">{detailProduct.supplier_model || '-'}</Descriptions.Item>
+              <Descriptions.Item label="官网型号" span={2}>{detailProduct.official_model}</Descriptions.Item>
+              <Descriptions.Item label="供应商型号">{detailProduct.supplier_model || '-'}</Descriptions.Item>
               <Descriptions.Item label="供应商名称">{detailProduct.supplier_name || '-'}</Descriptions.Item>
               <Descriptions.Item label="供货价">
                 {detailProduct.supply_price ? `¥${Number(detailProduct.supply_price).toFixed(2)}` : '-'}
