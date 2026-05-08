@@ -109,7 +109,7 @@ export default function PurchaseForm() {
         supplier_id: existingOrder.supplier_id,
         order_no: existingOrder.order_no,
         order_date: existingOrder.order_date ? dayjs(existingOrder.order_date) : dayjs(),
-        notes: existingOrder.notes,
+        payment_terms: existingOrder.payment_terms,
       });
       setItems((existingOrder.purchase_items ?? []).map((item) => ({
         key: item.id as string,
@@ -194,14 +194,14 @@ export default function PurchaseForm() {
     if (!user) { message.error('未登录'); setSaving(false); return; }
     if (!orgInfo?.org_id) { message.error('未找到组织信息'); setSaving(false); return; }
 
-    const orderData = {
+    const orderData: Record<string, unknown> = {
       org_id: orgInfo.org_id,
       supplier_id: values.supplier_id || null,
       order_no: values.order_no || `CG-${today}-DY-${todayCount || 1}`,
       order_date: values.order_date ? dayjs(values.order_date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
       total_amount: totalAmount,
       status: 'draft',
-      notes: values.notes || null,
+      payment_terms: values.payment_terms || null,
       user_id: user.id,
     };
 
@@ -264,7 +264,7 @@ export default function PurchaseForm() {
 
   const itemColumns = [
     {
-      title: '产品', dataIndex: 'product_id', key: 'product_id', width: 170,
+      title: '产品', dataIndex: 'product_id', key: 'product_id', width: 100,
       render: (v: string | null, _: unknown, index: number) => (
         <Select
           showSearch
@@ -295,9 +295,9 @@ export default function PurchaseForm() {
       ),
     },
     {
-      title: '描述/规格', dataIndex: 'description', key: 'description', width: 300,
+      title: '描述/规格', dataIndex: 'description', key: 'description', width: 320,
       render: (v: string, _: unknown, index: number) => (
-        <Input.TextArea size="small" rows={3} value={v}
+        <Input.TextArea size="small" rows={3} value={v} autoSize={{ minRows: 2, maxRows: 6 }}
           onChange={(e) => updateItem(items[index].key, 'description', e.target.value)} />
       ),
     },
@@ -323,9 +323,10 @@ export default function PurchaseForm() {
       },
     },
     {
-      title: '备注', dataIndex: 'remarks', key: 'remarks', width: 160,
+      title: '备注', dataIndex: 'remarks', key: 'remarks', width: 200,
       render: (v: string, _: unknown, index: number) => (
-        <Input size="small" value={v} placeholder="交货周期/注意事项"
+        <Input.TextArea size="small" rows={2} value={v} placeholder="交货周期/注意事项"
+          autoSize={{ minRows: 1, maxRows: 4 }}
           onChange={(e) => updateItem(items[index].key, 'remarks', e.target.value)} />
       ),
     },
@@ -389,6 +390,11 @@ export default function PurchaseForm() {
             <Col xs={24} sm={12}>
               <Form.Item name="order_date" label="日期" initialValue={dayjs()}>
                 <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="payment_terms" label="付款方式" initialValue="20%预付定金，验货通过后提货支付尾款80%">
+                <Input placeholder="如：30%预付，70%发货前付清" />
               </Form.Item>
             </Col>
           </Row>

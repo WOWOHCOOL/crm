@@ -169,6 +169,7 @@ export interface PurchaseOrder {
   order_date: string;
   total_amount: number | null;
   status: PurchaseStatus;
+  payment_terms: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

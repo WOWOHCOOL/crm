@@ -143,14 +143,14 @@ export function exportPurchasePDF(
 
   <table class="items">
     <thead><tr>
-      <th style="width:24px">序号</th>
-      <th class="left" style="width:12%">品名</th>
-      <th style="width:6%">颜色</th>
-      <th class="left" style="width:22%">描述/规格</th>
-      <th style="width:7%">数量</th>
-      <th style="width:12%">单价（RMB）</th>
-      <th style="width:13%">金额</th>
-      <th class="left" style="width:18%">备注（交货周期/注意事项）</th>
+      <th style="width:22px">序号</th>
+      <th class="left" style="width:13%">品名</th>
+      <th style="width:5%">颜色</th>
+      <th class="left" style="width:27%">描述/规格</th>
+      <th style="width:6%">数量</th>
+      <th style="width:11%">单价（RMB）</th>
+      <th style="width:11%">金额</th>
+      <th class="left" style="width:24%">备注</th>
     </tr></thead>
     <tbody>
       ${items.map((item, i) => `
@@ -177,7 +177,7 @@ export function exportPurchasePDF(
   <div class="terms">
     <p class="clause">1、兹经买卖双方协商一致同意，甲方委托乙方生产本合同中指定产品，乙方根据甲方确认的产品进行生产；</p>
     <p class="clause">2、在制作本合同指定产品时乙方需要根据甲方要求制作，工艺、款式以双方最终确定的样品为准；</p>
-    <p class="clause">3、付款方式：20%预付定金，验货通过后提货支付尾款80%。</p>
+    <p class="clause">3、付款方式：${order.payment_terms || '20%预付定金，验货通过后提货支付尾款80%'}。</p>
     <p class="clause" style="text-indent:2em">乙方账号信息：</p>
     <p class="clause" style="text-indent:2em">纳税识别号：${supplier?.tax_id || '____________________'}</p>
     <p class="clause" style="text-indent:2em">开  户  名：${supplier?.bank_account_name || '____________________'}</p>
