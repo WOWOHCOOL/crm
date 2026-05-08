@@ -280,27 +280,26 @@ export default function PurchaseForm() {
       ),
     },
     {
-      title: '型号', dataIndex: 'model', key: 'model', width: 120,
+      title: '型号', dataIndex: 'model', key: 'model', width: 100,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'model', e.target.value)} />
       ),
     },
     {
-      title: '品名', dataIndex: 'product_name', key: 'product_name', width: 120,
-      render: (v: string, _: unknown, index: number) => (
-        <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'product_name', e.target.value)} />
-      ),
+      title: '品名', dataIndex: 'product_name', key: 'product_name', width: 110,
+      render: (v: string) => <span style={{ fontSize: 13 }}>{v}</span>,
     },
     {
-      title: '颜色', dataIndex: 'color', key: 'color', width: 80,
+      title: '颜色', dataIndex: 'color', key: 'color', width: 70,
       render: (v: string, _: unknown, index: number) => (
         <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'color', e.target.value)} />
       ),
     },
     {
-      title: '描述/规格', dataIndex: 'description', key: 'description',
+      title: '描述/规格', dataIndex: 'description', key: 'description', width: 200,
       render: (v: string, _: unknown, index: number) => (
-        <Input size="small" value={v} onChange={(e) => updateItem(items[index].key, 'description', e.target.value)} />
+        <Input.TextArea size="small" rows={2} value={v}
+          onChange={(e) => updateItem(items[index].key, 'description', e.target.value)} />
       ),
     },
     {
@@ -402,7 +401,7 @@ export default function PurchaseForm() {
             rowKey="key"
             pagination={false}
             size="small"
-            scroll={{ x: 700 }}
+            scroll={{ x: 900 }}
             locale={{ emptyText: '暂无商品，点击下方按钮添加' }}
           />
 

@@ -143,16 +143,16 @@ export function exportPurchasePDF(
 
   <table class="items">
     <thead><tr>
-      <th style="width:28px">序号</th>
-      <th class="left" style="width:11%">型号</th>
-      <th class="left" style="width:11%">品名</th>
-      <th style="width:7%">颜色</th>
-      <th class="left" style="width:14%">描述/规格</th>
-      <th style="width:8%">数量</th>
-      <th style="width:11%">单价（RMB）</th>
-      <th style="width:11%">金额</th>
-      <th style="width:8%">交货周期</th>
-      <th class="left" style="width:11%">备注</th>
+      <th style="width:24px">序号</th>
+      <th class="left" style="width:10%">型号</th>
+      <th class="left" style="width:12%">品名</th>
+      <th style="width:6%">颜色</th>
+      <th class="left" style="width:22%">描述/规格</th>
+      <th style="width:7%">数量</th>
+      <th style="width:12%">单价（RMB）</th>
+      <th style="width:12%">金额</th>
+      <th style="width:7%">交货周期</th>
+      <th class="left" style="width:12%">备注</th>
     </tr></thead>
     <tbody>
       ${items.map((item, i) => `
