@@ -22,6 +22,7 @@ import TaskList from './pages/tasks/TaskList';
 import SupplierList from './pages/suppliers/SupplierList';
 import PurchaseList from './pages/purchases/PurchaseList';
 import PurchaseForm from './pages/purchases/PurchaseForm';
+import OrderList from './pages/orders/OrderList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,6 +107,7 @@ function App() {
                 <Route path="quotations/edit/:id" element={<QuotationForm />} />
                 <Route path="org" element={<OrgManage />} />
                 <Route path="tasks" element={<TaskList />} />
+                <Route path="orders" element={<OrderList />} />
                 <Route path="suppliers" element={<SupplierList />} />
                 <Route path="purchases" element={<PurchaseList />} />
                 <Route path="purchases/new" element={<PurchaseForm />} />
