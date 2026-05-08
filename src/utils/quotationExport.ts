@@ -143,7 +143,6 @@ export function exportPDF(
   table.items tbody td { font-size:9px; padding:4px 3px; border-bottom:1px solid #e8e8e8; text-align:center; }
   table.items tbody td.left { text-align:left; }
   table.items tfoot td { font-size:9.5px; font-weight:700; padding:5px 3px; border-top:2px solid #333; text-align:right; }
-  .note { font-size:8.5px; color:#999; text-align:right; margin-bottom:10px; }
   .amounts { border:1px solid #ddd; border-radius:4px; padding:10px 14px; margin-bottom:12px; }
   .amounts .row { display:flex; justify-content:space-between; font-size:9.5px; color:#333; padding:2px 0; }
   .amounts .row.total { font-size:11px; font-weight:700; color:#b22222; border-top:1px solid #ddd; padding-top:4px; margin-top:2px; }
@@ -229,7 +228,6 @@ export function exportPDF(
     </tr></tfoot>` : ''}
   </table>
 
-  ${type === 'quotation' ? `<div class="note">Exchange Rate: 1 USD = ${q.exchange_rate || 7.25} RMB  |  ${currency === 'USD' ? `RMB Equivalent: ¥${r2(totalRMB).toFixed(2)}` : `USD Equivalent: $${r2(totalUSD).toFixed(2)}`}</div>` : ''}
 
   ${type === 'pi' ? `
   <div class="amounts">
