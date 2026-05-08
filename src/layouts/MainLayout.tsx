@@ -27,6 +27,11 @@ const { Header, Sider, Content, Footer } = Layout;
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordForm] = Form.useForm();
+  const { user, signOut, orgInfo, permissions, isOwner, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const p = location.pathname;
     const groups: string[] = [];
@@ -34,11 +39,6 @@ export default function MainLayout() {
     if (p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
     return groups;
   });
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordForm] = Form.useForm();
-  const { user, signOut, orgInfo, permissions, isOwner, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
 
   const isMobile = window.innerWidth < 768;
