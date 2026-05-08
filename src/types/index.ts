@@ -45,6 +45,7 @@ export interface Transaction {
 
 export interface Product {
   id: string;
+  product_name: string | null;
   official_model: string;
   supplier_model: string | null;
   supplier_name: string | null;

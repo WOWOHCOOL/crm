@@ -76,15 +76,15 @@ export default function PurchaseForm() {
   const { data: products } = useQuery({
     queryKey: ['products-select'],
     queryFn: async () => {
-      const { data } = await supabase.from('products').select('id, official_model, supplier_model').order('official_model');
-      return (data ?? []) as Pick<Product, 'id' | 'official_model' | 'supplier_model'>[];
+      const { data } = await supabase.from('products').select('id, product_name, official_model, supplier_model').order('official_model');
+      return (data ?? []) as Pick<Product, 'id' | 'product_name' | 'official_model' | 'supplier_model'>[];
     },
   });
 
   // Fetch full product details for auto-fill when a product is selected
   const fetchProductDetail = async (productId: string) => {
     // Try with new columns first (v16+), fallback to basic
-    const { data } = await supabase.from('products').select('supply_price, color, material, weight, size, specifications, package_includes').eq('id', productId).maybeSingle();
+    const { data } = await supabase.from('products').select('supply_price, product_name, color, material, weight, size, specifications, package_includes').eq('id', productId).maybeSingle();
     if (data) return data as Pick<Product, 'supply_price' | 'color' | 'material' | 'weight' | 'size' | 'specifications' | 'package_includes'>;
     return null;
   };
@@ -145,7 +145,7 @@ export default function PurchaseForm() {
       key: Date.now().toString() + Math.random(),
       product_id: productId,
       model: product?.supplier_model || '',
-      product_name: product?.official_model || '',
+      product_name: product?.product_name || product?.official_model || '',
       color: '',
       description: '',
       remarks: '',
@@ -187,7 +187,7 @@ export default function PurchaseForm() {
         const product = products?.find(p => p.id === value);
         if (product) {
           updated.model = product.supplier_model || '';
-          updated.product_name = product.official_model || '';
+          updated.product_name = product.product_name || product.official_model || '';
           // Fetch full details for price, color, specs
           fetchProductDetail(value as string).then((detail) => {
             if (!detail) return;
@@ -478,12 +478,13 @@ export default function PurchaseForm() {
 }
 
 function ProductSelector({ products, onSelect }: {
-  products: { id: string; official_model: string | null; supplier_model: string | null }[];
+  products: { id: string; product_name: string | null; official_model: string | null; supplier_model: string | null }[];
   onSelect: (id: string) => void;
 }) {
   const [search, setSearch] = useState('');
   const filtered = search
-    ? products.filter(p => (p.official_model || '').toLowerCase().includes(search.toLowerCase()) ||
+    ? products.filter(p => (p.product_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.official_model || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.supplier_model || '').toLowerCase().includes(search.toLowerCase()))
     : products;
 

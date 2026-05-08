@@ -143,6 +143,7 @@ export default function ProductList() {
       const officialModel = String(row['官网型号'] || row['official_model'] || '').trim();
       if (!officialModel) { fail++; continue; }
       const { error } = await supabase.from('products').insert([{
+        product_name: String(row['品名'] || row['product_name'] || '') || null,
         official_model: officialModel,
         supplier_model: String(row['供应商型号'] || row['supplier_model'] || '') || null,
         supplier_name: String(row['供应商名称'] || row['supplier_name'] || '') || null,
@@ -169,7 +170,7 @@ export default function ProductList() {
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
-      ['官网型号', '供应商型号', '供应商名称', '供货价', '建议报价', '含税', '产品图片'],
+      ['品名', '官网型号', '供应商型号', '供应商名称', '供货价', '建议报价', '含税', '产品图片'],
       ['Model-X100', 'SN-2024-A001', '示例供应商', '120', '180', '是', 'https://example.com/image.jpg'],
       ['Model-Y200', 'SN-2024-B002', '', '85', '130', '否', ''],
     ]);
@@ -180,6 +181,7 @@ export default function ProductList() {
   };
 
   const importColumns = [
+    { title: '品名', dataIndex: '品名', key: 'product_name', ellipsis: true },
     { title: '官网型号', dataIndex: '官网型号', key: 'official_model', ellipsis: true },
     { title: '供应商型号', dataIndex: '供应商型号', key: 'supplier_model', ellipsis: true },
     { title: '供应商名称', dataIndex: '供应商名称', key: 'supplier_name', ellipsis: true },
@@ -195,8 +197,9 @@ export default function ProductList() {
         ? <Image src={url} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4 }} preview={false} />
         : <div style={{ width: 36, height: 36, background: '#f5f5f5', borderRadius: 4 }} />,
     },
-    { title: '官网型号', dataIndex: 'official_model', key: 'official_model', width: 180 },
-    { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 160 },
+    { title: '品名', dataIndex: 'product_name', key: 'product_name', width: 160, render: (v: string | null) => v || '-' },
+    { title: '官网型号', dataIndex: 'official_model', key: 'official_model', width: 160 },
+    { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 150 },
     {
       title: '供应商', key: 'supplier', width: 150,
       render: (_: unknown, record: Product & { suppliers: { name: string } | null }) =>
@@ -266,6 +269,11 @@ export default function ProductList() {
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="product_name" label="品名">
+                <Input placeholder="产品名称" />
+              </Form.Item>
+            </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="official_model" label="官网型号" rules={[{ required: true, message: '请输入官网型号' }]}>
                 <Input />
@@ -395,7 +403,8 @@ export default function ProductList() {
         {detailProduct && (
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="官网型号" span={2}>{detailProduct.official_model}</Descriptions.Item>
+              <Descriptions.Item label="品名" span={2}>{detailProduct.product_name || '-'}</Descriptions.Item>
+              <Descriptions.Item label="官网型号">{detailProduct.official_model}</Descriptions.Item>
               <Descriptions.Item label="供应商型号">{detailProduct.supplier_model || '-'}</Descriptions.Item>
               <Descriptions.Item label="供应商名称">{detailProduct.supplier_name || '-'}</Descriptions.Item>
               <Descriptions.Item label="供货价">
