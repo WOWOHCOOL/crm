@@ -9,6 +9,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, PurchaseOrder } from '../../types';
 import { logOperation } from '../../utils/log';
+import { exportPurchasePDF } from '../../utils/purchaseExport';
+import type { Supplier } from '../../types';
 import dayjs from 'dayjs';
 
 export default function PurchaseForm() {
@@ -33,6 +35,17 @@ export default function PurchaseForm() {
       const { data } = await supabase.from('suppliers').select('id, name').order('name');
       return data ?? [];
     },
+  });
+
+  const { data: supplierData } = useQuery({
+    queryKey: ['supplier-detail', form.getFieldValue('supplier_id')],
+    queryFn: async () => {
+      const sid = form.getFieldValue('supplier_id');
+      if (!sid) return null;
+      const { data } = await supabase.from('suppliers').select('*').eq('id', sid).single();
+      return data as Supplier | null;
+    },
+    enabled: isEdit,
   });
 
   const { data: products } = useQuery({
@@ -95,14 +108,12 @@ export default function PurchaseForm() {
     setItems(items.map(i => {
       if (i.key !== key) return i;
       const updated = { ...i, [field]: value };
-      // Auto-fill model when product is selected
+      // Auto-fill model and price when product is selected
       if (field === 'product_id' && value) {
         const product = products?.find(p => p.id === value);
         if (product) {
           updated.model = product.official_model;
-          if (!i.unit_price && product.supply_price) {
-            updated.unit_price = product.supply_price;
-          }
+          updated.unit_price = product.supply_price || 0;
         }
       }
       return updated;
@@ -249,7 +260,26 @@ export default function PurchaseForm() {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/purchases')}>返回</Button>
       </Space>
 
-      <Card title={isEdit ? '编辑采购单' : '新建采购单'}>
+      <Card title={isEdit ? '编辑采购单' : '新建采购单'}
+        extra={isEdit && existingOrder ? (
+          <Button onClick={() => {
+            if (!existingOrder || !supplierData) return;
+            const items: PurchaseItem[] = (existingOrder.purchase_items ?? []).map(i => ({
+              id: i.id as string,
+              purchase_order_id: existingOrder.id,
+              product_id: i.product_id as string | null,
+              model: i.model as string | null,
+              description: i.description as string | null,
+              quantity: i.quantity as number,
+              unit_price: i.unit_price as number,
+              created_at: i.created_at as string,
+              user_id: i.user_id as string,
+            }));
+            exportPurchasePDF(existingOrder as PurchaseOrder, items, supplierData);
+          }}>
+            下载 PDF
+          </Button>
+        ) : null}>
         <Form form={form} layout="vertical" style={{ maxWidth: 800 }}>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
