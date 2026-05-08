@@ -6,7 +6,7 @@ import {
 import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Product } from '../../types';
+import type { Product, Supplier } from '../../types';
 import { logOperation } from '../../utils/log';
 import { useAuth } from '../../auth/AuthContext';
 import * as XLSX from 'xlsx';
@@ -26,12 +26,12 @@ export default function ProductList() {
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', search],
     queryFn: async () => {
-      let query = supabase.from('products').select('*').order('official_model');
+      let query = supabase.from('products').select('*, suppliers(name)').order('official_model');
       if (search) {
         query = query.or(`official_model.ilike.%${search}%,supplier_model.ilike.%${search}%,supplier_name.ilike.%${search}%`);
       }
       const { data } = await query;
-      return (data ?? []) as Product[];
+      return (data ?? []) as (Product & { suppliers: Pick<Supplier, 'name'> | null })[];
     },
     staleTime: 0,
     refetchOnMount: true,
@@ -176,7 +176,11 @@ export default function ProductList() {
     },
     { title: '官网型号', dataIndex: 'official_model', key: 'official_model', width: 180 },
     { title: '供应商型号', dataIndex: 'supplier_model', key: 'supplier_model', width: 180 },
-    { title: '供应商名称', dataIndex: 'supplier_name', key: 'supplier_name', width: 150 },
+    {
+      title: '供应商', key: 'supplier', width: 150,
+      render: (_: unknown, record: Product & { suppliers: { name: string } | null }) =>
+        record.suppliers?.name || record.supplier_name || '-',
+    },
     ...(canEdit ? [{ title: '供货价', dataIndex: 'supply_price', key: 'supply_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' }] : []),
     { title: '建议报价', dataIndex: 'suggested_price', key: 'suggested_price', width: 120, render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
     {

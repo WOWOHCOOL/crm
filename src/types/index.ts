@@ -52,6 +52,7 @@ export interface Product {
   suggested_price: number | null;
   tax_included: boolean;
   image_url: string | null;
+  supplier_id: string | null;
   created_at: string;
   user_id: string;
 }
@@ -130,6 +131,53 @@ export interface OperationLog {
   entity: string;
   description: string;
   created_at: string;
+}
+
+export interface Supplier {
+  id: string;
+  org_id: string;
+  name: string;
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  payment_terms: string | null;
+  bank_info: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
+export type PurchaseStatus = 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
+
+export interface PurchaseOrder {
+  id: string;
+  org_id: string;
+  supplier_id: string | null;
+  order_no: string;
+  order_date: string;
+  total_amount: number | null;
+  status: PurchaseStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  suppliers?: Supplier | null;
+  purchase_items?: PurchaseItem[];
+}
+
+export interface PurchaseItem {
+  id: string;
+  purchase_order_id: string;
+  product_id: string | null;
+  model: string | null;
+  description: string | null;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+  user_id: string;
+  products?: Product | null;
 }
 
 export interface Task {
