@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, message, Row, Col, Tabs } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, message, Row, Col, Tabs, Tooltip } from 'antd';
+import { ArrowLeftOutlined, PlusOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Order, Quotation, Task } from '../../types';
+import type { Order, Quotation, Task, OrderStatus } from '../../types';
+import { useAuth } from '../../auth/AuthContext';
 import dayjs from 'dayjs';
 
 const orderTypeLabels: Record<string, string> = {
@@ -17,6 +18,40 @@ const orderTypeColors: Record<string, string> = {
   normal: 'blue',
   repeat: 'green',
   sample: 'orange',
+};
+
+const statusLabels: Record<OrderStatus, string> = {
+  pending: '待确认',
+  confirmed: '已确认',
+  in_production: '生产中',
+  shipped: '已发货',
+  completed: '已完成',
+};
+
+const statusColors: Record<OrderStatus, string> = {
+  pending: 'orange',
+  confirmed: 'geekblue',
+  in_production: 'purple',
+  shipped: 'cyan',
+  completed: 'green',
+};
+
+const statusFlow: OrderStatus[] = ['pending', 'confirmed', 'in_production', 'shipped', 'completed'];
+
+const nextStatus: Record<OrderStatus, OrderStatus | null> = {
+  pending: 'confirmed',
+  confirmed: 'in_production',
+  in_production: 'shipped',
+  shipped: 'completed',
+  completed: null,
+};
+
+const statusActionLabels: Record<OrderStatus, string> = {
+  pending: '确认订单',
+  confirmed: '开始生产',
+  in_production: '标记发货',
+  shipped: '标记完成',
+  completed: '已完成',
 };
 
 export default function CustomerDetail() {
@@ -79,6 +114,12 @@ export default function CustomerDetail() {
     enabled: !!id,
   });
 
+  const { isOwner, isAdmin } = useAuth();
+  const canManage = isOwner || isAdmin;
+  const [shippingModalOpen, setShippingModalOpen] = useState(false);
+  const [shippingOrder, setShippingOrder] = useState<Order | null>(null);
+  const [shippingForm] = Form.useForm();
+
   const createOrder = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -87,6 +128,7 @@ export default function CustomerDetail() {
         customer_id: id,
         pi_number: values.pi_number,
         order_type: values.order_type || 'normal',
+        status: values.status || 'pending',
         total_amount: values.total_amount ? Number(values.total_amount) : null,
         notes: values.notes,
         date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
@@ -99,6 +141,41 @@ export default function CustomerDetail() {
       setOrderModal(false);
       orderForm.resetFields();
       message.success('订单已创建');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+      const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+      message.success('订单状态已更新');
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  const updateShipping = useMutation({
+    mutationFn: async ({ orderId, values }: { orderId: string; values: Record<string, unknown> }) => {
+      const { error } = await supabase.from('orders').update({
+        tracking_company: values.tracking_company || null,
+        tracking_number: values.tracking_number || null,
+        container_number: values.container_number || null,
+        etd: values.etd ? dayjs(values.etd as string).format('YYYY-MM-DD') : null,
+        eta: values.eta ? dayjs(values.eta as string).format('YYYY-MM-DD') : null,
+        shipped_date: values.shipped_date ? dayjs(values.shipped_date as string).format('YYYY-MM-DD') : null,
+        shipping_notes: values.shipping_notes || null,
+      }).eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+      setShippingModalOpen(false);
+      setShippingOrder(null);
+      shippingForm.resetFields();
+      message.success('出运信息已更新');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -151,14 +228,46 @@ export default function CustomerDetail() {
             children: (orders ?? []).length === 0 ? (
               <div style={{ color: '#999', textAlign: 'center', padding: 24 }}>暂无订单</div>
             ) : (
-              (orders ?? []).map((order) => (
+              (orders ?? []).map((order) => {
+                const curStatus = (order as Order).status || 'pending';
+                const next = nextStatus[curStatus];
+                return (
                 <Card key={order.id} size="small" style={{ marginBottom: 12 }}
                   title={
-                    <Space>
+                    <Space wrap>
                       <Tag color={orderTypeColors[order.order_type]}>{orderTypeLabels[order.order_type]}</Tag>
+                      <Tag color={statusColors[curStatus]}>{statusLabels[curStatus]}</Tag>
                       <span>PI: {order.pi_number || '-'}</span>
                       <span>{order.date}</span>
                       {order.total_amount && <span style={{ fontWeight: 600 }}>¥{Number(order.total_amount).toFixed(2)}</span>}
+                    </Space>
+                  }
+                  extra={
+                    <Space>
+                      {canManage && next && (
+                        <Button size="small" type="primary"
+                          onClick={() => updateStatus.mutate({ orderId: order.id, status: next })}>
+                          {statusActionLabels[curStatus]}
+                        </Button>
+                      )}
+                      {canManage && (curStatus === 'in_production' || curStatus === 'shipped') && (
+                        <Button size="small" icon={<SendOutlined />}
+                          onClick={() => {
+                            setShippingOrder(order as Order);
+                            shippingForm.setFieldsValue({
+                              tracking_company: (order as Order).tracking_company,
+                              tracking_number: (order as Order).tracking_number,
+                              container_number: (order as Order).container_number,
+                              etd: (order as Order).etd ? dayjs((order as Order).etd) : null,
+                              eta: (order as Order).eta ? dayjs((order as Order).eta) : null,
+                              shipped_date: (order as Order).shipped_date ? dayjs((order as Order).shipped_date) : null,
+                              shipping_notes: (order as Order).shipping_notes,
+                            });
+                            setShippingModalOpen(true);
+                          }}>
+                          出运信息
+                        </Button>
+                      )}
                     </Space>
                   }>
                   {order.order_items && order.order_items.length > 0 ? (
@@ -171,9 +280,27 @@ export default function CustomerDetail() {
                         { title: '小计', key: 'subtotal', render: (_: unknown, r: Record<string, unknown>) => `¥${(Number(r.quantity) * Number(r.unit_price)).toFixed(2)}` },
                       ]} />
                   ) : <div style={{ color: '#999', fontSize: 12 }}>暂无明细</div>}
+
+                  {/* 出运跟踪信息 */}
+                  {(order as Order).tracking_company && (
+                    <div style={{ marginTop: 8, padding: '6px 10px', background: '#f0f5ff', borderRadius: 4, fontSize: 13 }}>
+                      <Space wrap>
+                        {(order as Order).tracking_company && <span>承运: {(order as Order).tracking_company}</span>}
+                        {(order as Order).tracking_number && <span>单号: {(order as Order).tracking_number}</span>}
+                        {(order as Order).container_number && <span>箱号: {(order as Order).container_number}</span>}
+                        {(order as Order).etd && <span>ETD: {(order as Order).etd}</span>}
+                        {(order as Order).eta && <span>ETA: {(order as Order).eta}</span>}
+                        {(order as Order).shipped_date && <span>发货日: {(order as Order).shipped_date}</span>}
+                      </Space>
+                      {(order as Order).shipping_notes && (
+                        <div style={{ color: '#666', marginTop: 4 }}>备注: {(order as Order).shipping_notes}</div>
+                      )}
+                    </div>
+                  )}
+
                   {order.notes && <div style={{ marginTop: 8, color: '#666', fontSize: 13 }}>备注：{order.notes}</div>}
                 </Card>
-              ))
+              );})
             ),
           },
           {
@@ -269,6 +396,14 @@ export default function CustomerDetail() {
               </Form.Item>
             </Col>
             <Col span={12}>
+              <Form.Item name="status" label="初始状态" initialValue="pending">
+                <Select options={[
+                  { label: '待确认', value: 'pending' },
+                  { label: '已确认', value: 'confirmed' },
+                ]} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
               <Form.Item name="total_amount" label="订单金额">
                 <InputNumber min={0} precision={2} style={{ width: '100%' }} prefix="¥" />
               </Form.Item>
@@ -281,6 +416,59 @@ export default function CustomerDetail() {
             <Col span={24}>
               <Form.Item name="notes" label="备注">
                 <Input.TextArea rows={2} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="出运跟踪信息"
+        open={shippingModalOpen}
+        onCancel={() => { setShippingModalOpen(false); setShippingOrder(null); }}
+        onOk={() => shippingForm.submit()}
+        confirmLoading={updateShipping.isPending}
+        destroyOnClose
+        width={600}
+      >
+        <Form form={shippingForm} layout="vertical" onFinish={(values) => {
+          if (!shippingOrder) return;
+          updateShipping.mutate({ orderId: shippingOrder.id, values });
+        }}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="tracking_company" label="承运公司（船公司/快递）">
+                <Input placeholder="如：COSCO、DHL" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="tracking_number" label="运单号/提单号">
+                <Input placeholder="提单号或快递单号" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="container_number" label="集装箱号">
+                <Input placeholder="如有" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="shipped_date" label="实际发货日期">
+                <Input type="date" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="etd" label="预计发货 (ETD)">
+                <Input type="date" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="eta" label="预计到达 (ETA)">
+                <Input type="date" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="shipping_notes" label="出货备注">
+                <Input.TextArea rows={2} placeholder="其他出货相关信息" />
               </Form.Item>
             </Col>
           </Row>

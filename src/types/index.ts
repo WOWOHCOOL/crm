@@ -58,11 +58,14 @@ export interface Product {
 
 export type OrderType = 'normal' | 'repeat' | 'sample';
 
+export type OrderStatus = 'pending' | 'confirmed' | 'in_production' | 'shipped' | 'completed';
+
 export interface Order {
   id: string;
   customer_id: string;
   pi_number: string | null;
   order_type: OrderType;
+  status: OrderStatus;
   total_amount: number | null;
   notes: string | null;
   date: string;
@@ -70,6 +73,13 @@ export interface Order {
   user_id: string;
   customers?: Customer | null;
   order_items?: OrderItem[];
+  tracking_company: string | null;
+  tracking_number: string | null;
+  container_number: string | null;
+  etd: string | null;
+  eta: string | null;
+  shipped_date: string | null;
+  shipping_notes: string | null;
 }
 
 export interface OrderItem {
