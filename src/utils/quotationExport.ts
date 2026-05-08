@@ -199,7 +199,7 @@ export function exportPDF(
     </div>
   </div>
 
-  ${type === 'pi' && q.trade_terms ? `<div class="trade-terms"><strong>Trade Terms:</strong> ${q.trade_terms}</div>` : ''}
+  ${q.trade_terms ? `<div class="trade-terms"><strong>Trade Terms:</strong> ${q.trade_terms}</div>` : ''}
 
   <!-- Items Table -->
   <table class="items">
