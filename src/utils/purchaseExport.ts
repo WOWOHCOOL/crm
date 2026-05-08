@@ -12,31 +12,34 @@ function r2(v: number): number {
 function amountInChinese(n: number): string {
   if (n === 0) return '零元整';
   const digits = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
-  const units = ['', '拾', '佰', '仟', '万', '拾', '佰', '仟', '亿'];
+  const units = ['', '拾', '佰', '仟'];
   const i = Math.floor(n);
   const cents = Math.round((n - i) * 100);
   let result = '';
 
-  const y = Math.floor(i / 1e8);
-  const w = Math.floor((i % 1e8) / 1e4);
-  const g = i % 1e4;
+  const yi = Math.floor(i / 1e8);
+  const wan = Math.floor((i % 1e8) / 1e4);
+  const ge = i % 1e4;
 
-  if (y) { result += numToChinese(y, digits, units) + '亿'; }
-  if (w) { result += numToChinese(w, digits, units) + '万'; }
-  if (g) { result += numToChinese(g, digits, units); }
+  if (yi) { result += ntc(yi, digits, units) + '亿'; }
+  if (wan) { result += ntc(wan, digits, units) + '万'; }
+  if (ge) { result += ntc(ge, digits, units); }
   if (!result) result = '零';
   result += '元';
 
   if (cents === 0) {
     result += '整';
   } else {
-    result += digits[Math.floor(cents / 10)] + '角' + digits[cents % 10] + '分';
+    const j = Math.floor(cents / 10);
+    const f = cents % 10;
+    if (j) result += digits[j] + '角';
+    if (f) result += digits[f] + '分';
   }
 
-  return result;
+  return 'RMB' + result;
 }
 
-function numToChinese(n: number, digits: string[], units: string[]): string {
+function ntc(n: number, digits: string[], units: string[]): string {
   let r = '';
   let zero = false;
   for (let i = 3; i >= 0; i--) {
@@ -62,35 +65,45 @@ export function exportPurchasePDF(
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${order.order_no}</title>
 <style>
-  @page { size: A4 portrait; margin: 15mm 16mm; }
+  @page { size: A4 portrait; margin: 12mm 14mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'SimSun','STSong','Noto Serif CJK SC','Source Han Serif SC',serif; color:#222; font-size:10.5px; line-height:1.6; }
+  body { font-family:'SimSun','STSong','Noto Serif CJK SC','Source Han Serif SC',serif; color:#222; font-size:10px; line-height:1.7; }
   .page { max-width:100%; }
-  .header { text-align:center; margin-bottom:18px; }
-  .header h1 { font-size:22px; font-weight:700; letter-spacing:4px; margin:0 0 4px 0; }
-  .header .sub { font-size:9px; color:#999; display:flex; justify-content:space-between; }
-  .divider { border:none; border-top:2px solid #333; margin:0 0 14px 0; }
-  .info { margin-bottom:14px; }
+
+  .header { text-align:center; margin-bottom:14px; }
+  .header h1 { font-size:20px; font-weight:700; letter-spacing:6px; }
+  .divider { border:none; border-top:2px solid #333; margin:0 0 10px 0; }
+
+  .info { margin-bottom:10px; font-size:10px; }
   .info table { width:100%; border-collapse:collapse; }
-  .info td { padding:2px 4px; font-size:10px; vertical-align:top; }
-  .info .label { color:#666; width:80px; white-space:nowrap; }
-  .info .col { width:50%; }
-  table.items { width:100%; border-collapse:collapse; margin-bottom:12px; }
-  table.items thead th { font-size:9.5px; font-weight:600; padding:5px 4px; border:1px solid #333; background:#f5f5f5; text-align:center; }
-  table.items tbody td { font-size:10px; padding:4px; border:1px solid #ccc; text-align:center; }
+  .info td { padding:1px 4px; vertical-align:top; }
+  .info .left { width:60%; }
+  .info .right { width:40%; text-align:right; }
+  .info .label { color:#666; white-space:nowrap; }
+
+  .section-title { font-weight:600; font-size:10.5px; margin:8px 0 4px 0; }
+
+  table.items { width:100%; border-collapse:collapse; margin-bottom:8px; font-size:9.5px; }
+  table.items thead th { font-weight:600; padding:4px 3px; border:1px solid #333; background:#f0f0f0; text-align:center; font-size:9px; }
+  table.items tbody td { padding:3px; border:1px solid #ccc; text-align:center; }
   table.items tbody td.left { text-align:left; }
-  .total-row { text-align:right; margin-bottom:10px; padding:6px 10px; background:#fafafa; border:1px solid #ddd; border-radius:4px; }
-  .total-row .line { display:flex; justify-content:flex-end; gap:20px; font-size:10.5px; padding:2px 0; }
-  .total-row .amount { font-size:14px; font-weight:700; color:#b22222; }
-  .total-row .words { font-size:9.5px; color:#666; margin-top:4px; font-style:italic; }
-  .section { margin-bottom:10px; }
-  .section h3 { font-size:9px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
-  .section p, .section .line { font-size:10px; color:#555; line-height:1.6; }
-  .sig { margin-top:24px; display:flex; justify-content:space-between; align-items:flex-end; }
-  .sig .left, .sig .right { font-size:10px; color:#555; }
-  .sig .line { width:160px; border-top:1px solid #333; padding-top:3px; font-size:9px; color:#999; text-align:center; }
-  .print-btn { text-align:center; padding:8px 0 10px; }
-  .print-btn button { padding:5px 18px; font-size:11px; cursor:pointer; border:1px solid #999; background:#fff; border-radius:3px; }
+
+  .total-box { text-align:right; margin-bottom:8px; padding:4px 8px; border:1px solid #ddd; border-radius:2px; }
+  .total-box .line { font-size:10px; padding:1px 0; }
+  .total-box .big { font-size:11px; font-weight:700; }
+  .total-box .words { font-size:9.5px; color:#333; margin-top:2px; }
+
+  .terms { font-size:9px; line-height:1.8; margin-bottom:8px; }
+  .terms p { text-indent:0; margin:0; padding:0; }
+  .terms .clause { margin-bottom:1px; }
+
+  .sig { margin-top:12px; display:flex; justify-content:space-between; font-size:9.5px; }
+  .sig .box { width:45%; }
+  .sig .box .title { font-weight:600; margin-bottom:4px; }
+  .sig .line { width:160px; border-top:1px solid #333; padding-top:3px; margin-top:20px; text-align:center; font-size:9px; color:#999; }
+
+  .print-btn { text-align:center; padding:6px 0 8px; }
+  .print-btn button { padding:4px 16px; font-size:11px; cursor:pointer; border:1px solid #999; background:#fff; border-radius:3px; }
   .print-btn button:hover { background:#f5f5f5; }
   @media print { .print-btn { display:none; } body { -webkit-print-color-adjust:exact; } }
 </style></head><body>
@@ -99,10 +112,6 @@ export function exportPurchasePDF(
 
   <div class="header">
     <h1>采 购 订 单</h1>
-    <div class="sub">
-      <span>PURCHASE ORDER</span>
-      <span>编号: ${order.order_no}</span>
-    </div>
   </div>
 
   <hr class="divider">
@@ -110,70 +119,101 @@ export function exportPurchasePDF(
   <div class="info">
     <table>
       <tr>
-        <td class="col" valign="top">
-          <table>
-            <tr><td class="label">供应商：</td><td><strong>${supplier?.name || ''}</strong></td></tr>
-            <tr><td class="label">联系人：</td><td>${supplier?.contact_person || ''}</td></tr>
-            <tr><td class="label">电话：</td><td>${supplier?.phone || ''}</td></tr>
-            <tr><td class="label">地址：</td><td>${supplier?.address || ''}</td></tr>
-          </table>
+        <td class="left" valign="top">
+          <strong>采购方（甲方）：</strong>东易科技有限公司<br>
+          联系人：${supplier?.contact_person || '____________________'}<br>
+          电话：${supplier?.phone || '____________________'}
         </td>
-        <td class="col" valign="top">
-          <table>
-            <tr><td class="label">日期：</td><td>${fmtDate(order.order_date)}</td></tr>
-            <tr><td class="label">付款条件：</td><td>${supplier?.payment_terms || ''}</td></tr>
-          </table>
+        <td class="right" valign="top">
+          日期：${fmtDate(order.order_date)}<br>
+          编号：${order.order_no}
         </td>
       </tr>
     </table>
   </div>
 
+  <div class="info">
+    <table>
+      <tr>
+        <td class="left" valign="top">
+          <strong>供应商（乙方）：</strong>${supplier?.name || '____________________'}<br>
+          联系人：${supplier?.contact_person || '____________________'}<br>
+          电话：${supplier?.phone || '____________________'}<br>
+          地址：${supplier?.address || '____________________'}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section-title">采购信息</div>
+
   <table class="items">
     <thead><tr>
-      <th style="width:36px">序号</th>
-      <th class="left" style="width:22%">型号</th>
-      <th class="left" style="width:28%">描述</th>
-      <th style="width:10%">数量</th>
-      <th style="width:14%">单价</th>
-      <th style="width:14%">金额</th>
+      <th style="width:28px">序号</th>
+      <th class="left" style="width:18%">名称</th>
+      <th style="width:10%">数量（PCS）</th>
+      <th style="width:8%">单位</th>
+      <th style="width:13%">单价（RMB）</th>
+      <th style="width:13%">金额</th>
+      <th style="width:12%">交货周期</th>
+      <th class="left" style="width:16%">备注</th>
     </tr></thead>
     <tbody>
       ${items.map((item, i) => `
         <tr>
           <td>${i + 1}</td>
-          <td class="left">${item.model || ''}</td>
-          <td class="left">${item.description || ''}</td>
+          <td class="left">${item.model || item.description || ''}</td>
           <td>${item.quantity}</td>
-          <td>¥${Number(item.unit_price).toFixed(2)}</td>
-          <td>¥${r2(item.quantity * item.unit_price).toFixed(2)}</td>
+          <td>PCS</td>
+          <td>${Number(item.unit_price).toFixed(2)}</td>
+          <td>${r2(item.quantity * item.unit_price).toFixed(2)}</td>
+          <td></td>
+          <td class="left"></td>
         </tr>
       `).join('')}
     </tbody>
   </table>
 
-  <div class="total-row">
-    <div class="line">
-      <span>合计金额：</span>
-      <span class="amount">¥${r2(total).toFixed(2)}</span>
-    </div>
-    <div class="words">大写：${amountInChinese(r2(total))}</div>
+  <div class="total-box">
+    <div class="line big">合计金额：¥${r2(total).toFixed(2)}</div>
+    <div class="words">合计人民币大写：${amountInChinese(r2(total))}</div>
   </div>
 
-  ${order.notes ? `<div class="section"><h3>备注</h3><p>${order.notes}</p></div>` : ''}
-
-  <div class="section">
-    <h3>银行信息</h3>
-    <div class="line">${supplier?.bank_info?.replace(/\n/g, '<br>') || ''}</div>
+  <div class="section-title">合同内容</div>
+  <div class="terms">
+    <p class="clause">1、兹经买卖双方协商一致同意，甲方委托乙方生产本合同中指定产品，乙方根据甲方确认的产品进行生产；</p>
+    <p class="clause">2、在制作本合同指定产品时乙方需要根据甲方要求制作，工艺、款式以双方最终确定的样品为准；</p>
+    <p class="clause">3、付款方式：20%预付定金，验货通过后提货支付尾款80%。</p>
+    <p class="clause" style="text-indent:2em">乙方账号信息：</p>
+    <p class="clause" style="text-indent:2em">纳税识别号：____________________</p>
+    <p class="clause" style="text-indent:2em">开  户  名：____________________</p>
+    <p class="clause" style="text-indent:2em">账      号：____________________</p>
+    <p class="clause" style="text-indent:2em">开  户  行：____________________</p>
+    ${supplier?.bank_info ? `<p class="clause" style="text-indent:2em;color:#666">（银行信息：${supplier.bank_info.replace(/\n/g, '；')}）</p>` : ''}
+    <p class="clause">4、若产品验收不合格，则乙方应当立即返工，直至验货合格。（产品加塑料袋，塑料袋必须包含窒息危险警告和气孔，其他包装物料由甲方提供，乙方包装成品交货。请注意，出口纸箱任何一侧不能超过63厘米，毛重不得超过18Kg。）</p>
+    <p class="clause">5、甲方有权利对本合同指定产品的质量、价格和服务进行监督和验审。</p>
+    <p class="clause">6、乙方所提供的产品应以与甲方确认的最终样品质量为准，不得以次充好供应给甲方。否则，因此引起的一切不良后果，均由乙方承担。</p>
+    <p class="clause">7、如因甲方在使用过程中因使用不当，例如人为碰摔、划伤、保养不善等原因而损坏，乙方不承担责任。</p>
+    <p class="clause">8、乙方交付产品或包装时，如有质量不合格的（如出现包装不合格，配件不合格，损坏或缺少，将视为整个产品不合格），甲方有权在提出换货要求。</p>
+    <p class="clause">9、产品设计，包装，以及样品的版权完全归属甲方。乙方不得在未经甲方允许情况下对产品进行复制，贩卖，赠送等侵权行为。如出现上述行为，甲方有权不支付任何生产费用，并追究乙方侵权法律责任。</p>
+    <p class="clause">10、如果乙方延迟交货或甲方延期付款，在未达成谅解协议前，每逾期一日，违约方应按照本合同该礼品订购金额的3%向守约方支付违约金，但是该违约金累计不超过本合同金额的50%，逾期超过15日，守约方有权解除合同，并追究违约方的责任，向违约方索取由此造成守约方的经济以及名誉损失的赔偿。</p>
+    <p class="clause">11、如任何一方无故解除合同或有其它违约行为，应向守约方支付与本合同总金额相等的违约金。</p>
+    <p class="clause">12、本合同附件是本合同主要组成部分，与本合同同样具有法律效应。</p>
+    <p class="clause">13、本协议一式贰份，甲乙双方各执壹份。</p>
+    <p class="clause">14、本采购合同供需、双方严格遵守，如有争议，协商解决，协商不成，由仲裁委员会仲裁。</p>
+    <p class="clause">15、供方产品如不符合环保标准，一切责任全由供方负责。</p>
   </div>
 
   <div class="sig">
-    <div class="left">
-      <div>制单人：____________________</div>
-      <div style="margin-top:24px">审批人：____________________</div>
+    <div class="box">
+      <div class="title">甲方（盖章）：东易科技有限公司</div>
+      <div>代表人签字：</div>
+      <div class="line">甲方签字盖章</div>
     </div>
-    <div class="right">
-      <div>${supplier?.name || ''}</div>
-      <div class="line" style="margin-top:20px">供应商签字盖章</div>
+    <div class="box" style="text-align:right">
+      <div class="title">乙方（盖章）：${supplier?.name || ''}</div>
+      <div>代表人签字：</div>
+      <div class="line" style="margin-left:auto">乙方签字盖章</div>
     </div>
   </div>
 
