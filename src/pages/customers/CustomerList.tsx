@@ -85,14 +85,14 @@ export default function CustomerList() {
     setModalOpen(true);
   };
 
-  const columns = [
-    { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const },
-    { title: '公司', dataIndex: 'company', key: 'company', width: 150 },
-    { title: '电话', dataIndex: 'phone', key: 'phone', width: 130 },
-    { title: '邮箱', dataIndex: 'email', key: 'email', width: 180 },
-    { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140 },
-    { title: '国家', dataIndex: 'country', key: 'country', width: 80 },
-    { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
+const columns: any[] = [
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const, onCell: () => ({ 'data-label': '姓名' }) },
+    { title: '公司', dataIndex: 'company', key: 'company', width: 150, onCell: () => ({ 'data-label': '公司' }) },
+    { title: '电话', dataIndex: 'phone', key: 'phone', width: 130, onCell: () => ({ 'data-label': '电话' }) },
+    { title: '邮箱', dataIndex: 'email', key: 'email', width: 180, responsive: ['md'] as const },
+    { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140, responsive: ['md'] as const },
+    { title: '国家', dataIndex: 'country', key: 'country', width: 80, responsive: ['md'] as const },
+    { title: '来源', dataIndex: 'source', key: 'source', width: 100, responsive: ['md'] as const },
     {
       title: '操作',
       key: 'actions',
@@ -134,6 +134,7 @@ export default function CustomerList() {
           scroll={{ x: 1000 }}
         />
       </Card>
+      <button className="crm-fab" onClick={openAdd} aria-label="添加客户">+</button>
 
       <Modal
         title={editing ? '编辑客户' : '添加客户'}
