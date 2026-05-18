@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Card, Col, Row, Statistic, Table, Spin, Tag, Space, Typography, Progress } from 'antd';
+import { Card, Col, Row, Table, Spin, Tag, Progress, Typography, Space } from 'antd';
 import {
   DollarOutlined,
   ArrowUpOutlined,
@@ -8,23 +8,14 @@ import {
   ShoppingOutlined,
   BellOutlined,
   WarningOutlined,
-  CheckCircleOutlined,
   FileTextOutlined,
-  ShoppingCartOutlined,
   CustomerServiceOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import { useAuth } from '../auth/AuthContext';
 import dayjs from 'dayjs';
-
-const cardStyle = {
-  borderRadius: 10,
-  border: 'none',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-  transition: 'all 0.3s',
-  cursor: 'pointer',
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -96,11 +87,25 @@ export default function Dashboard() {
   });
 
   const txColumns = [
-    { title: '日期', dataIndex: 'date', key: 'date', width: 90 },
-    { title: '类型', dataIndex: 'type', key: 'type', width: 55,
-      render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'} style={{ borderRadius: 8 }}>{v === 'income' ? '收入' : '支出'}</Tag> },
-    { title: '金额', dataIndex: 'amount', key: 'amount', width: 100, render: (v: number) => <span style={{ fontWeight: 500 }}>¥{v.toFixed(2)}</span> },
-    { title: '科目', key: 'account', width: 80, render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
+    { title: '日期', dataIndex: 'date', key: 'date', width: 90, render: (v: string) => <span style={{ color: '#64748b', fontSize: 13 }}>{v}</span> },
+    {
+      title: '类型', dataIndex: 'type', key: 'type', width: 55,
+      render: (v: string) => (
+        <Tag color={v === 'income' ? 'green' : 'red'} style={{ borderRadius: 6 }}>
+          {v === 'income' ? '收入' : '支出'}
+        </Tag>
+      ),
+    },
+    {
+      title: '金额', dataIndex: 'amount', key: 'amount', width: 100,
+      render: (v: number) => <span style={{ fontWeight: 600, fontSize: 14 }}>¥{v.toFixed(2)}</span>,
+    },
+    {
+      title: '科目', key: 'account', width: 80,
+      render: (_: unknown, r: Record<string, unknown>) => (
+        <span style={{ color: '#64748b' }}>{(r.accounts as Record<string, string> | null)?.name ?? '-'}</span>
+      ),
+    },
   ];
 
   const statCards = [
@@ -121,99 +126,118 @@ export default function Dashboard() {
 
   return (
     <div>
-      <Typography.Title level={4} style={{ marginBottom: 20, fontWeight: 700, fontSize: 20 }}>
-        欢迎回来
-        <span className="page-subtitle">
-          {dayjs().format('YYYY年M月D日 dddd')}
-        </span>
-      </Typography.Title>
+      {/* Welcome */}
+      <div className="dashboard-welcome">
+        <span>👋 欢迎回来</span>
+        <span className="dashboard-welcome-date">{dayjs().format('YYYY年M月D日 dddd')}</span>
+      </div>
 
+      {/* Stats Cards */}
       {canViewFinance && (
         <Row gutter={[12, 12]}>
           {statCards.map((card, i) => (
             <Col xs={12} sm={8} lg={4} key={i}>
-              <Card hoverable size="small" className="stat-card" onClick={() => navigate(card.link)}
-                styles={{ body: { padding: '16px 18px' } }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div className="crm-stat-card" onClick={() => navigate(card.link)}>
+                <div className="crm-stat-card-inner">
                   <div>
-                    <div className="stat-label">{card.title}</div>
-                    <div className="stat-value" style={{ color: card.color }}>
-                      {card.prefix || ''}{stats ? (card.value ?? 0).toLocaleString() : ''}{card.suffix || ''}
-                      {isLoading && '...'}
+                    <div className="crm-stat-label">{card.title}</div>
+                    <div className="crm-stat-value" style={{ color: card.color }}>
+                      {isLoading ? '—' : `${card.prefix || ''}${(card.value ?? 0).toLocaleString()}${card.suffix || ''}`}
                     </div>
                   </div>
-                  <div className="stat-icon" style={{ background: card.bg, color: card.color, fontSize: 18 }}>
+                  <div className="crm-stat-icon" style={{ background: card.bg, color: card.color }}>
                     {card.icon}
                   </div>
                 </div>
-              </Card>
+              </div>
             </Col>
           ))}
         </Row>
       )}
 
+      {/* Middle Section */}
       <Row gutter={12} style={{ marginTop: 20 }}>
         <Col xs={24} lg={8}>
-          <Card size="small"
-            styles={{ body: { padding: '18px' } }}
-            title={<span style={{ fontSize: 14, fontWeight: 600 }}><BellOutlined style={{ color: '#f59e0b', marginRight: 8 }} />待办任务</span>}
-            extra={<a onClick={() => navigate('/tasks')} style={{ fontSize: 12, color: '#ff6b00' }}>查看全部 →</a>}>
-            {tasksData ? (
-              <div>
-                <div className="task-stat">
-                  <span><WarningOutlined style={{ color: '#ef4444', marginRight: 6 }} />已逾期</span>
-                  <Tag color="red">{tasksData.overdue}</Tag>
-                </div>
-                <div className="task-stat">
-                  <span><BellOutlined style={{ color: '#f59e0b', marginRight: 6 }} />今日截止</span>
-                  <Tag color="orange">{tasksData.today}</Tag>
-                </div>
-                <div className="task-stat">
-                  <span><BellOutlined style={{ color: '#06b6d4', marginRight: 6 }} />近3日到期</span>
-                  <Tag color="cyan">{tasksData.upcoming}</Tag>
-                </div>
-                <Progress percent={totalPending > 0 ? Math.round((tasksData.today / totalPending) * 100) : 0}
-                  size="small" strokeColor="#ff6b00" format={() => `${tasksData.today}/${totalPending} 今日`}
-                  style={{ marginTop: 12 }} />
-              </div>
-            ) : <Spin />}
-          </Card>
+          <div className="crm-card">
+            <div className="crm-card-header">
+              <span className="crm-card-title"><BellOutlined style={{ color: '#f59e0b', marginRight: 8 }} />待办任务</span>
+              <a onClick={() => navigate('/tasks')} style={{ fontSize: 13, color: '#ff6b00', cursor: 'pointer' }}>查看全部 →</a>
+            </div>
+            <div className="crm-card-body">
+              {tasksData ? (
+                <>
+                  <div className="crm-task-stat">
+                    <span><WarningOutlined style={{ color: '#ef4444', marginRight: 6 }} />已逾期</span>
+                    <Tag color="red" style={{ minWidth: 28, textAlign: 'center' }}>{tasksData.overdue}</Tag>
+                  </div>
+                  <div className="crm-task-stat">
+                    <span><BellOutlined style={{ color: '#f59e0b', marginRight: 6 }} />今日截止</span>
+                    <Tag color="orange" style={{ minWidth: 28, textAlign: 'center' }}>{tasksData.today}</Tag>
+                  </div>
+                  <div className="crm-task-stat">
+                    <span><BellOutlined style={{ color: '#06b6d4', marginRight: 6 }} />近3日到期</span>
+                    <Tag color="cyan" style={{ minWidth: 28, textAlign: 'center' }}>{tasksData.upcoming}</Tag>
+                  </div>
+                  <Progress
+                    percent={totalPending > 0 ? Math.round((tasksData.today / totalPending) * 100) : 0}
+                    size="small"
+                    strokeColor="#ff6b00"
+                    format={() => `${tasksData.today}/${totalPending} 今日`}
+                    style={{ marginTop: 12 }}
+                  />
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 20 }}><Spin /></div>
+              )}
+            </div>
+          </div>
         </Col>
 
         <Col xs={24} lg={16}>
-          <Card size="small"
-            styles={{ body: { padding: '18px' } }}
-            title={<span style={{ fontSize: 14, fontWeight: 600 }}><DollarOutlined style={{ color: '#ff6b00', marginRight: 8 }} />快捷操作</span>}>
-            <Row gutter={[12, 12]}>
-              {quickActions.map((action, i) => (
-                <Col xs={12} sm={6} key={i}>
-                  <div className="quick-action-card" onClick={() => navigate(action.link)}>
-                    <div style={{
-                      width: 42, height: 42, borderRadius: 10, display: 'inline-flex',
-                      alignItems: 'center', justifyContent: 'center',
-                      background: action.bg, color: action.color, fontSize: 22, marginBottom: 8,
-                    }}>
-                      {action.icon}
+          <div className="crm-card">
+            <div className="crm-card-header">
+              <span className="crm-card-title"><DollarOutlined style={{ color: '#ff6b00', marginRight: 8 }} />快捷操作</span>
+            </div>
+            <div className="crm-card-body">
+              <Row gutter={[12, 12]}>
+                {quickActions.map((action, i) => (
+                  <Col xs={12} sm={6} key={i}>
+                    <div className="crm-quick-action" onClick={() => navigate(action.link)}>
+                      <div className="crm-quick-action-icon" style={{ background: action.bg, color: action.color }}>
+                        {action.icon}
+                      </div>
+                      <div className="crm-quick-action-label">{action.label}</div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#1e293b' }}>{action.label}</div>
-                  </div>
-                </Col>
-              ))}
-            </Row>
-          </Card>
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          </div>
         </Col>
       </Row>
 
+      {/* Recent Transactions */}
       {canViewFinance && (
-        <Card title={<span style={{ fontSize: 14, fontWeight: 600 }}><DollarOutlined style={{ color: '#22c55e', marginRight: 8 }} />最近流水</span>}
-          style={{ marginTop: 20 }}
-          styles={{ body: { padding: '16px 20px' } }}
-          extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12, color: '#ff6b00' }}>查看全部 →</a>}>
-          {txLoading ? <Spin /> : (
-            <Table dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
-              pagination={false} size="small" scroll={{ x: 400 }} />
-          )}
-        </Card>
+        <div className="crm-card" style={{ marginTop: 20 }}>
+          <div className="crm-card-header">
+            <span className="crm-card-title"><DollarOutlined style={{ color: '#22c55e', marginRight: 8 }} />最近流水</span>
+            <a onClick={() => navigate('/finance')} style={{ fontSize: 13, color: '#ff6b00', cursor: 'pointer' }}>查看全部 →</a>
+          </div>
+          <div className="crm-card-body">
+            {txLoading ? (
+              <div style={{ textAlign: 'center', padding: 20 }}><Spin /></div>
+            ) : (
+              <Table
+                dataSource={recentTransactions ?? []}
+                columns={txColumns}
+                rowKey="id"
+                pagination={false}
+                size="small"
+                scroll={{ x: 350 }}
+              />
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, theme, Dropdown, Modal, Form, Input, message } from 'antd';
+import { Layout, Menu, Button, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
@@ -17,14 +17,25 @@ import {
   KeyOutlined,
   LockOutlined,
   SettingOutlined,
+  HomeOutlined,
+  FileTextOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabase';
 
 const { Header, Sider, Content, Footer } = Layout;
 
+const bottomNavItems = [
+  { key: '/', icon: <HomeOutlined />, label: '首页' },
+  { key: '/customers', icon: <TeamOutlined />, label: '客户' },
+  { key: '/tasks', icon: <BellOutlined />, label: '任务' },
+  { key: '/finance', icon: <DollarOutlined />, label: '财务' },
+  { key: '/org', icon: <UserOutlined />, label: '我的' },
+];
+
 export default function MainLayout() {
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 1200);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
@@ -39,9 +50,10 @@ export default function MainLayout() {
     if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
     return groups;
   });
-  const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
 
   const isMobile = window.innerWidth < 768;
+  const showSidebar = !isMobile;
+  const showMobileNav = isMobile;
 
   const pathParts = location.pathname.split('/').filter(Boolean);
   let selectedKey = '/' + (pathParts[0] || '');
@@ -49,7 +61,6 @@ export default function MainLayout() {
   if (pathParts.length >= 2 && pathParts[0] === 'quotations') selectedKey = '/' + pathParts.slice(0, 2).join('/');
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
-
   const hasPerm = (k: string) => isOwner || isAdmin || permissions.includes(k as never);
 
   const menuItems: MenuProps['items'] = [
@@ -130,88 +141,108 @@ export default function MainLayout() {
     },
   ];
 
+  // Breadcrumb mapping
+  const breadcrumbMap: Record<string, string> = {
+    '/': '仪表盘',
+    '/tasks': '任务跟进',
+    '/customers': '客户列表',
+    '/orders': '采购订单',
+    '/quotations/quo': '报价单',
+    '/quotations/pi': '形式发票',
+    '/products': '商品管理',
+    '/suppliers': '供应商资料',
+    '/purchases': '供应商采购单',
+    '/finance': '财务记账',
+    '/accounts': '科目管理',
+    '/reports': '财务报表',
+    '/org': '团队管理',
+  };
+  const currentLabel = breadcrumbMap[selectedKey] || '仪表盘';
+
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f8f9fb' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} breakpoint="lg"
-        onBreakpoint={(broken) => setCollapsed(broken)}
-        style={{
-          background: '#0f172a',
-          borderRight: '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        <div style={{
-          margin: 16,
-          padding: collapsed ? '10px 0' : '12px 16px',
-          background: 'rgba(255,255,255,0.04)',
-          borderRadius: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          gap: 10,
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <img
-            src="/logo.webp"
-            alt="WowohCool CRM"
-            style={{
-              height: collapsed ? 26 : 32,
-              maxWidth: collapsed ? 26 : 120,
-              objectFit: 'contain',
-              filter: 'brightness(0) invert(1)',
-            }}
-          />
-          {!collapsed && <span style={{ color: '#ff6b00', fontWeight: 700, fontSize: 15 }}>WOWOHCOOL</span>}
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems}
-          openKeys={openKeys}
-          onOpenChange={setOpenKeys}
-          onClick={({ key }) => navigate(key)}
-          style={{ background: 'transparent', borderInlineEnd: 'none', padding: '4px 0' }}
-        />
-      </Sider>
-      <Layout style={{ background: '#f8f9fb' }}>
-        <Header style={{
-          padding: '0 24px',
-          background: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid #e8eaef',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          height: 56,
-          lineHeight: '56px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{ fontSize: 16, color: '#64748b' }}
-            />
+    <div className="crm-layout">
+      {/* Desktop Sidebar */}
+      {showSidebar && (
+        <Sider
+          width={240}
+          collapsedWidth={64}
+          collapsible
+          collapsed={collapsed}
+          className="crm-sidebar"
+        >
+          <div className={`crm-sidebar-logo ${collapsed ? 'collapsed' : ''}`}>
+            <img src="/logo.webp" alt="WOWOHCOOL" />
+            {!collapsed && <span>WOWOHCOOL</span>}
           </div>
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button type="text" icon={<UserOutlined style={{ color: '#ff6b00' }} />}
-              style={{ fontWeight: 500, color: '#1e293b', borderRadius: 8 }}>
-              {displayName}
-            </Button>
-          </Dropdown>
+          <Menu
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            items={menuItems}
+            openKeys={openKeys}
+            onOpenChange={setOpenKeys}
+            onClick={({ key }) => navigate(key)}
+          />
+        </Sider>
+      )}
+
+      <Layout style={{ marginLeft: showSidebar ? (collapsed ? 64 : 240) : 0, background: 'transparent', transition: 'margin-left 0.3s ease' }}>
+        {/* Header */}
+        <Header className="crm-header">
+          <div className="crm-header-left">
+            {showSidebar && (
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+                style={{ fontSize: 16, color: '#64748b', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            )}
+            <span className="crm-header-breadcrumb">{currentLabel}</span>
+          </div>
+          <div className="crm-header-right">
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <Button type="text" icon={<UserOutlined style={{ color: '#ff6b00' }} />}
+                style={{ fontWeight: 500, color: '#1e293b', borderRadius: 8, height: 36, display: 'flex', alignItems: 'center' }}>
+                <span style={{ marginLeft: 4 }}>{displayName}</span>
+              </Button>
+            </Dropdown>
+          </div>
         </Header>
-        <Content style={{
-          margin: 20,
-          padding: 0,
-          minHeight: 280,
-        }}>
+
+        {/* Content */}
+        <Content className="crm-content">
           <Outlet />
         </Content>
-        <Footer style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, padding: '12px 24px', background: '#f8f9fb' }}>
+
+        <Footer className="crm-footer">
           &copy; {new Date().getFullYear()} WOWOHCOOL CRM
         </Footer>
       </Layout>
 
+      {/* Mobile Bottom Navigation */}
+      {showMobileNav && (
+        <nav className="crm-mobile-nav">
+          <div className="crm-mobile-nav-items">
+            {bottomNavItems.map(item => {
+              const isActive = item.key === '/'
+                ? location.pathname === '/'
+                : location.pathname.startsWith(item.key);
+              return (
+                <div
+                  key={item.key}
+                  className={`crm-mobile-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => navigate(item.key)}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
+      {/* Password Modal */}
       <Modal
         title="修改密码"
         open={passwordModalOpen}
@@ -242,6 +273,6 @@ export default function MainLayout() {
           </Form.Item>
         </Form>
       </Modal>
-    </Layout>
+    </div>
   );
 }
