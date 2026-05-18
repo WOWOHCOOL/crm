@@ -66,8 +66,46 @@ function App() {
         locale={zhCN}
         theme={{
           token: {
-            colorPrimary: '#1677ff',
-            borderRadius: 6,
+            colorPrimary: '#ff6b00',
+            colorLink: '#ff6b00',
+            borderRadius: 8,
+            colorBgContainer: '#ffffff',
+            colorBgLayout: '#f8f9fb',
+            colorBorder: '#e8eaef',
+            colorText: '#1e293b',
+            colorTextSecondary: '#64748b',
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif",
+          },
+          components: {
+            Menu: {
+              colorItemBg: 'transparent',
+              colorItemBgSelected: 'rgba(255,107,0,0.12)',
+              colorItemText: 'rgba(255,255,255,0.65)',
+              colorItemTextSelected: '#ff6b00',
+              colorItemTextHover: '#ffffff',
+              colorItemBgHover: 'rgba(255,255,255,0.06)',
+              colorSubItemBg: 'transparent',
+              borderRadius: 8,
+              itemMarginInline: 12,
+              itemMarginBlock: 2,
+            },
+            Layout: {
+              colorBgHeader: '#ffffff',
+              colorBgBody: '#f8f9fb',
+              colorBgTrigger: '#0f172a',
+            },
+            Table: {
+              headerBg: '#f8f9fb',
+              headerColor: '#64748b',
+              rowHoverBg: 'rgba(255,107,0,0.04)',
+              borderColor: '#e8eaef',
+            },
+            Card: {
+              paddingLG: 20,
+            },
+            Button: {
+              primaryShadow: '0 2px 8px rgba(255,107,0,0.25)',
+            },
           },
         }}
       >

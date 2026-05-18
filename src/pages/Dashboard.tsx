@@ -104,26 +104,26 @@ export default function Dashboard() {
   ];
 
   const statCards = [
-    { icon: <ArrowUpOutlined />, color: '#52c41a', bg: '#f6ffed', title: '本月收入', value: stats?.totalIncome ?? 0, suffix: '元', link: '/finance' },
-    { icon: <ArrowDownOutlined />, color: '#ff4d4f', bg: '#fff2f0', title: '本月支出', value: stats?.totalExpense ?? 0, suffix: '元', link: '/finance' },
-    { icon: <DollarOutlined />, color: '#1677ff', bg: '#f0f5ff', title: '本月结余', value: stats?.balance ?? 0, suffix: '元', link: '/reports' },
-    { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', value: stats?.customerCount ?? 0, suffix: '人', link: '/customers' },
-    { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', value: stats?.productCount ?? 0, suffix: '个', link: '/products' },
-    { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', value: stats?.pendingOrders ?? 0, suffix: '单', link: '/orders' },
+    { icon: <ArrowUpOutlined />, color: '#22c55e', bg: '#f0fdf4', title: '本月收入', value: stats?.totalIncome ?? 0, prefix: '¥', link: '/finance' },
+    { icon: <ArrowDownOutlined />, color: '#ef4444', bg: '#fef2f2', title: '本月支出', value: stats?.totalExpense ?? 0, prefix: '¥', link: '/finance' },
+    { icon: <DollarOutlined />, color: '#ff6b00', bg: '#fff7ed', title: '本月结余', value: stats?.balance ?? 0, prefix: '¥', link: '/reports' },
+    { icon: <TeamOutlined />, color: '#8b5cf6', bg: '#f5f3ff', title: '客户总数', value: stats?.customerCount ?? 0, suffix: '户', link: '/customers' },
+    { icon: <ShoppingOutlined />, color: '#06b6d4', bg: '#ecfeff', title: '商品总数', value: stats?.productCount ?? 0, suffix: '个', link: '/products' },
+    { icon: <ShoppingCartOutlined />, color: '#f59e0b', bg: '#fffbeb', title: '进行中订单', value: stats?.pendingOrders ?? 0, suffix: '单', link: '/orders' },
   ];
 
   const quickActions = [
-    { icon: <FileTextOutlined />, label: '新建报价单', color: '#1677ff', bg: '#f0f5ff', link: '/quotations/new?type=quotation' },
-    { icon: <FileTextOutlined />, label: '新建PI', color: '#722ed1', bg: '#f9f0ff', link: '/quotations/new?type=pi' },
-    { icon: <CustomerServiceOutlined />, label: '添加客户', color: '#52c41a', bg: '#f6ffed', link: '/customers' },
-    { icon: <BellOutlined />, label: '新建任务', color: '#fa8c16', bg: '#fff7e6', link: '/tasks' },
+    { icon: <FileTextOutlined />, label: '新建报价单', color: '#ff6b00', bg: '#fff7ed', link: '/quotations/new?type=quotation' },
+    { icon: <FileTextOutlined />, label: '新建PI', color: '#8b5cf6', bg: '#f5f3ff', link: '/quotations/new?type=pi' },
+    { icon: <CustomerServiceOutlined />, label: '添加客户', color: '#22c55e', bg: '#f0fdf4', link: '/customers' },
+    { icon: <BellOutlined />, label: '新建任务', color: '#f59e0b', bg: '#fffbeb', link: '/tasks' },
   ];
 
   return (
     <div>
-      <Typography.Title level={4} style={{ marginBottom: 16, fontWeight: 600 }}>
+      <Typography.Title level={4} style={{ marginBottom: 20, fontWeight: 700, fontSize: 20 }}>
         欢迎回来
-        <span style={{ fontSize: 14, fontWeight: 400, color: '#999', marginLeft: 12 }}>
+        <span className="page-subtitle">
           {dayjs().format('YYYY年M月D日 dddd')}
         </span>
       </Typography.Title>
@@ -132,76 +132,71 @@ export default function Dashboard() {
         <Row gutter={[12, 12]}>
           {statCards.map((card, i) => (
             <Col xs={12} sm={8} lg={4} key={i}>
-              <Card hoverable size="small" style={cardStyle} onClick={() => navigate(card.link)}
-                bodyStyle={{ padding: '14px 16px' }}>
-                <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Card hoverable size="small" className="stat-card" onClick={() => navigate(card.link)}
+                styles={{ body: { padding: '16px 18px' } }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
-                    <Statistic value={card.value} precision={card.title.includes('率') ? 1 : 0}
-                      suffix={card.suffix} valueStyle={{ fontSize: 18, fontWeight: 600 }}
-                      loading={isLoading} />
+                    <div className="stat-label">{card.title}</div>
+                    <div className="stat-value" style={{ color: card.color }}>
+                      {card.prefix || ''}{stats ? (card.value ?? 0).toLocaleString() : ''}{card.suffix || ''}
+                      {isLoading && '...'}
+                    </div>
                   </div>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    background: card.bg, color: card.color, fontSize: 18,
-                  }}>
+                  <div className="stat-icon" style={{ background: card.bg, color: card.color, fontSize: 18 }}>
                     {card.icon}
                   </div>
-                </Space>
+                </div>
               </Card>
             </Col>
           ))}
         </Row>
       )}
 
-      {/* Middle Row: Tasks + Quick Actions */}
-      <Row gutter={12} style={{ marginTop: 16 }}>
+      <Row gutter={12} style={{ marginTop: 20 }}>
         <Col xs={24} lg={8}>
-          <Card size="small" style={cardStyle}
-            bodyStyle={{ padding: '16px' }}
-            title={<Space><BellOutlined style={{ color: '#fa8c16' }} /><span style={{ fontSize: 14, fontWeight: 500 }}>待办任务</span></Space>}
-            extra={<a onClick={() => navigate('/tasks')} style={{ fontSize: 12 }}>查看全部</a>}>
+          <Card size="small"
+            styles={{ body: { padding: '18px' } }}
+            title={<span style={{ fontSize: 14, fontWeight: 600 }}><BellOutlined style={{ color: '#f59e0b', marginRight: 8 }} />待办任务</span>}
+            extra={<a onClick={() => navigate('/tasks')} style={{ fontSize: 12, color: '#ff6b00' }}>查看全部 →</a>}>
             {tasksData ? (
-              <Space direction="vertical" style={{ width: '100%' }} size={8}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span><WarningOutlined style={{ color: '#ff4d4f', marginRight: 6 }} />已逾期</span>
-                  <Tag color="red" style={{ borderRadius: 6, minWidth: 28, textAlign: 'center' }}>{tasksData.overdue}</Tag>
+              <div>
+                <div className="task-stat">
+                  <span><WarningOutlined style={{ color: '#ef4444', marginRight: 6 }} />已逾期</span>
+                  <Tag color="red">{tasksData.overdue}</Tag>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span><BellOutlined style={{ color: '#faad14', marginRight: 6 }} />今日截止</span>
-                  <Tag color="orange" style={{ borderRadius: 6, minWidth: 28, textAlign: 'center' }}>{tasksData.today}</Tag>
+                <div className="task-stat">
+                  <span><BellOutlined style={{ color: '#f59e0b', marginRight: 6 }} />今日截止</span>
+                  <Tag color="orange">{tasksData.today}</Tag>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span><BellOutlined style={{ color: '#1677ff', marginRight: 6 }} />近3日到期</span>
-                  <Tag color="blue" style={{ borderRadius: 6, minWidth: 28, textAlign: 'center' }}>{tasksData.upcoming}</Tag>
+                <div className="task-stat">
+                  <span><BellOutlined style={{ color: '#06b6d4', marginRight: 6 }} />近3日到期</span>
+                  <Tag color="cyan">{tasksData.upcoming}</Tag>
                 </div>
                 <Progress percent={totalPending > 0 ? Math.round((tasksData.today / totalPending) * 100) : 0}
-                  size="small" strokeColor="#1677ff" format={() => `${tasksData.today}/${totalPending} 今日`} />
-              </Space>
+                  size="small" strokeColor="#ff6b00" format={() => `${tasksData.today}/${totalPending} 今日`}
+                  style={{ marginTop: 12 }} />
+              </div>
             ) : <Spin />}
           </Card>
         </Col>
 
         <Col xs={24} lg={16}>
-          <Card size="small" style={cardStyle}
-            bodyStyle={{ padding: '16px' }}
-            title={<Space><DollarOutlined style={{ color: '#1677ff' }} /><span style={{ fontSize: 14, fontWeight: 500 }}>快捷操作</span></Space>}>
+          <Card size="small"
+            styles={{ body: { padding: '18px' } }}
+            title={<span style={{ fontSize: 14, fontWeight: 600 }}><DollarOutlined style={{ color: '#ff6b00', marginRight: 8 }} />快捷操作</span>}>
             <Row gutter={[12, 12]}>
               {quickActions.map((action, i) => (
                 <Col xs={12} sm={6} key={i}>
-                  <Card hoverable size="small" style={{ ...cardStyle, textAlign: 'center' }}
-                    bodyStyle={{ padding: '16px 8px' }}
-                    onClick={() => navigate(action.link)}>
+                  <div className="quick-action-card" onClick={() => navigate(action.link)}>
                     <div style={{
-                      width: 40, height: 40, borderRadius: 10, display: 'inline-flex',
+                      width: 42, height: 42, borderRadius: 10, display: 'inline-flex',
                       alignItems: 'center', justifyContent: 'center',
-                      background: action.bg, color: action.color, fontSize: 20, marginBottom: 8,
+                      background: action.bg, color: action.color, fontSize: 22, marginBottom: 8,
                     }}>
                       {action.icon}
                     </div>
-                    <div style={{ fontSize: 13, color: '#333' }}>{action.label}</div>
-                  </Card>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#1e293b' }}>{action.label}</div>
+                  </div>
                 </Col>
               ))}
             </Row>
@@ -210,10 +205,10 @@ export default function Dashboard() {
       </Row>
 
       {canViewFinance && (
-        <Card title={<Space><DollarOutlined style={{ color: '#52c41a' }} />最近流水</Space>}
-          style={{ ...cardStyle, marginTop: 16 }}
-          bodyStyle={{ padding: '12px 16px' }}
-          extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12 }}>查看全部</a>}>
+        <Card title={<span style={{ fontSize: 14, fontWeight: 600 }}><DollarOutlined style={{ color: '#22c55e', marginRight: 8 }} />最近流水</span>}
+          style={{ marginTop: 20 }}
+          styles={{ body: { padding: '16px 20px' } }}
+          extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12, color: '#ff6b00' }}>查看全部 →</a>}>
           {txLoading ? <Spin /> : (
             <Table dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
               pagination={false} size="small" scroll={{ x: 400 }} />

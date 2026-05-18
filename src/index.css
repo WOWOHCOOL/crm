@@ -1,7 +1,174 @@
+/* ─── WOWOHCOOL CRM Design System ──────────────────────────── */
+:root {
+  --crm-primary: #ff6b00;
+  --crm-primary-dark: #cc5500;
+  --crm-primary-light: rgba(255, 107, 0, 0.08);
+  --crm-primary-glow: rgba(255, 107, 0, 0.2);
+  --crm-bg: #f8f9fb;
+  --crm-sidebar: #0f172a;
+  --crm-sidebar-hover: #1e293b;
+  --crm-card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --crm-card-shadow-hover: 0 4px 16px rgba(0,0,0,0.08);
+  --crm-border: #e8eaef;
+  --crm-text: #1e293b;
+  --crm-text-secondary: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--crm-bg);
+  color: var(--crm-text);
 }
+
 #root {
   min-height: 100vh;
 }
+
+/* ─── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #98a2b3; }
+
+/* ─── Ant Design Overrides ─────────────────────────────────── */
+.ant-card {
+  border-radius: 10px !important;
+  border: 1px solid var(--crm-border) !important;
+  box-shadow: var(--crm-card-shadow) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-card:hover {
+  box-shadow: var(--crm-card-shadow-hover) !important;
+}
+
+.ant-card-head {
+  border-bottom: 1px solid var(--crm-border) !important;
+  padding: 0 20px !important;
+}
+
+.ant-card-body {
+  padding: 20px !important;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: #f8f9fb !important;
+  color: var(--crm-text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid var(--crm-border) !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f0f2f5 !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: var(--crm-primary-light) !important;
+}
+
+.ant-statistic-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700 !important;
+}
+
+.ant-tag {
+  border-radius: 6px !important;
+  padding: 0 8px !important;
+  font-size: 12px !important;
+  line-height: 22px !important;
+}
+
+/* ─── Dashboard Cards ──────────────────────────────────────── */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255,107,0,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.stat-card .stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.08);
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--crm-text);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--crm-text-secondary);
+  margin-bottom: 4px;
+}
+
+/* ─── Quick Action Cards ───────────────────────────────────── */
+.quick-action-card {
+  border-radius: 10px;
+  border: 1px solid var(--crm-border);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.quick-action-card:hover {
+  border-color: var(--crm-primary);
+  box-shadow: var(--crm-card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* ─── Task Section ─────────────────────────────────────────── */
+.task-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+/* ─── Page Title ───────────────────────────────────────────── */
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--crm-text);
+}
+
+.page-title .page-subtitle {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--crm-text-secondary);
+  margin-left: 8px;
+}
+

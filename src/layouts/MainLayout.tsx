@@ -131,28 +131,36 @@ export default function MainLayout() {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f8f9fb' }}>
       <Sider trigger={null} collapsible collapsed={collapsed} breakpoint="lg"
         onBreakpoint={(broken) => setCollapsed(broken)}
+        style={{
+          background: '#0f172a',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+        }}
       >
         <div style={{
           margin: 16,
-          padding: 8,
-          background: 'rgba(255,255,255,0.95)',
-          borderRadius: 8,
+          padding: collapsed ? '10px 0' : '12px 16px',
+          background: 'rgba(255,255,255,0.04)',
+          borderRadius: 10,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          gap: 10,
+          border: '1px solid rgba(255,255,255,0.06)',
         }}>
           <img
             src="/logo.webp"
             alt="WowohCool CRM"
             style={{
-              height: collapsed ? 28 : 36,
-              maxWidth: collapsed ? 40 : 150,
+              height: collapsed ? 26 : 32,
+              maxWidth: collapsed ? 26 : 120,
               objectFit: 'contain',
+              filter: 'brightness(0) invert(1)',
             }}
           />
+          {!collapsed && <span style={{ color: '#ff6b00', fontWeight: 700, fontSize: 15 }}>WOWOHCOOL</span>}
         </div>
         <Menu
           theme="dark"
@@ -162,39 +170,45 @@ export default function MainLayout() {
           openKeys={openKeys}
           onOpenChange={setOpenKeys}
           onClick={({ key }) => navigate(key)}
+          style={{ background: 'transparent', borderInlineEnd: 'none', padding: '4px 0' }}
         />
       </Sider>
-      <Layout>
+      <Layout style={{ background: '#f8f9fb' }}>
         <Header style={{
           padding: '0 24px',
-          background: colorBgContainer,
+          background: '#ffffff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          borderBottom: '1px solid #e8eaef',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          height: 56,
+          lineHeight: '56px',
         }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: 16, color: '#64748b' }}
+            />
+          </div>
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button type="text" icon={<UserOutlined />}>
+            <Button type="text" icon={<UserOutlined style={{ color: '#ff6b00' }} />}
+              style={{ fontWeight: 500, color: '#1e293b', borderRadius: 8 }}>
               {displayName}
             </Button>
           </Dropdown>
         </Header>
         <Content style={{
-          margin: isMobile ? 8 : 24,
-          padding: isMobile ? 12 : 24,
-          background: colorBgContainer,
-          borderRadius: borderRadiusLG,
+          margin: 20,
+          padding: 0,
           minHeight: 280,
-          overflow: 'auto',
         }}>
           <Outlet />
         </Content>
-        <Footer style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
-          &copy; snowy {new Date().getFullYear()} WowohCool CRM
+        <Footer style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, padding: '12px 24px', background: '#f8f9fb' }}>
+          &copy; {new Date().getFullYear()} WOWOHCOOL CRM
         </Footer>
       </Layout>
 
