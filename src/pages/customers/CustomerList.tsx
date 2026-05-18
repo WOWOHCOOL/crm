@@ -120,7 +120,7 @@ const columns: any[] = [
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               allowClear
-              style={{ width: 280 }}
+              style={{ maxWidth: 320, width: '100%' }}
             />
           </Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加客户</Button>
