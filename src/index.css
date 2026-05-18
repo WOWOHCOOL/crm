@@ -568,6 +568,26 @@ body {
   .crm-table-toolbar-right { justify-content: flex-start; }
   .ant-card-body { padding: 14px !important; }
   .ant-table { font-size: 13px; }
+  /* Fix toolbar overflow on mobile */
+  .ant-card .ant-space-horizontal {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .ant-card .ant-space-horizontal > .ant-space-item {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+  .ant-card .ant-space-horizontal > .ant-space-item:last-child {
+    flex: 0 0 auto !important;
+  }
+  .ant-card .ant-space-horizontal .ant-input-affix-wrapper {
+    width: 100% !important;
+    min-width: 180px !important;
+  }
+  .ant-card .ant-btn-primary {
+    width: 100% !important;
+    white-space: nowrap !important;
+  }
 }
 
 @media (max-width: 480px) {
