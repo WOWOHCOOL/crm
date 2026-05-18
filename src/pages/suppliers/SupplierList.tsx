@@ -9,6 +9,7 @@ import { supabase } from '../../supabase';
 import type { Supplier } from '../../types';
 import { logOperation } from '../../utils/log';
 import { useAuth } from '../../auth/AuthContext';
+import { withMobileLabels } from '../../utils/columns';
 
 export default function SupplierList() {
   const { isOwner, isAdmin, orgInfo } = useAuth();
@@ -188,7 +189,7 @@ export default function SupplierList() {
         </Space>
         <Table
           dataSource={suppliers}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

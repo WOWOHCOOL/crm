@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Customer } from '../../types';
 import { logOperation } from '../../utils/log';
+import { withMobileLabels } from '../../utils/columns';
 
 export default function CustomerList() {
   const [search, setSearch] = useState('');
@@ -127,7 +128,7 @@ const columns: any[] = [
         </Space>
         <Table
           dataSource={customers}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

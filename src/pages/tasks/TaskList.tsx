@@ -10,6 +10,7 @@ import type { Task, Customer } from '../../types';
 import { logOperation } from '../../utils/log';
 import { useAuth } from '../../auth/AuthContext';
 import dayjs from 'dayjs';
+import { withMobileLabels } from '../../utils/columns';
 
 const statusLabels: Record<string, string> = {
   pending: '待处理',
@@ -256,7 +257,7 @@ export default function TaskList() {
         </Space>
         <Table
           dataSource={tasks}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

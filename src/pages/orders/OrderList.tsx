@@ -7,6 +7,7 @@ import type { Order, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import { logOperation } from '../../utils/log';
 import dayjs from 'dayjs';
+import { withMobileLabels } from '../../utils/columns';
 
 const statusLabels: Record<OrderStatus, string> = {
   pending: '待确认',
@@ -121,7 +122,7 @@ export default function OrderList() {
       <Card title="采购订单（PO）">
         <Table
           dataSource={orders}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

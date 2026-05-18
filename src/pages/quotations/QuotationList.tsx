@@ -7,6 +7,7 @@ import { supabase } from '../../supabase';
 import type { Quotation, QuotationItem } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
+import { withMobileLabels } from '../../utils/columns';
 
 export default function QuotationList({ listType }: { listType: 'quotation' | 'pi' }) {
   const [search, setSearch] = useState('');
@@ -106,7 +107,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
         </Space>
         <Table
           dataSource={quotations}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

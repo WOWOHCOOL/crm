@@ -7,6 +7,7 @@ import { supabase } from '../../supabase';
 import type { Order, Quotation, Task, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import dayjs from 'dayjs';
+import { withMobileLabels } from '../../utils/columns';
 
 const orderTypeLabels: Record<string, string> = {
   normal: '正常订单',

@@ -9,6 +9,7 @@ import type { PurchaseOrder, PurchaseItem, PurchaseStatus, Supplier } from '../.
 import { useAuth } from '../../auth/AuthContext';
 import { logOperation } from '../../utils/log';
 import { exportPurchasePDF } from '../../utils/purchaseExport';
+import { withMobileLabels } from '../../utils/columns';
 
 const statusLabels: Record<PurchaseStatus, string> = {
   draft: '草稿',
@@ -113,7 +114,7 @@ export default function PurchaseList() {
         </Space>
         <Table
           dataSource={orders}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

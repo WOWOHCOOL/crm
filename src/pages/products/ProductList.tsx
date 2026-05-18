@@ -10,6 +10,7 @@ import type { Product, Supplier } from '../../types';
 import { logOperation } from '../../utils/log';
 import { useAuth } from '../../auth/AuthContext';
 import * as XLSX from 'xlsx';
+import { withMobileLabels } from '../../utils/columns';
 
 export default function ProductList() {
   const { isOwner, isAdmin } = useAuth();
@@ -258,7 +259,7 @@ export default function ProductList() {
         </Space>
         <Table
           dataSource={products}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Account, AccountType } from '../../types';
 import { logOperation } from '../../utils/log';
+import { withMobileLabels } from '../../utils/columns';
 
 async function getUserId() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -159,7 +160,7 @@ export default function AccountManage() {
         </Space>
         <Table
           dataSource={accounts}
-          columns={columns}
+          columns={withMobileLabels(columns)}
           rowKey="id"
           loading={isLoading}
           pagination={false}
