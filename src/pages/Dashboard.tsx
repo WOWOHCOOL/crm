@@ -8,7 +8,6 @@ import {
   ShoppingOutlined,
   BellOutlined,
   WarningOutlined,
-  CheckCircleOutlined,
   FileTextOutlined,
   ShoppingCartOutlined,
   CustomerServiceOutlined,
@@ -133,7 +132,7 @@ export default function Dashboard() {
           {statCards.map((card, i) => (
             <Col xs={12} sm={8} lg={4} key={i}>
               <Card hoverable size="small" style={cardStyle} onClick={() => navigate(card.link)}
-                bodyStyle={{ padding: '14px 16px' }}>
+                styles={{ body: { padding: '14px 16px' } }}>
                 <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
@@ -159,7 +158,7 @@ export default function Dashboard() {
       <Row gutter={12} style={{ marginTop: 16 }}>
         <Col xs={24} lg={8}>
           <Card size="small" style={cardStyle}
-            bodyStyle={{ padding: '16px' }}
+            styles={{ body: { padding: '16px' } }}
             title={<Space><BellOutlined style={{ color: '#fa8c16' }} /><span style={{ fontSize: 14, fontWeight: 500 }}>待办任务</span></Space>}
             extra={<a onClick={() => navigate('/tasks')} style={{ fontSize: 12 }}>查看全部</a>}>
             {tasksData ? (
@@ -185,13 +184,13 @@ export default function Dashboard() {
 
         <Col xs={24} lg={16}>
           <Card size="small" style={cardStyle}
-            bodyStyle={{ padding: '16px' }}
+            styles={{ body: { padding: '16px' } }}
             title={<Space><DollarOutlined style={{ color: '#1677ff' }} /><span style={{ fontSize: 14, fontWeight: 500 }}>快捷操作</span></Space>}>
             <Row gutter={[12, 12]}>
               {quickActions.map((action, i) => (
                 <Col xs={12} sm={6} key={i}>
                   <Card hoverable size="small" style={{ ...cardStyle, textAlign: 'center' }}
-                    bodyStyle={{ padding: '16px 8px' }}
+                    styles={{ body: { padding: '16px 8px' } }}
                     onClick={() => navigate(action.link)}>
                     <div style={{
                       width: 40, height: 40, borderRadius: 10, display: 'inline-flex',
@@ -212,7 +211,7 @@ export default function Dashboard() {
       {canViewFinance && (
         <Card title={<Space><DollarOutlined style={{ color: '#52c41a' }} />最近流水</Space>}
           style={{ ...cardStyle, marginTop: 16 }}
-          bodyStyle={{ padding: '12px 16px' }}
+          styles={{ body: { padding: '12px 16px' } }}
           extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12 }}>查看全部</a>}>
           {txLoading ? <Spin /> : (
             <Table dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
