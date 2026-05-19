@@ -82,7 +82,9 @@ export default function CustomerList() {
     { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const, onCell: () => ({ 'data-label': '姓名' } as React.TdHTMLAttributes<unknown>) },
     { title: '公司', dataIndex: 'company', key: 'company', width: 150, onCell: () => ({ 'data-label': '公司' } as React.TdHTMLAttributes<unknown>) },
     { title: '电话', dataIndex: 'phone', key: 'phone', width: 130, onCell: () => ({ 'data-label': '电话' } as React.TdHTMLAttributes<unknown>) },
-    { title: '邮箱', dataIndex: 'email', key: 'email', width: 180, onCell: () => ({ 'data-label': '邮箱' } as React.TdHTMLAttributes<unknown>) },
+    { title: '邮箱1', dataIndex: 'email', key: 'email', width: 160, onCell: () => ({ 'data-label': '邮箱1' } as React.TdHTMLAttributes<unknown>) },
+    { title: '邮箱2', dataIndex: 'email2', key: 'email2', width: 160, onCell: () => ({ 'data-label': '邮箱2' } as React.TdHTMLAttributes<unknown>), render: (v: string | null) => v || '-' },
+    { title: '邮箱3', dataIndex: 'email3', key: 'email3', width: 160, onCell: () => ({ 'data-label': '邮箱3' } as React.TdHTMLAttributes<unknown>), render: (v: string | null) => v || '-' },
     { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140, onCell: () => ({ 'data-label': 'WhatsApp' } as React.TdHTMLAttributes<unknown>) },
     { title: '国家', dataIndex: 'country', key: 'country', width: 80, onCell: () => ({ 'data-label': '国家' } as React.TdHTMLAttributes<unknown>) },
     { title: '来源', dataIndex: 'source', key: 'source', width: 100, onCell: () => ({ 'data-label': '来源' } as React.TdHTMLAttributes<unknown>) },
@@ -151,8 +153,18 @@ export default function CustomerList() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="email" label="邮箱">
-                <Input />
+              <Form.Item name="email" label="邮箱1">
+                <Input placeholder="main@example.com" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email2" label="邮箱2">
+                <Input placeholder="backup@example.com" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email3" label="邮箱3">
+                <Input placeholder="other@example.com" />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
