@@ -1,19 +1,58 @@
-import { Card, Col, Row, Space, Statistic, Table, Spin, DatePicker, Button } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, DownloadOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Card, Row, Col, Statistic, Table, Spin, DatePicker, Button, Space, Tag } from 'antd';
+import { DownloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, AreaChart, Area, RadialBarChart, RadialBar,
 } from 'recharts';
-import { useState, useMemo } from 'react';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 
-const COLORS = ['#52c41a', '#ff4d4f', '#1677ff', '#faad14', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16'];
-const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16', '#2f54eb', '#7cb305'];
+// ── Premium Color Palette ──
+const COLORS = {
+  gold: '#d4a843',
+  goldLight: '#e8c76a',
+  blue: '#3b82f6',
+  blueLight: '#60a5fa',
+  green: '#10b981',
+  greenLight: '#34d399',
+  red: '#ef4444',
+  purple: '#8b5cf6',
+  cyan: '#06b6d4',
+  orange: '#f59e0b',
+  pink: '#ec4899',
+  indigo: '#6366f1',
+  text: '#1e293b',
+  muted: '#94a3b8',
+  bg: '#f8f9fb',
+};
 
-export default function Reports() {
+const CHART_COLORS = [COLORS.gold, COLORS.blue, COLORS.green, COLORS.orange, COLORS.purple, COLORS.cyan, COLORS.pink, COLORS.indigo, COLORS.red, '#14b8a6'];
+const PIE_COLORS = ['#d4a843', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1', '#ef4444', '#14b8a6', '#f97316', '#84cc16'];
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+      padding: '12px 16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+    }}>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
+          {p.name}: ¥{Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const formatY = (v: number) => v >= 10000 ? `¥${(v / 10000).toFixed(1)}w` : `¥${v.toFixed(0)}`;
+
+export default function ReportPage() {
   const [year, setYear] = useState(dayjs().year());
 
   const { data: monthlyData, isLoading } = useQuery({
@@ -21,23 +60,17 @@ export default function Reports() {
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-
       const [{ data: incomes }, { data: expenses }] = await Promise.all([
         supabase.from('transactions').select('date,amount').eq('type', 'income').gte('date', start).lte('date', end),
         supabase.from('transactions').select('date,amount').eq('type', 'expense').gte('date', start).lte('date', end),
       ]);
-
       const months = Array.from({ length: 12 }, (_, i) => {
         const m = String(i + 1).padStart(2, '0');
-        const inc = (incomes ?? []).filter((t: Record<string, unknown>) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: Record<string, unknown>) => s + Number(t.amount), 0);
-        const exp = (expenses ?? []).filter((t: Record<string, unknown>) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: Record<string, unknown>) => s + Number(t.amount), 0);
-        return { month: `${m}月`, 收入: inc, 支出: exp };
+        const inc = (incomes ?? []).filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const exp = (expenses ?? []).filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
+        return { month: `${m}月`, 收入: inc, 支出: exp, 利润: inc - exp };
       });
-
-      const totalIncome = months.reduce((s, m) => s + m.收入, 0);
-      const totalExpense = months.reduce((s, m) => s + m.支出, 0);
-
-      return { months, totalIncome, totalExpense };
+      return { months, totalIncome: months.reduce((s, m) => s + m.收入, 0), totalExpense: months.reduce((s, m) => s + m.支出, 0) };
     },
   });
 
@@ -46,30 +79,16 @@ export default function Reports() {
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-
-      const { data } = await supabase
-        .from('transactions')
-        .select('amount,type,accounts(name)')
-        .gte('date', start)
-        .lte('date', end);
-
-      const incomeMap: Record<string, number> = {};
-      const expenseMap: Record<string, number> = {};
-
-      (data ?? []).forEach((t: Record<string, unknown>) => {
-        const acc = t.accounts as Record<string, string> | null;
-        const name = acc?.name ?? '未分类';
-        const amount = Number(t.amount);
-        if (t.type === 'income') {
-          incomeMap[name] = (incomeMap[name] ?? 0) + amount;
-        } else {
-          expenseMap[name] = (expenseMap[name] ?? 0) + amount;
-        }
+      const { data } = await supabase.from('transactions').select('amount,type,accounts(name)').gte('date', start).lte('date', end);
+      const im: Record<string, number> = {}, em: Record<string, number> = {};
+      (data ?? []).forEach((t: any) => {
+        const name = (t.accounts as any)?.name ?? '未分类';
+        if (t.type === 'income') im[name] = (im[name] ?? 0) + Number(t.amount);
+        else em[name] = (em[name] ?? 0) + Number(t.amount);
       });
-
       return {
-        income: Object.entries(incomeMap).map(([name, value]) => ({ name, value })),
-        expense: Object.entries(expenseMap).map(([name, value]) => ({ name, value })),
+        income: Object.entries(im).map(([n, v]) => ({ name: n, value: v })),
+        expense: Object.entries(em).map(([n, v]) => ({ name: n, value: v })),
       };
     },
   });
@@ -79,299 +98,172 @@ export default function Reports() {
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-
-      const { data } = await supabase
-        .from('transactions')
-        .select('amount,customers(name)')
-        .eq('type', 'income')
-        .gte('date', start)
-        .lte('date', end);
-
+      const { data } = await supabase.from('transactions').select('amount,customers(name)').eq('type', 'income').gte('date', start).lte('date', end);
       const map: Record<string, number> = {};
-      (data ?? []).forEach((t: Record<string, unknown>) => {
-        const cus = t.customers as Record<string, string> | null;
-        const name = cus?.name ?? '未关联客户';
-        map[name] = (map[name] ?? 0) + Number(t.amount);
-      });
-
-      return Object.entries(map)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([name, amount], i) => ({ key: i, name, amount }));
+      (data ?? []).forEach((t: any) => { const n = (t.customers as any)?.name ?? '未关联'; map[n] = (map[n] ?? 0) + Number(t.amount); });
+      return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, amount], i) => ({ rank: i + 1, name, amount }));
     },
   });
 
-  // Profit analysis
-  const { data: profitData } = useQuery({
-    queryKey: ['profit-analysis'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('products')
-        .select('official_model, supplier_name, supply_price, suggested_price');
-      if (!data) return { products: [], totalProfit: 0, avgMargin: 0 };
-      const products = data
-        .filter((p: Record<string, unknown>) => p.supply_price && p.suggested_price)
-        .map((p: Record<string, unknown>) => {
-          const supply = Number(p.supply_price);
-          const suggest = Number(p.suggested_price);
-          const profit = suggest - supply;
-          const margin = suggest > 0 ? (profit / suggest) * 100 : 0;
-          return {
-            name: p.official_model as string,
-            supplier: p.supplier_name as string || '-',
-            supply,
-            suggest,
-            profit: Math.round(profit * 100) / 100,
-            margin: Math.round(margin * 10) / 10,
-          };
-        })
-        .sort((a, b) => b.profit - a.profit)
-        .slice(0, 20);
-      const totalProfit = products.reduce((s, p) => s + p.profit, 0);
-      const avgMargin = products.length > 0
-        ? Math.round((products.reduce((s, p) => s + p.margin, 0) / products.length) * 10) / 10
-        : 0;
-      return { products, totalProfit, avgMargin, count: products.length };
-    },
-  });
-
-  // Customer statistics
-  const { data: customerStats } = useQuery({
-    queryKey: ['customer-stats'],
-    queryFn: async () => {
-      const { data } = await supabase.from('customers').select('country, source, created_at');
-      if (!data) return { byCountry: [], bySource: [], byMonth: [] };
-
-      const countryMap: Record<string, number> = {};
-      const sourceMap: Record<string, number> = {};
-      const monthMap: Record<string, number> = {};
-
-      data.forEach((c: { country: string | null; source: string | null; created_at: string }) => {
-        const country = c.country || '未知';
-        countryMap[country] = (countryMap[country] || 0) + 1;
-        const source = c.source || '未知';
-        sourceMap[source] = (sourceMap[source] || 0) + 1;
-        const month = c.created_at ? dayjs(c.created_at).format('YYYY-MM') : '未知';
-        monthMap[month] = (monthMap[month] || 0) + 1;
-      });
-
-      const byCountry = Object.entries(countryMap)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([name, value]) => ({ name, value }));
-      const bySource = Object.entries(sourceMap)
-        .sort((a, b) => b[1] - a[1])
-        .map(([name, value]) => ({ name, value }));
-      const byMonth = Object.entries(monthMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-12)
-        .map(([name, value]) => ({ name, value }));
-
-      return { byCountry, bySource, byMonth };
-    },
-  });
+  const totalProfit = (monthlyData?.totalIncome ?? 0) - (monthlyData?.totalExpense ?? 0);
+  const profitMargin = (monthlyData?.totalIncome ?? 0) > 0 ? ((totalProfit / (monthlyData?.totalIncome ?? 1)) * 100).toFixed(1) : '0.0';
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
-
-    // Sheet 1: 月度收支
-    const monthlyRows = (monthlyData?.months ?? []).map((m) => ({
-      '月份': m.month,
-      '收入 (¥)': m.收入,
-      '支出 (¥)': m.支出,
-      '结余 (¥)': m.收入 - m.支出,
-    }));
-    const ws1 = XLSX.utils.json_to_sheet(monthlyRows);
-    XLSX.utils.book_append_sheet(wb, ws1, '月度收支');
-
-    // Sheet 2: 收入科目
-    const incomeRows = (accountData?.income ?? []).map((item) => ({
-      '科目': item.name,
-      '金额 (¥)': item.value,
-    }));
-    const ws2 = XLSX.utils.json_to_sheet(incomeRows);
-    XLSX.utils.book_append_sheet(wb, ws2, '收入科目');
-
-    // Sheet 3: 支出科目
-    const expenseRows = (accountData?.expense ?? []).map((item) => ({
-      '科目': item.name,
-      '金额 (¥)': item.value,
-    }));
-    const ws3 = XLSX.utils.json_to_sheet(expenseRows);
-    XLSX.utils.book_append_sheet(wb, ws3, '支出科目');
-
-    // Sheet 4: 客户排行
-    const rankRows = (customerRank ?? []).map((item, i) => ({
-      '排名': i + 1,
-      '客户': item.name,
-      '贡献金额 (¥)': item.amount,
-    }));
-    const ws4 = XLSX.utils.json_to_sheet(rankRows);
-    XLSX.utils.book_append_sheet(wb, ws4, '客户贡献排行');
-
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((monthlyData?.months ?? []).map((m: any) => ({ '月份': m.month, '收入': m.收入, '支出': m.支出, '利润': m.利润 }))), '月度收支');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((accountData?.income ?? []).map((i: any) => ({ '科目': i.name, '金额': i.value }))), '收入科目');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((accountData?.expense ?? []).map((i: any) => ({ '科目': i.name, '金额': i.value }))), '支出科目');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((customerRank ?? []).map((r: any) => ({ '排名': r.rank, '客户': r.name, '贡献金额': r.amount }))), '客户排行');
     XLSX.writeFile(wb, `财务报表_${year}年.xlsx`);
   };
 
-  if (isLoading) return <Spin />;
+  if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><Spin size="large" /></div>;
 
   return (
-    <div>
-      <Space style={{ marginBottom: 16 }}>
-        <DatePicker picker="year" value={dayjs(`${year}`)} onChange={(d) => setYear(d?.year() ?? dayjs().year())} />
-        <Button icon={<DownloadOutlined />} onClick={handleExport}>
-          导出 Excel
-        </Button>
-      </Space>
+    <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: COLORS.text }}>财务报表</h2>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: COLORS.muted }}>{year}年 财务数据汇总</p>
+        </div>
+        <Space>
+          <DatePicker picker="year" value={dayjs(`${year}`)} onChange={(d) => setYear(d?.year() ?? dayjs().year())} />
+          <Button icon={<DownloadOutlined />} onClick={handleExport}>导出 Excel</Button>
+        </Space>
+      </div>
 
+      {/* ── KPI Row ── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="年度收入" value={monthlyData?.totalIncome ?? 0} precision={2}
-              prefix={<ArrowUpOutlined style={{ color: '#52c41a' }} />} suffix="元" />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="年度支出" value={monthlyData?.totalExpense ?? 0} precision={2}
-              prefix={<ArrowDownOutlined style={{ color: '#ff4d4f' }} />} suffix="元" />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="年度结余" value={(monthlyData?.totalIncome ?? 0) - (monthlyData?.totalExpense ?? 0)}
-              precision={2} suffix="元" />
-          </Card>
-        </Col>
+        {[
+          { label: '年度收入', value: monthlyData?.totalIncome ?? 0, prefix: '¥', color: COLORS.green, icon: <ArrowUpOutlined />, bg: '#ecfdf5' },
+          { label: '年度支出', value: monthlyData?.totalExpense ?? 0, prefix: '¥', color: COLORS.red, icon: <ArrowDownOutlined />, bg: '#fef2f2' },
+          { label: '年度利润', value: totalProfit, prefix: '¥', color: totalProfit >= 0 ? COLORS.gold : COLORS.red, icon: null, bg: totalProfit >= 0 ? '#fffbeb' : '#fef2f2' },
+          { label: '利润率', value: profitMargin, suffix: '%', color: COLORS.blue, icon: null, bg: '#eff6ff' },
+        ].map((card, i) => (
+          <Col xs={12} sm={6} key={i}>
+            <Card styles={{ body: { padding: '18px 20px' } }} style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4, fontWeight: 500 }}>{card.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: card.color, lineHeight: 1.2 }}>
+                    {card.prefix || ''}{Number(card.value).toLocaleString('zh-CN', { minimumFractionDigits: card.suffix ? 1 : 2 })}{card.suffix || ''}
+                  </div>
+                </div>
+                {card.icon && <div style={{ width: 36, height: 36, borderRadius: 10, background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{card.icon}</div>}
+              </div>
+            </Card>
+          </Col>
+        ))}
       </Row>
 
-      <Card title="月度收支趋势" style={{ marginBottom: 24 }}>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={monthlyData?.months ?? []}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip formatter={(v) => `¥${Number(v).toFixed(2)}`} />
-            <Bar dataKey="收入" fill="#52c41a" />
-            <Bar dataKey="支出" fill="#ff4d4f" />
-          </BarChart>
-        </ResponsiveContainer>
+      {/* ── Monthly Trend Area Chart ── */}
+      <Card styles={{ body: { padding: 0 } }} style={{ marginBottom: 24, borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>月度收支趋势</div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>全年月度营收与支出变化</div>
+          </div>
+          <Space size={12}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: COLORS.muted }}><span style={{ width: 12, height: 3, borderRadius: 2, background: COLORS.gold }} /> 收入</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: COLORS.muted }}><span style={{ width: 12, height: 3, borderRadius: 2, background: COLORS.red }} /> 支出</span>
+          </Space>
+        </div>
+        <div style={{ padding: '8px 0 0' }}>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={monthlyData?.months ?? []} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+              <defs>
+                <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.gold} stopOpacity={0.3} /><stop offset="100%" stopColor={COLORS.gold} stopOpacity={0.02} /></linearGradient>
+                <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.red} stopOpacity={0.2} /><stop offset="100%" stopColor={COLORS.red} stopOpacity={0.02} /></linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={formatY} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="收入" stroke={COLORS.gold} strokeWidth={2} fill="url(#gradIncome)" />
+              <Area type="monotone" dataKey="支出" stroke={COLORS.red} strokeWidth={2} fill="url(#gradExpense)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </Card>
 
+      {/* ── Account Pie Charts ── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={12}>
-          <Card title="收入科目占比">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie data={accountData?.income ?? []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name} ¥${value.toFixed(0)}`}>
-                  {(accountData?.income ?? []).map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => `¥${Number(v).toFixed(2)}`} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card title="支出科目占比">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie data={accountData?.expense ?? []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name} ¥${value.toFixed(0)}`}>
-                  {(accountData?.expense ?? []).map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => `¥${Number(v).toFixed(2)}`} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
+        {[
+          { title: '收入科目占比', data: accountData?.income ?? [], total: monthlyData?.totalIncome ?? 0 },
+          { title: '支出科目占比', data: accountData?.expense ?? [], total: monthlyData?.totalExpense ?? 0 },
+        ].map((section, si) => (
+          <Col xs={24} lg={12} key={si}>
+            <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden', height: '100%' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{section.title}</div>
+                <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>共 {section.data.length} 个科目</div>
+              </div>
+              {section.data.length > 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0' }}>
+                  <ResponsiveContainer width="55%" height={280}>
+                    <PieChart>
+                      <Pie data={section.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={100} paddingAngle={3}>
+                        {section.data.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />)}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ flex: 1, paddingRight: 20 }}>
+                    {section.data.slice(0, 6).map((item: any, i: number) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: i < Math.min(section.data.length, 6) - 1 ? '1px solid #f5f5f5' : 'none' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
+                          {item.name}
+                        </span>
+                        <span style={{ fontWeight: 600, color: COLORS.text }}>¥{Number(item.value).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : <div style={{ padding: 40, textAlign: 'center', color: COLORS.muted, fontSize: 13 }}>暂无数据</div>}
+            </Card>
+          </Col>
+        ))}
       </Row>
 
-      {/* Profit Analysis */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={8}>
-          <Card title="利润分析" size="small">
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Statistic title="产品数（有价格数据）" value={profitData?.count || 0} />
-              <Statistic title="预计总利润" value={profitData?.totalProfit || 0} precision={2} prefix="¥" valueStyle={{ color: '#52c41a' }} />
-              <Statistic title="平均毛利率" value={profitData?.avgMargin || 0} suffix="%" valueStyle={{ color: '#1677ff' }} />
-            </Space>
-          </Card>
-        </Col>
-        <Col xs={24} lg={16}>
-          <Card title="单品利润排行（Top 20）" size="small">
-            <Table dataSource={profitData?.products ?? []} rowKey="name" size="small" pagination={false}
-              columns={[
-                { title: '型号', dataIndex: 'name', key: 'name', ellipsis: true },
-                { title: '供货价', dataIndex: 'supply', key: 'supply', render: (v: number) => `¥${v.toFixed(2)}` },
-                { title: '建议报价', dataIndex: 'suggest', key: 'suggest', render: (v: number) => `¥${v.toFixed(2)}` },
-                { title: '利润', dataIndex: 'profit', key: 'profit', render: (v: number) => `¥${v.toFixed(2)}` },
-                { title: '毛利率', dataIndex: 'margin', key: 'margin', render: (v: number) => `${v}%` },
-              ]}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Customer Statistics */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={8}>
-          <Card title="客户国家分布">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={customerStats?.byCountry ?? []} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#1677ff" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card title="客户来源分布">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie data={customerStats?.bySource ?? []} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}(${value})`}>
-                  {(customerStats?.bySource ?? []).map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card title="客户增长趋势（近12月）">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={customerStats?.byMonth ?? []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#52c41a" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-      </Row>
-
-      <Card title="客户贡献排行（Top 10）">
-        <Table
-          dataSource={customerRank ?? []}
-          columns={[
-            { title: '排名', dataIndex: 'key', key: 'key', width: 60, render: (_: unknown, __: unknown, i: number) => i + 1 },
-            { title: '客户', dataIndex: 'name', key: 'name' },
-            { title: '贡献金额', dataIndex: 'amount', key: 'amount', render: (v: number) => `¥${v.toFixed(2)}` },
-          ]}
-          pagination={false}
-          size="small"
-          rowKey="key"
-        />
+      {/* ── Customer Contribution ── */}
+      <Card styles={{ body: { padding: 0 } }} style={{ marginBottom: 24, borderRadius: 12, border: '1px solid #f0f0f0', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>客户贡献排行</div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>Top 10 客户营收贡献</div>
+          </div>
+        </div>
+        <Row>
+          <Col xs={24} lg={14}>
+            <div style={{ padding: '8px 20px 8px 0' }}>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={customerRank ?? []} margin={{ top: 16, right: 20, left: 10, bottom: 10 }} layout="vertical">
+                  <defs>
+                    <linearGradient id="gradBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.gold} stopOpacity={0.7} /><stop offset="100%" stopColor={COLORS.goldLight} stopOpacity={1} /></linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={formatY} />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.text }} width={120} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="amount" fill="url(#gradBar)" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Col>
+          <Col xs={24} lg={10}>
+            <div style={{ padding: '16px 20px' }}>
+              <Table dataSource={customerRank ?? []} rowKey="rank" size="small" pagination={false}
+                columns={[
+                  { title: '#', dataIndex: 'rank', key: 'rank', width: 40, render: (v: number) => <Tag style={{ borderRadius: 10, minWidth: 22, textAlign: 'center' }}>{v}</Tag> },
+                  { title: '客户', dataIndex: 'name', key: 'name', ellipsis: true },
+                  { title: '金额', dataIndex: 'amount', key: 'amount', render: (v: number) => <span style={{ fontWeight: 600 }}>¥{v.toLocaleString()}</span> },
+                ]}
+              />
+            </div>
+          </Col>
+        </Row>
       </Card>
     </div>
   );
