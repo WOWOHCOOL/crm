@@ -1,15 +1,15 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { supabase } from '../supabase';
-import type { User, Session } from '@supabase/supabase-js';
-import type { OrgInfo, Permission } from '../types';
+import { useAuthStore, initOrg, fetchOrg } from '../store/auth';
+import type { OrgInfo } from '../types';
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  user: ReturnType<typeof useAuthStore.getState>['user'];
+  session: ReturnType<typeof useAuthStore.getState>['session'];
   loading: boolean;
   orgInfo: OrgInfo | null;
   orgLoading: boolean;
-  permissions: Permission[];
+  permissions: ReturnType<typeof useAuthStore.getState>['permissions'];
   isOwner: boolean;
   isAdmin: boolean;
   signUp: (email: string, password: string, name: string, inviteCode: string) => Promise<{ error?: string }>;
@@ -24,139 +24,40 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [orgInfo, setOrgInfo] = useState<OrgInfo | null>(null);
-  const [orgLoading, setOrgLoading] = useState(true);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-
-  const fetchPermissions = useCallback(async () => {
-    try {
-      const { data } = await supabase.rpc('get_my_permissions');
-      if (Array.isArray(data)) setPermissions(data as Permission[]);
-    } catch { /* ignore */ }
-  }, []);
-
-  const isOwner = orgInfo?.role === 'owner';
-  const isAdmin = orgInfo?.role === 'admin' || isOwner;
-
-  const fetchOrg = useCallback(async () => {
-    setOrgLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('get_my_org');
-      if (error) throw error;
-      if (data && data.org_id) {
-        setOrgInfo(data as OrgInfo);
-      } else {
-        setOrgInfo(null);
-      }
-    } catch {
-      setOrgInfo(null);
-    } finally {
-      setOrgLoading(false);
-    }
-  }, []);
-
-  /**
-   * 初始化组织信息：先查已有组织，没有则尝试消耗待处理的邀请码
-   *
-   * 需要两步的原因：
-   * Supabase Auth 创建用户时，raw_user_meta_data 在 INSERT 之后才设置，
-   * 导致 AFTER INSERT 触发器读不到 invite_code，不会自动创建组织成员。
-   * 所以登录后需要主动调用 consume_pending_invite 来补处理。
-   */
-  const loadPermissions = useCallback(async () => {
-    try {
-      const { data } = await supabase.rpc('get_my_permissions');
-      if (Array.isArray(data)) setPermissions(data as Permission[]);
-    } catch { /* ignore */ }
-  }, []);
-
-  const initOrg = useCallback(async () => {
-    setOrgLoading(true);
-    try {
-      // 第一步：查是否有已有组织
-      const { data: orgData, error: orgError } = await supabase.rpc('get_my_org');
-      if (orgError) throw orgError;
-      if (orgData?.org_id) {
-        setOrgInfo(orgData as OrgInfo);
-        loadPermissions();
-        setOrgLoading(false);
-        return;
-      }
-
-      // 第二步：没有组织 → 尝试消耗待处理邀请码
-      const { data: inviteResult, error: inviteError } = await supabase.rpc('consume_pending_invite');
-      if (!inviteError && inviteResult?.consumed) {
-        // 消耗成功，重新获取组织信息
-        const { data: newOrgData } = await supabase.rpc('get_my_org');
-        if (newOrgData?.org_id) {
-          setOrgInfo(newOrgData as OrgInfo);
-          loadPermissions();
-          setOrgLoading(false);
-          return;
-        }
-      }
-
-      setOrgInfo(null);
-    } catch {
-      setOrgInfo(null);
-    } finally {
-      loadPermissions();
-      setOrgLoading(false);
-    }
-  }, []);
+  const store = useAuthStore();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (session?.user) {
-        initOrg();
-      } else {
-        setOrgLoading(false);
-      }
+      store.setSession(session?.user ?? null, session);
+      if (session?.user) initOrg();
+      else store.setOrgLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        initOrg();
-      } else {
-        setOrgInfo(null);
-      }
+      store.setSession(session?.user ?? null, session);
+      if (session?.user) initOrg();
+      else store.reset();
     });
 
     return () => subscription.unsubscribe();
-  }, [initOrg]);
+  }, []);
 
   const signUp = async (email: string, password: string, name: string, inviteCode: string) => {
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
-          invite_code: inviteCode.toUpperCase(),
-        },
-      },
+      email, password,
+      options: { data: { name, invite_code: inviteCode.toUpperCase() } },
     });
-    if (error) return { error: error.message };
-    return {};
+    return error ? { error: error.message } : {};
   };
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
+    return error ? { error: error.message } : {};
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setOrgInfo(null);
+    store.reset();
   };
 
   const createOrg = async (name: string) => {
@@ -179,15 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshOrg = fetchOrg;
 
-  const hasOrgSetup = !!orgInfo;
-
   return (
     <AuthContext.Provider value={{
-      user, session, loading, orgInfo, orgLoading,
-      permissions, isOwner, isAdmin,
+      user: store.user,
+      session: store.session,
+      loading: store.loading,
+      orgInfo: store.orgInfo,
+      orgLoading: store.orgLoading,
+      permissions: store.permissions,
+      isOwner: store.isOwner,
+      isAdmin: store.isAdmin,
       signUp, signIn, signOut,
       createOrg, joinWithInviteCode, refreshOrg,
-      hasOrgSetup,
+      hasOrgSetup: !!store.orgInfo,
     }}>
       {children}
     </AuthContext.Provider>

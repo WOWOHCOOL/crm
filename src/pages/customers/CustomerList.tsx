@@ -4,8 +4,9 @@ import {
   Table, Button, Space, Input, Modal, Form, message, Popconfirm, Card, Row, Col,
 } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
+import { useApiMutation } from '../../hooks/useApiMutation';
 import type { Customer } from '../../types';
 import { logOperation } from '../../utils/log';
 
@@ -14,7 +15,6 @@ export default function CustomerList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const { data: customers, isLoading } = useQuery({
@@ -31,7 +31,7 @@ export default function CustomerList() {
     refetchOnMount: true,
   });
 
-  const saveMutation = useMutation({
+  const saveMutation = useApiMutation({
     mutationFn: async (values: Partial<Customer>) => {
       if (editing) {
         const { error } = await supabase.from('customers').update(values).eq('id', editing.id);
@@ -39,36 +39,29 @@ export default function CustomerList() {
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const { error } = await supabase.from('customers').insert([{ ...values, user_id: user.id }]);
+        const { error } = await supabase.from('customers').insert([values]);
         if (error) throw error;
       }
     },
+    invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
-      const isUpdate = !!editing;
-      message.success(isUpdate ? '客户已更新' : '客户已添加');
-      logOperation('customer', isUpdate ? 'update' : 'create', editing?.id, values.name);
+      logOperation('customer', editing ? 'update' : 'create', editing?.id, (values as Record<string, unknown>).name as string);
     },
-    onError: (error: Error) => message.error(error.message),
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useApiMutation({
     mutationFn: async (id: string) => {
       const { data } = await supabase.from('customers').select('name').eq('id', id).single();
       const { error } = await supabase.from('customers').delete().eq('id', id);
       if (error) throw error;
       return data as { name: string } | null;
     },
+    successMsg: '客户已删除',
+    invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      message.success('客户已删除');
       logOperation('customer', 'delete', undefined, data?.name || '');
     },
   });
@@ -94,9 +87,7 @@ export default function CustomerList() {
     { title: '国家', dataIndex: 'country', key: 'country', width: 80, onCell: () => ({ 'data-label': '国家' } as React.TdHTMLAttributes<unknown>) },
     { title: '来源', dataIndex: 'source', key: 'source', width: 100, onCell: () => ({ 'data-label': '来源' } as React.TdHTMLAttributes<unknown>) },
     {
-      title: '操作',
-      key: 'actions',
-      width: 220,
+      title: '操作', key: 'actions', width: 220,
       render: (_: unknown, record: Customer) => (
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
@@ -162,56 +153,24 @@ export default function CustomerList() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
-              <Form.Item name="email" label="邮箱1">
-                <Input placeholder="主邮箱" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="email2" label="邮箱2">
-                <Input placeholder="备用邮箱" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="email3" label="邮箱3">
-                <Input placeholder="其他邮箱" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="whatsapp" label="WhatsApp">
-                <Input placeholder="+86 138xxxx" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="linkedin" label="LinkedIn">
-                <Input placeholder="LinkedIn 链接" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="website" label="官网">
-                <Input placeholder="https://" />
+              <Form.Item name="email" label="邮箱">
+                <Input />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="country" label="国家">
-                <Input placeholder="如：中国、美国" />
+                <Input />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="source" label="来源">
-                <Input placeholder="如：官网、展会、转介绍" />
-              </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <Form.Item name="address" label="地址">
                 <Input />
               </Form.Item>
             </Col>
-            <Col xs={24}>
-              <Form.Item name="notes" label="备注">
-                <Input.TextArea rows={2} />
-              </Form.Item>
-            </Col>
           </Row>
+          <Form.Item name="notes" label="备注">
+            <Input.TextArea rows={3} />
+          </Form.Item>
         </Form>
       </Modal>
     </div>

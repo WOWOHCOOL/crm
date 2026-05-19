@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Space, Input, message, Popconfirm, Card, Tag } from 'antd';
-import { PlusOutlined, SearchOutlined, DeleteOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { PlusOutlined, SearchOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
+import { useApiMutation } from '../../hooks/useApiMutation';
 import type { Quotation, QuotationItem } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
@@ -11,7 +12,6 @@ import { exportExcel, exportPDF } from '../../utils/quotationExport';
 export default function QuotationList({ listType }: { listType: 'quotation' | 'pi' }) {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const { data: quotations, isLoading } = useQuery({
     queryKey: ['quotations', listType, search],
@@ -27,19 +27,18 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
     refetchOnMount: true,
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useApiMutation({
     mutationFn: async (id: string) => {
       const { data: q } = await supabase.from('quotations').select('quotation_no,type').eq('id', id).single();
       const { error } = await supabase.from('quotations').delete().eq('id', id);
       if (error) throw error;
       return q as { quotation_no: string; type: string } | null;
     },
+    successMsg: '已删除',
+    invalidateKeys: [['quotations']],
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['quotations'] });
-      message.success('已删除');
       logOperation(data?.type === 'pi' ? 'pi' : 'quotation', 'delete', undefined, data?.quotation_no || '');
     },
-    onError: (error: Error) => message.error(error.message),
   });
 
   const handleExport = async (record: Quotation, format: 'excel' | 'pdf') => {
@@ -72,15 +71,13 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
       title: '操作', key: 'actions', width: 200,
       render: (_: unknown, record: Quotation) => (
         <Space size="small">
-          <Button size="small" icon={<EditOutlined />} onClick={() => navigate(`/quotations/edit/${record.id}`)}>
-            编辑
-          </Button>
+          <Button size="small" onClick={() => navigate(`/quotations/edit/${record.id}`)}>编辑</Button>
           {listType === 'quotation' && (
             <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
           )}
           <Button size="small" onClick={() => handleExport(record, 'pdf')}>PDF</Button>
           <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>
+            <Button size="small" danger><DeleteOutlined />删除</Button>
           </Popconfirm>
         </Space>
       ),
