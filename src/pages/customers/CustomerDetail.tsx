@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, message, Row, Col, Tabs, Statistic } from 'antd';
+import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Tabs, Statistic } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -170,6 +170,12 @@ export default function CustomerDetail() {
           <Col xs={12} md={4}><div style={{ fontSize: 12, color: '#94a3b8' }}>来源</div><div style={{ fontWeight: 600 }}>{customer?.source || '-'}</div></Col>
           <Col xs={12} md={4}><div style={{ fontSize: 12, color: '#94a3b8' }}>电话</div><div style={{ fontWeight: 600 }}>{customer?.phone || '-'}</div></Col>
           <Col xs={12} md={4}><div style={{ fontSize: 12, color: '#94a3b8' }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer?.email || '-'}</div></Col>
+          {customer?.business_card && (
+            <Col xs={24} style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>名片</div>
+              <Image src={customer.business_card} width={160} style={{ borderRadius: 6, border: '1px solid #f0f0f0' }} />
+            </Col>
+          )}
         </Row>
         <Row gutter={[16, 8]} style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f5f5f5' }}>
           <Col xs={12} sm={6} lg={3} style={{ textAlign: 'center' }}>

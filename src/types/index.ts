@@ -13,6 +13,7 @@ export interface Customer {
   source: string | null;
   address: string | null;
   notes: string | null;
+  business_card: string | null;
   created_at: string;
   updated_at: string;
   user_id: string;
