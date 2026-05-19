@@ -4,16 +4,17 @@ import {
   DatePicker, message, Popconfirm, Card, Tag,
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
+import { useApiMutation } from '../../hooks/useApiMutation';
 import { logOperation } from '../../utils/log';
 import dayjs from 'dayjs';
 
 export default function TransactionList() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({ type: '', dateRange: [] as string[] });
-  const queryClient = useQueryClient();
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['transactions', filters],
@@ -50,57 +51,78 @@ export default function TransactionList() {
     },
   });
 
-  const saveMutation = useMutation({
+  const openAdd = () => {
+    setEditing(null);
+    form.resetFields();
+    setModalOpen(true);
+  };
+
+  const openEdit = (record: Record<string, unknown>) => {
+    setEditing(record);
+    form.setFieldsValue({
+      ...record,
+      date: record.date ? dayjs(record.date as string) : dayjs(),
+    });
+    setModalOpen(true);
+  };
+
+  const saveMutation = useApiMutation({
     mutationFn: async (values: Record<string, unknown>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('未登录');
-      const { error } = await supabase.from('transactions').insert([{
+      const payload = {
         ...values,
         date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         amount: Number(values.amount),
-        user_id: user.id,
-      }]);
-      if (error) throw error;
+      };
+      if (editing) {
+        const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('未登录');
+        const { error } = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]);
+        if (error) throw error;
+      }
     },
+    invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setModalOpen(false);
+      setEditing(null);
       form.resetFields();
-      message.success('流水已添加');
-      logOperation('transaction', 'create', undefined, `${values.type === 'income' ? '收入' : '支出'} ¥${values.amount}`);
+      logOperation('transaction', editing ? 'update' : 'create', undefined,
+        `${values.type === 'income' ? '收入' : '支出'} ¥${values.amount}`);
     },
-    onError: (error: Error) => message.error(error.message),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => { await supabase.from('transactions').delete().eq('id', id); },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      message.success('已删除');
-      logOperation('transaction', 'delete');
+  const deleteMutation = useApiMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from('transactions').delete().eq('id', id);
     },
+    successMsg: '已删除',
+    invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
+    onSuccess: () => logOperation('transaction', 'delete'),
   });
 
   const columns = [
-    { title: '日期', dataIndex: 'date', key: 'date', width: 120, sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => (a.date as string).localeCompare(b.date as string) },
+    { title: '日期', dataIndex: 'date', key: 'date', width: 120, onCell: () => ({ 'data-label': '日期' } as React.TdHTMLAttributes<any>),
+      sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => (a.date as string).localeCompare(b.date as string) },
+    { title: '类型', dataIndex: 'type', key: 'type', width: 80, onCell: () => ({ 'data-label': '类型' } as React.TdHTMLAttributes<any>),
+      render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'}>{v === 'income' ? '收入' : '支出'}</Tag> },
+    { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, onCell: () => ({ 'data-label': '金额' } as React.TdHTMLAttributes<any>),
+      render: (v: number) => <span style={{ fontWeight: 600 }}>¥{v.toFixed(2)}</span> },
+    { title: '客户', key: 'customer', width: 100, onCell: () => ({ 'data-label': '客户' } as React.TdHTMLAttributes<any>),
+      render: (_: unknown, r: Record<string, unknown>) => (r.customers as Record<string, string> | null)?.name ?? '-' },
+    { title: '科目', key: 'account', width: 100, onCell: () => ({ 'data-label': '科目' } as React.TdHTMLAttributes<any>),
+      render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
+    { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true, onCell: () => ({ 'data-label': '描述' } as React.TdHTMLAttributes<any>) },
     {
-      title: '类型', dataIndex: 'type', key: 'type', width: 80,
-      render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'}>{v === 'income' ? '收入' : '支出'}</Tag>,
-    },
-    { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, render: (v: number) => `¥${v.toFixed(2)}` },
-    { title: '客户', key: 'customer', width: 100, render: (_: unknown, r: Record<string, unknown>) => (r.customers as Record<string, string> | null)?.name ?? '-' },
-    { title: '科目', key: 'account', width: 100, render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
-    { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
-    {
-      title: '操作', key: 'actions', width: 80,
+      title: '操作', key: 'actions', width: 130,
       render: (_: unknown, record: Record<string, unknown>) => (
-        <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id as string)}>
-          <Button size="small" danger>删除</Button>
-        </Popconfirm>
+        <Space size="small">
+          <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
+          <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id as string)}>
+            <Button size="small" danger>删除</Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -131,7 +153,7 @@ export default function TransactionList() {
               placeholder={['开始日期', '结束日期']}
             />
           </Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
             添加流水
           </Button>
         </Space>
@@ -142,14 +164,14 @@ export default function TransactionList() {
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 900 }}
         />
       </Card>
 
       <Modal
-        title="添加流水"
+        title={editing ? '编辑流水' : '添加流水'}
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => { setModalOpen(false); setEditing(null); }}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         destroyOnClose
@@ -169,21 +191,15 @@ export default function TransactionList() {
           </Form.Item>
           <Form.Item name="customer_id" label="关联客户">
             <Select
-              allowClear
-              placeholder="选择客户（可选）"
+              allowClear placeholder="选择客户（可选）"
               options={(customers ?? []).map((c: Record<string, string>) => ({ label: c.name, value: c.id }))}
-              showSearch
-              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+              showSearch filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>
           <Form.Item name="account_id" label="科目">
             <Select
-              allowClear
-              placeholder="选择科目（可选）"
-              options={(accounts ?? []).map((a: Record<string, string>) => ({
-                label: a.name,
-                value: a.id,
-              }))}
+              allowClear placeholder="选择科目（可选）"
+              options={(accounts ?? []).map((a: Record<string, string>) => ({ label: a.name, value: a.id }))}
             />
           </Form.Item>
           <Form.Item name="description" label="描述">
