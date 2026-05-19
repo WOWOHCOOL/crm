@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.2",
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
     "@supabase/supabase-js": "^2.105.3",
     "@tanstack/react-query": "^5.100.9",
     "antd": "^6.3.7",
