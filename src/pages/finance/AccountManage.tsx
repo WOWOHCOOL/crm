@@ -12,11 +12,24 @@ async function getUserId() {
 }
 
 const defaultAccounts = [
-  { name: '营业收入', type: 'income' as const },
+  // ── 收入类 ──
+  { name: '商品销售收入', type: 'income' as const },
+  { name: '出口退税收入', type: 'income' as const },
+  { name: '样品收入', type: 'income' as const },
   { name: '其他收入', type: 'income' as const },
+  // ── 支出类 ──
+  { name: '商品采购成本', type: 'expense' as const },
+  { name: '国际运费', type: 'expense' as const },
+  { name: '报关报检费', type: 'expense' as const },
+  { name: '港杂费', type: 'expense' as const },
+  { name: '保险费', type: 'expense' as const },
+  { name: '银行手续费', type: 'expense' as const },
+  { name: '认证检测费', type: 'expense' as const },
+  { name: '平台费用', type: 'expense' as const },
   { name: '办公费用', type: 'expense' as const },
-  { name: '采购成本', type: 'expense' as const },
+  { name: '员工工资', type: 'expense' as const },
   { name: '差旅费用', type: 'expense' as const },
+  { name: '租金水电', type: 'expense' as const },
   { name: '其他支出', type: 'expense' as const },
 ];
 
@@ -116,10 +129,10 @@ export default function AccountManage() {
   };
 
   const columns = [
-    { title: '科目名称', dataIndex: 'name', key: 'name' },
+    { title: '科目名称', dataIndex: 'name', key: 'name', onCell: () => ({ 'data-label': '科目名称' } as any) },
     {
-      title: '类型', dataIndex: 'type', key: 'type', width: 100,
-      render: (v: AccountType) => <Tag color={typeColors[v]}>{typeLabels[v]}</Tag>,
+      title: '类型', dataIndex: 'type', key: 'type', width: 100, onCell: () => ({ 'data-label': '类型' } as any),
+      render: (v: AccountType) => <Tag color={typeColors[v]} style={{ borderRadius: 6 }}>{typeLabels[v]}</Tag>,
     },
     {
       title: '操作', key: 'actions', width: 160,
@@ -163,6 +176,7 @@ export default function AccountManage() {
           rowKey="id"
           loading={isLoading}
           pagination={false}
+          scroll={{ x: 500 }}
         />
       </Card>
 
