@@ -236,14 +236,14 @@ export default function ProductList() {
   return (
     <div>
       <Card>
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索型号 / 供应商"
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             allowClear
-            style={{ width: 280 }}
+            style={{ maxWidth: 280, width: '100%' }}
           />
           {canEdit && <Space>
             <Button type="primary" icon={<PlusOutlined />}

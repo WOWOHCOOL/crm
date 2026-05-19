@@ -172,14 +172,14 @@ export default function SupplierList() {
   return (
     <div>
       <Card title="供应商资料">
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索供应商名称/联系人"
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             allowClear
-            style={{ width: 280 }}
+            style={{ maxWidth: 280, width: '100%' }}
           />
           {canEdit && <Button type="primary" icon={<PlusOutlined />}
             onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}>

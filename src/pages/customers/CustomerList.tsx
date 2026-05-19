@@ -104,16 +104,14 @@ export default function CustomerList() {
     <div>
       <Card>
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
-          <Space>
-            <Input
-              placeholder="搜索姓名/公司/电话/邮箱"
-              prefix={<SearchOutlined />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              allowClear
-              style={{ maxWidth: 280, width: '100%' }}
-            />
-          </Space>
+          <Input
+            placeholder="搜索姓名/公司/电话/邮箱"
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
+            style={{ maxWidth: 280, width: '100%' }}
+          />
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加客户</Button>
         </Space>
         <Table
