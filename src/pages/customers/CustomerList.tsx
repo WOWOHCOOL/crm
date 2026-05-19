@@ -177,12 +177,8 @@ export default function CustomerList() {
                 <Select allowClear placeholder="选择来源" options={[
                   { label: '表单询盘', value: '表单询盘' },
                   { label: 'WhatsApp', value: 'WhatsApp' },
-                  { label: '阿里国际站', value: '阿里国际站' },
                   { label: '展会', value: '展会' },
-                  { label: 'Google Ads', value: 'Google Ads' },
                   { label: 'LinkedIn', value: 'LinkedIn' },
-                  { label: 'Facebook', value: 'Facebook' },
-                  { label: '朋友介绍', value: '朋友介绍' },
                   { label: '老客户推荐', value: '老客户推荐' },
                   { label: '其他', value: '其他' },
                 ]} />
