@@ -10,8 +10,6 @@ interface AuthStore {
   orgInfo: OrgInfo | null;
   orgLoading: boolean;
   permissions: Permission[];
-  isOwner: boolean;
-  isAdmin: boolean;
   setSession: (user: User | null, session: Session | null) => void;
   setOrgInfo: (info: OrgInfo | null) => void;
   setPermissions: (perms: Permission[]) => void;
@@ -20,39 +18,30 @@ interface AuthStore {
   reset: () => void;
 }
 
-const initialState = {
+export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   session: null,
   loading: true,
   orgInfo: null,
   orgLoading: true,
   permissions: [],
-};
-
-export const useAuthStore = create<AuthStore>((set, get) => ({
-  ...initialState,
-  get isOwner() { return get().orgInfo?.role === 'owner'; },
-  get isAdmin() { return get().orgInfo?.role === 'admin' || get().orgInfo?.role === 'owner'; },
   setSession: (user, session) => set({ user, session, loading: false }),
   setOrgInfo: (orgInfo) => set({ orgInfo, orgLoading: false }),
   setPermissions: (permissions) => set({ permissions }),
   setLoading: (loading) => set({ loading }),
   setOrgLoading: (orgLoading) => set({ orgLoading }),
-  reset: () => set(initialState),
+  reset: () => set({ user: null, session: null, loading: true, orgInfo: null, orgLoading: true, permissions: [] }),
 }));
 
-// ── Auth helpers (moved from AuthContext, uses zustand internally) ──
-
 export async function fetchOrg() {
-  const set = useAuthStore.getState().setOrgInfo;
-  const setLoading = useAuthStore.getState().setOrgLoading;
-  setLoading(true);
+  const s = useAuthStore.getState();
+  s.setOrgLoading(true);
   try {
     const { data, error } = await supabase.rpc('get_my_org');
     if (error) throw error;
-    set(data?.org_id ? (data as OrgInfo) : null);
+    s.setOrgInfo(data?.org_id ? (data as OrgInfo) : null);
   } catch {
-    set(null);
+    s.setOrgInfo(null);
   }
 }
 
@@ -64,27 +53,27 @@ export async function loadPermissions() {
 }
 
 export async function initOrg() {
-  const setOrg = useAuthStore.getState().setOrgInfo;
-  const setLoading = useAuthStore.getState().setOrgLoading;
-  setLoading(true);
+  const s = useAuthStore.getState();
+  s.setOrgLoading(true);
   try {
     const { data: orgData } = await supabase.rpc('get_my_org');
     if (orgData?.org_id) {
-      setOrg(orgData as OrgInfo);
+      s.setOrgInfo(orgData as OrgInfo);
       await loadPermissions();
-      setLoading(false);
+      s.setOrgLoading(false);
       return;
     }
     const { data: inviteResult } = await supabase.rpc('consume_pending_invite');
     if (inviteResult?.consumed) {
       const { data: newOrg } = await supabase.rpc('get_my_org');
-      if (newOrg?.org_id) { setOrg(newOrg as OrgInfo); await loadPermissions(); setLoading(false); return; }
+      if (newOrg?.org_id) { s.setOrgInfo(newOrg as OrgInfo); await loadPermissions(); s.setOrgLoading(false); return; }
     }
-    setOrg(null);
+    s.setOrgInfo(null);
   } catch {
-    setOrg(null);
+    const s = useAuthStore.getState();
+    s.setOrgInfo(null);
   } finally {
     await loadPermissions();
-    setLoading(false);
+    useAuthStore.getState().setOrgLoading(false);
   }
 }

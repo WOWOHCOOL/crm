@@ -24,19 +24,27 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const store = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const session = useAuthStore((s) => s.session);
+  const loading = useAuthStore((s) => s.loading);
+  const orgInfo = useAuthStore((s) => s.orgInfo);
+  const orgLoading = useAuthStore((s) => s.orgLoading);
+  const permissions = useAuthStore((s) => s.permissions);
+
+  const isOwner = orgInfo?.role === 'owner';
+  const isAdmin = orgInfo?.role === 'admin' || isOwner;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      store.setSession(session?.user ?? null, session);
+      useAuthStore.getState().setSession(session?.user ?? null, session);
       if (session?.user) initOrg();
-      else store.setOrgLoading(false);
+      else useAuthStore.getState().setOrgLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      store.setSession(session?.user ?? null, session);
+      useAuthStore.getState().setSession(session?.user ?? null, session);
       if (session?.user) initOrg();
-      else store.reset();
+      else useAuthStore.getState().reset();
     });
 
     return () => subscription.unsubscribe();
@@ -57,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    store.reset();
+    useAuthStore.getState().reset();
   };
 
   const createOrg = async (name: string) => {
@@ -78,21 +86,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
-  const refreshOrg = fetchOrg;
-
   return (
     <AuthContext.Provider value={{
-      user: store.user,
-      session: store.session,
-      loading: store.loading,
-      orgInfo: store.orgInfo,
-      orgLoading: store.orgLoading,
-      permissions: store.permissions,
-      isOwner: store.isOwner,
-      isAdmin: store.isAdmin,
+      user, session, loading, orgInfo, orgLoading, permissions,
+      isOwner, isAdmin,
       signUp, signIn, signOut,
-      createOrg, joinWithInviteCode, refreshOrg,
-      hasOrgSetup: !!store.orgInfo,
+      createOrg, joinWithInviteCode, refreshOrg: fetchOrg,
+      hasOrgSetup: !!orgInfo,
     }}>
       {children}
     </AuthContext.Provider>
