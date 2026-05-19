@@ -86,13 +86,13 @@ export default function CustomerList() {
   };
 
   const columns = [
-    { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const },
-    { title: '公司', dataIndex: 'company', key: 'company', width: 150 },
-    { title: '电话', dataIndex: 'phone', key: 'phone', width: 130 },
-    { title: '邮箱', dataIndex: 'email', key: 'email', width: 180 },
-    { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140 },
-    { title: '国家', dataIndex: 'country', key: 'country', width: 80 },
-    { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const, onCell: () => ({ 'data-label': '姓名' } as React.TdHTMLAttributes<unknown>) },
+    { title: '公司', dataIndex: 'company', key: 'company', width: 150, onCell: () => ({ 'data-label': '公司' } as React.TdHTMLAttributes<unknown>) },
+    { title: '电话', dataIndex: 'phone', key: 'phone', width: 130, onCell: () => ({ 'data-label': '电话' } as React.TdHTMLAttributes<unknown>) },
+    { title: '邮箱', dataIndex: 'email', key: 'email', width: 180, onCell: () => ({ 'data-label': '邮箱' } as React.TdHTMLAttributes<unknown>) },
+    { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140, onCell: () => ({ 'data-label': 'WhatsApp' } as React.TdHTMLAttributes<unknown>) },
+    { title: '国家', dataIndex: 'country', key: 'country', width: 80, onCell: () => ({ 'data-label': '国家' } as React.TdHTMLAttributes<unknown>) },
+    { title: '来源', dataIndex: 'source', key: 'source', width: 100, onCell: () => ({ 'data-label': '来源' } as React.TdHTMLAttributes<unknown>) },
     {
       title: '操作',
       key: 'actions',
@@ -112,7 +112,7 @@ export default function CustomerList() {
   return (
     <div>
       <Card>
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Space>
             <Input
               placeholder="搜索姓名/公司/电话/邮箱"
@@ -120,7 +120,7 @@ export default function CustomerList() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               allowClear
-              style={{ width: 280 }}
+              style={{ maxWidth: 280, width: '100%' }}
             />
           </Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加客户</Button>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, theme, Dropdown, Modal, Form, Input, message } from 'antd';
+import { Layout, Menu, Button, Drawer, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
@@ -23,8 +23,17 @@ import { supabase } from '../supabase';
 
 const { Header, Sider, Content, Footer } = Layout;
 
+const bottomNavItems = [
+  { key: '/', icon: <DashboardOutlined />, label: '总览' },
+  { key: '/customers', icon: <TeamOutlined />, label: '客户' },
+  { key: '/tasks', icon: <BellOutlined />, label: '任务' },
+  { key: '/finance', icon: <DollarOutlined />, label: '财务' },
+  { key: '/org', icon: <UserOutlined />, label: '我的' },
+];
+
 export default function MainLayout() {
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 1200);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
@@ -39,7 +48,6 @@ export default function MainLayout() {
     if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
     return groups;
   });
-  const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
 
   const isMobile = window.innerWidth < 768;
 
@@ -49,7 +57,6 @@ export default function MainLayout() {
   if (pathParts.length >= 2 && pathParts[0] === 'quotations') selectedKey = '/' + pathParts.slice(0, 2).join('/');
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
-
   const hasPerm = (k: string) => isOwner || isAdmin || permissions.includes(k as never);
 
   const menuItems: MenuProps['items'] = [
@@ -130,88 +137,151 @@ export default function MainLayout() {
     },
   ];
 
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} breakpoint="lg"
-        onBreakpoint={(broken) => setCollapsed(broken)}
-      >
-        <div style={{
-          margin: 16,
-          padding: 8,
-          background: 'rgba(255,255,255,0.95)',
-          borderRadius: 8,
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Sider trigger={null} collapsible collapsed={collapsed} breakpoint="lg"
+          onBreakpoint={(broken) => setCollapsed(broken)}
+        >
+          <div style={{
+            margin: 16, padding: 8,
+            background: 'rgba(255,255,255,0.95)',
+            borderRadius: 8, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src="/logo.webp" alt="WowohCool CRM"
+              style={{
+                height: collapsed ? 28 : 36,
+                maxWidth: collapsed ? 40 : 150,
+                objectFit: 'contain',
+              }}
+            />
+          </div>
+          <Menu theme="dark" mode="inline"
+            selectedKeys={[selectedKey]}
+            items={menuItems}
+            openKeys={openKeys}
+            onOpenChange={setOpenKeys}
+            onClick={({ key }) => { navigate(key); }}
+          />
+        </Sider>
+      )}
+
+      <Layout>
+        <Header style={{
+          padding: '0 16px',
+          background: '#fff',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky', top: 0, zIndex: 50,
         }}>
-          <img
-            src="/logo.webp"
-            alt="WowohCool CRM"
-            style={{
-              height: collapsed ? 28 : 36,
-              maxWidth: collapsed ? 40 : 150,
-              objectFit: 'contain',
-            }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {isMobile ? (
+              <Button type="text" icon={<MenuUnfoldOutlined />}
+                onClick={() => setDrawerOpen(true)}
+              />
+            ) : (
+              <Button type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+              />
+            )}
+          </div>
+          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+            <Button type="text" icon={<UserOutlined />}>
+              {!isMobile && <span style={{ marginLeft: 4 }}>{displayName}</span>}
+            </Button>
+          </Dropdown>
+        </Header>
+
+        <Content style={{
+          margin: isMobile ? 8 : 24,
+          padding: isMobile ? 12 : 24,
+          background: '#fff',
+          borderRadius: 8,
+          minHeight: 280,
+          overflow: 'auto',
+          paddingBottom: isMobile ? 72 : 24, /* space for bottom nav */
+        }}>
+          <Outlet />
+        </Content>
+
+        <Footer style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
+          &copy; {new Date().getFullYear()} WowohCool CRM
+        </Footer>
+      </Layout>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <nav style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+          background: '#fff', borderTop: '1px solid #f0f0f0',
+          display: 'flex', height: 56,
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
+        }}>
+          {bottomNavItems.map(item => {
+            const active = isActive(item.key);
+            return (
+              <div key={item.key}
+                onClick={() => navigate(item.key)}
+                style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  gap: 2, cursor: 'pointer', fontSize: 10,
+                  color: active ? '#1677ff' : '#999',
+                  borderTop: active ? '2px solid #1677ff' : '2px solid transparent',
+                  padding: '4px 0',
+                }}
+              >
+                <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+                <span>{item.label}</span>
+              </div>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* Mobile Drawer */}
+      <Drawer
+        title="菜单"
+        placement="left"
+        onClose={() => setDrawerOpen(false)}
+        open={isMobile && drawerOpen}
+        width={280}
+        bodyStyle={{ padding: 0 }}
+      >
+        <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+          <img src="/logo.webp" alt="WowohCool CRM" style={{ height: 36, objectFit: 'contain' }} />
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
+        <Menu mode="inline"
           selectedKeys={[selectedKey]}
           items={menuItems}
           openKeys={openKeys}
           onOpenChange={setOpenKeys}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => { navigate(key); setDrawerOpen(false); }}
+          style={{ borderRight: 'none' }}
         />
-      </Sider>
-      <Layout>
-        <Header style={{
-          padding: '0 24px',
-          background: colorBgContainer,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-          />
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button type="text" icon={<UserOutlined />}>
-              {displayName}
-            </Button>
-          </Dropdown>
-        </Header>
-        <Content style={{
-          margin: isMobile ? 8 : 24,
-          padding: isMobile ? 12 : 24,
-          background: colorBgContainer,
-          borderRadius: borderRadiusLG,
-          minHeight: 280,
-          overflow: 'auto',
-        }}>
-          <Outlet />
-        </Content>
-        <Footer style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
-          &copy; snowy {new Date().getFullYear()} WowohCool CRM
-        </Footer>
-      </Layout>
+      </Drawer>
 
-      <Modal
-        title="修改密码"
-        open={passwordModalOpen}
+      {/* Password Modal */}
+      <Modal title="修改密码" open={passwordModalOpen}
         onCancel={() => { setPasswordModalOpen(false); passwordForm.resetFields(); }}
         onOk={() => passwordForm.submit()}
-        confirmLoading={passwordLoading}
-        destroyOnClose
+        confirmLoading={passwordLoading} destroyOnClose
       >
         <Form form={passwordForm} layout="vertical" onFinish={handleChangePassword}>
           <Form.Item name="newPassword" label="新密码" rules={[
             { required: true, message: '请输入新密码' },
             { min: 6, message: '密码至少6位' },
           ]}>
-            <Input.Password prefix={<LockOutlined />} placeholder="请输入至少6位的新密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder="至少6位的新密码" />
           </Form.Item>
           <Form.Item name="confirmPassword" label="确认密码" dependencies={['newPassword']}
             rules={[
@@ -224,7 +294,7 @@ export default function MainLayout() {
               }),
             ]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="请再次输入新密码" />
+            <Input.Password prefix={<LockOutlined />} placeholder="再次输入新密码" />
           </Form.Item>
         </Form>
       </Modal>

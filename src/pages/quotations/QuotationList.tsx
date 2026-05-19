@@ -64,10 +64,10 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
   const title = listType === 'quotation' ? '报价单' : 'PI';
 
   const columns = [
-    { title: `${title}编号`, dataIndex: 'quotation_no', key: 'quotation_no', width: 200 },
-    { title: '客户公司', dataIndex: 'customer_company', key: 'customer_company', width: 180, render: (v: string | null) => v || '-' },
-    { title: '日期', dataIndex: 'created_at', key: 'created_at', width: 120, render: (v: string) => new Date(v).toLocaleDateString('zh-CN') },
-    { title: '状态', dataIndex: 'status', key: 'status', width: 80, render: (v: string) => <Tag>{v === 'draft' ? '草稿' : '已发送'}</Tag> },
+    { title: `${title}编号`, dataIndex: 'quotation_no', key: 'quotation_no', width: 200, onCell: () => ({ 'data-label': '编号' } as React.TdHTMLAttributes<unknown>) },
+    { title: '客户公司', dataIndex: 'customer_company', key: 'customer_company', width: 180, render: (v: string | null) => v || '-', onCell: () => ({ 'data-label': '客户' } as React.TdHTMLAttributes<unknown>) },
+    { title: '日期', dataIndex: 'created_at', key: 'created_at', width: 120, render: (v: string) => new Date(v).toLocaleDateString('zh-CN'), onCell: () => ({ 'data-label': '日期' } as React.TdHTMLAttributes<unknown>) },
+    { title: '状态', dataIndex: 'status', key: 'status', width: 80, render: (v: string) => <Tag>{v === 'draft' ? '草稿' : '已发送'}</Tag>, onCell: () => ({ 'data-label': '状态' } as React.TdHTMLAttributes<unknown>) },
     {
       title: '操作', key: 'actions', width: 200,
       render: (_: unknown, record: Quotation) => (
@@ -97,7 +97,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             allowClear
-            style={{ width: 300 }}
+            style={{ maxWidth: 300, width: '100%' }}
           />
           <Button type="primary" icon={<PlusOutlined />}
             onClick={() => navigate(`/quotations/new?type=${listType}`)}>
