@@ -111,13 +111,17 @@ export default function AccountManage() {
     mutationFn: async () => {
       const uid = await getUserId();
       if (!uid) throw new Error('未登录');
-      const { error } = await supabase.from('accounts').insert(defaultAccounts.map(a => ({ ...a, user_id: uid })));
+      const { data: existing } = await supabase.from('accounts').select('name').eq('user_id', uid);
+      const existingNames = new Set((existing ?? []).map((a: { name: string }) => a.name));
+      const newAccounts = defaultAccounts.filter(a => !existingNames.has(a.name)).map(a => ({ ...a, user_id: uid }));
+      if (newAccounts.length === 0) throw new Error('所有科目已存在，无需重复添加');
+      const { error } = await supabase.from('accounts').insert(newAccounts);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
-      message.success('默认科目已初始化');
+      message.success('外贸科目已添加');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -150,20 +154,11 @@ export default function AccountManage() {
   return (
     <div>
       <Card>
-        {!isLoading && (accounts ?? []).length === 0 && (
-          <div style={{
-            background: '#e6f4ff', border: '1px solid #91caff',
-            borderRadius: 6, padding: '12px 16px', marginBottom: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <span>还没有科目，需要初始化默认科目（营业收入、办公费用等）</span>
-            <Button type="primary" size="small" loading={initMutation.isPending}
-              onClick={() => initMutation.mutate()}>
-              一键初始化
-            </Button>
-          </div>
-        )}
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'flex-end' }}>
+        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
+          <Button size="small" loading={initMutation.isPending}
+            onClick={() => initMutation.mutate()}>
+            初始化默认科目（外贸专用）
+          </Button>
           <Button type="primary" icon={<PlusOutlined />}
             onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}
           >
