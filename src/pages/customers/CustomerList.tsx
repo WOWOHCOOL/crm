@@ -21,6 +21,37 @@ export default function CustomerList() {
   const isAdding = searchParams.get('add') === '1';
   const modalOpen = !!editId || isAdding;
 
+  // Restore draft from sessionStorage on mount (add mode only)
+  useEffect(() => {
+    if (editId) return;
+    const draft = sessionStorage.getItem('customer_form_draft');
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      if (data.formValues) form.setFieldsValue(data.formValues);
+      if (data.cardPreview) setCardPreview(data.cardPreview);
+      sessionStorage.removeItem('customer_form_draft');
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft on visibility change and before unload (add mode only)
+  const isEditMode = !!editId;
+  useEffect(() => {
+    if (isEditMode) return;
+    const save = () => {
+      sessionStorage.setItem('customer_form_draft', JSON.stringify({
+        formValues: form.getFieldsValue(),
+        cardPreview,
+      }));
+    };
+    document.addEventListener('visibilitychange', save);
+    window.addEventListener('beforeunload', save);
+    return () => {
+      document.removeEventListener('visibilitychange', save);
+      window.removeEventListener('beforeunload', save);
+    };
+  }, [form, cardPreview, isEditMode]);
+
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers', search],
     queryFn: async () => {
@@ -73,6 +104,7 @@ export default function CustomerList() {
   };
 
   const closeModal = () => {
+    sessionStorage.removeItem('customer_form_draft');
     form.resetFields();
     setCardPreview(null);
     setModalParam({ add: null, edit: null });
@@ -94,6 +126,7 @@ export default function CustomerList() {
     },
     invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
+      sessionStorage.removeItem('customer_form_draft');
       closeModal();
       logOperation('customer', editing ? 'update' : 'create', editing?.id, (values as Record<string, unknown>).name as string);
     },
