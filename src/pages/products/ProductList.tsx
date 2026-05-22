@@ -74,9 +74,36 @@ export default function ProductList() {
     if (editing) form.setFieldsValue(editing);
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Restore draft from sessionStorage on mount (add mode only)
   useEffect(() => {
-    if (isAdding && !editing) form.resetFields();
-  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (editId) return;
+    const draft = sessionStorage.getItem('product_form_draft');
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      if (data.formValues) form.setFieldsValue(data.formValues);
+      if (data.imagePreview) setImagePreview(data.imagePreview);
+      sessionStorage.removeItem('product_form_draft');
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft on visibility change (add mode only)
+  const isEditMode = !!editId;
+  useEffect(() => {
+    if (isEditMode) return;
+    const save = () => {
+      sessionStorage.setItem('product_form_draft', JSON.stringify({
+        formValues: form.getFieldsValue(),
+        imagePreview,
+      }));
+    };
+    document.addEventListener('visibilitychange', save);
+    window.addEventListener('beforeunload', save);
+    return () => {
+      document.removeEventListener('visibilitychange', save);
+      window.removeEventListener('beforeunload', save);
+    };
+  }, [form, imagePreview, isEditMode]);
 
   // URL param helpers
   const setModalParam = (params: Record<string, string | null>) => {
@@ -98,7 +125,9 @@ export default function ProductList() {
   };
 
   const closeModal = () => {
+    sessionStorage.removeItem('product_form_draft');
     form.resetFields();
+    setImagePreview(null);
     setModalParam({ add: null, edit: null, detail: null });
   };
 

@@ -73,9 +73,34 @@ export default function AccountManage() {
     if (editing) form.setFieldsValue(editing);
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Restore draft from sessionStorage on mount (add mode only)
   useEffect(() => {
-    if (isAdding && !editing) form.resetFields();
-  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (editId) return;
+    const draft = sessionStorage.getItem('account_form_draft');
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      if (data.formValues) form.setFieldsValue(data.formValues);
+      sessionStorage.removeItem('account_form_draft');
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft on visibility change (add mode only)
+  const isEditMode = !!editId;
+  useEffect(() => {
+    if (isEditMode) return;
+    const save = () => {
+      sessionStorage.setItem('account_form_draft', JSON.stringify({
+        formValues: form.getFieldsValue(),
+      }));
+    };
+    document.addEventListener('visibilitychange', save);
+    window.addEventListener('beforeunload', save);
+    return () => {
+      document.removeEventListener('visibilitychange', save);
+      window.removeEventListener('beforeunload', save);
+    };
+  }, [form, isEditMode]);
 
   const setModalParam = (params: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
@@ -96,6 +121,7 @@ export default function AccountManage() {
   };
 
   const closeModal = () => {
+    sessionStorage.removeItem('account_form_draft');
     form.resetFields();
     setModalParam({ add: null, edit: null });
   };
