@@ -4,7 +4,7 @@ import {
   Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
   message, Popconfirm, Card, Row, Col, Tag, Image, Upload, Descriptions, Select,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, InboxOutlined, EyeOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, InboxOutlined, EyeOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, Supplier } from '../../types';
@@ -20,7 +20,15 @@ export default function ProductList() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importData, setImportData] = useState<Record<string, unknown>[]>([]);
   const [importLoading, setImportLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Sync preview with form image_url value
+  const watchImageUrl = Form.useWatch('image_url', form);
+  useEffect(() => {
+    if (watchImageUrl) setImagePreview(watchImageUrl);
+    else if (!watchImageUrl && !form.getFieldValue('image_url')) setImagePreview(null);
+  }, [watchImageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Modal state via URL params (survives remount / page reload) ──
   const [searchParams, setSearchParams] = useSearchParams();
@@ -100,6 +108,46 @@ export default function ProductList() {
 
   const closeDetail = () => {
     setModalParam({ detail: null, add: null, edit: null });
+  };
+
+  // Sync image preview when editing product changes
+  useEffect(() => {
+    if (editing?.image_url) setImagePreview(editing.image_url);
+    else setImagePreview(null);
+  }, [editing]);
+
+  const handleImageUpload = async (file: File): Promise<boolean> => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) { message.error('仅支持图片文件'); return false; }
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) { message.error('图片不能超过 5MB'); return false; }
+
+    // Try Supabase Storage
+    if (supabase) {
+      const ext = file.name.split('.').pop();
+      const fileName = `product_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data: uploadData, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, { contentType: file.type });
+
+      if (!error && uploadData) {
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
+        form.setFieldValue('image_url', publicUrl);
+        setImagePreview(publicUrl);
+        return false;
+      }
+      console.warn('Supabase Storage 上传失败，使用 base64 回退:', error?.message);
+    }
+
+    // Fallback: data URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      form.setFieldValue('image_url', dataUrl);
+      setImagePreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    return false;
   };
 
   const saveMutation = useMutation({
@@ -366,8 +414,24 @@ export default function ProductList() {
               </Form.Item>
             </Col>
             <Col xs={24}>
-              <Form.Item name="image_url" label="产品图片链接">
-                <Input placeholder="https://example.com/product.jpg" />
+              <Form.Item name="image_url" label="产品图片">
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <Upload
+                    accept="image/*"
+                    showUploadList={false}
+                    beforeUpload={handleImageUpload}
+                  >
+                    <Button icon={<UploadOutlined />}>上传图片</Button>
+                  </Upload>
+                  <Input placeholder="或输入图片链接 https://..." />
+                  {imagePreview && (
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <Image src={imagePreview} width={56} height={56} style={{ objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0' }} preview={{ mask: '预览' }} />
+                      <Button size="small" danger type="text" style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, fontSize: 10, padding: 0, background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                        onClick={() => { form.setFieldValue('image_url', null); setImagePreview(null); }}>✕</Button>
+                    </div>
+                  )}
+                </div>
               </Form.Item>
             </Col>
           </Row>
