@@ -187,6 +187,9 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
           {listType === 'quotation' && (
             <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
           )}
+          {listType === 'pi' && (
+            <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
+          )}
           <Button size="small" onClick={() => handleExport(record, 'pdf')}>PDF</Button>
           {listType === 'pi' && record.status === 'draft' && (
             <Button size="small" type="primary"

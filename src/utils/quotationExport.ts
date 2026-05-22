@@ -10,64 +10,6 @@ function fmtDate(d: string): string {
 }
 
 // ============================================================
-// EXCEL EXPORT (QUO only — PI uses PDF)
-// ============================================================
-export function exportExcel(
-  q: Quotation,
-  items: QuotationItem[],
-  currency: 'USD' | 'RMB',
-) {
-  const curSym = currency === 'USD' ? '$' : '¥';
-  // QUO uses moq as quantity
-  const qty = (i: QuotationItem) => Number(i.moq || 1);
-  const validUntil = new Date(new Date(q.created_at).getTime() + (q.valid_days || 15) * 86400000);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d: any[] = [];
-
-  d.push(['WOWOHCOOL — QUOTATION', '', '', '', '', '', '', '']);
-  d.push([q.quotation_no, '', '', '', '', '', '', '']);
-  d.push([`Date: ${fmtDate(q.created_at)}  |  Valid: ${fmtDate(validUntil.toISOString())}`, '', '', '', '', '', '', '']);
-  d.push([]);
-
-  d.push(['SUPPLIER:', '', '', '', 'CUSTOMER:', '', '', '']);
-  d.push(['Dong Yi Technology Co., Limited', '', '', '', q.customer_company || '', '', '', '']);
-  d.push([`Contact: Sales Dept`, '', '', '', `Contact: ${q.customer_contact || ''}`, '', '', '']);
-  d.push([`Tel: +86-755-XXXXXXXX`, '', '', '', `Tel: ${q.customer_phone || ''}`, '', '', '']);
-  d.push([`Web: www.wowohcool.com`, '', '', '', `Tel: ${q.customer_phone || ''}`, '', '', '']);
-  d.push([`Address: Shenzhen, China`, '', '', '', `Address: ${q.customer_address || ''}`, '', '', '']);
-  d.push([]);
-  d.push([]);
-
-  d.push(['#', 'Model', 'Description', 'MOQ', 'Price', 'Remarks']);
-  items.forEach((item, i) => {
-    const p = currency === 'USD' ? Number(item.unit_price_usd) : Number(item.unit_price_rmb);
-    d.push([i + 1, item.official_model, item.description || '', qty(item), `${curSym}${p.toFixed(2)}`, item.remarks || '']);
-  });
-  d.push([]);
-  d.push([]);
-
-  d.push(['BANK INFORMATION', '', '', '', '', '', '', '']);
-  d.push([`Beneficiary: ${q.bank_beneficiary || 'Dong Yi Technology Co., Limited'}`, '', '', '', '', '', '', '']);
-  d.push([`Bank: ${q.bank_name || ''}`, '', '', '', '', '', '', '']);
-  d.push([`Account: ${q.bank_account || ''}`, '', '', '', '', '', '', '']);
-  d.push([`SWIFT: ${q.bank_swift || ''}`, '', '', '', '', '', '', '']);
-  d.push([]);
-
-  d.push(['TERMS', '', '', '', '', '', '', '']);
-  (q.terms_conditions || '').split('\n').filter(Boolean).forEach(line => d.push([line, '', '', '', '', '', '', '']));
-  d.push([`Validity: ${q.valid_days || 15} days`, '', '', '', '', '', '', '']);
-  if (q.notes) d.push([`Notes: ${q.notes}`, '', '', '', '', '', '', '']);
-
-  const ws = XLSX.utils.aoa_to_sheet(d);
-  ws['!cols'] = [{ wch: 5 }, { wch: 22 }, { wch: 25 }, { wch: 6 }, { wch: 14 }, { wch: 20 }];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'QUOTATION');
-  XLSX.writeFile(wb, `${q.quotation_no}.xlsx`);
-}
-
-// ============================================================
 // Number to Words
 // ============================================================
 function numberToWords(n: number): string {
@@ -92,6 +34,242 @@ function numberToWords(n: number): string {
   if (rem) w.push(c(rem));
   if (cents) w.push('And Cents ' + c(cents));
   return w.join(' ') + ' Only';
+}
+
+// ============================================================
+// Shared: build data rows for Excel (both QUO & PI)
+// ============================================================
+function buildExcelRows(
+  q: Quotation,
+  items: QuotationItem[],
+  type: 'quotation' | 'pi',
+  currency: 'USD' | 'RMB',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any[][] {
+  const curSym = currency === 'USD' ? 'US$' : '¥';
+  const title = type === 'quotation' ? 'QUOTATION' : 'INVOICE';
+  const validUntil = new Date(new Date(q.created_at).getTime() + (q.valid_days || 15) * 86400000);
+  const itemQty = (i: QuotationItem) => type === 'quotation' ? (i.moq || 1) : i.quantity;
+  const showPrice = (i: QuotationItem) => currency === 'USD' ? Number(i.unit_price_usd) : Number(i.unit_price_rmb);
+  const totalUSD = items.reduce((s, i) => s + Number(i.unit_price_usd) * itemQty(i), 0);
+  const totalRMB = items.reduce((s, i) => s + Number(i.unit_price_rmb) * itemQty(i), 0);
+  const grandTotal = currency === 'USD' ? totalUSD : totalRMB;
+  const depRate = q.deposit_rate || 50;
+  const deposit = r2(grandTotal * depRate / 100);
+  const balance = r2(grandTotal - deposit);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d: any[][] = [];
+
+  // Empty top padding row
+  d.push([]);
+
+  // === HEADER: Title row, merged across 8 cols ===
+  d.push([title, '', '', '', '', '', '', '']);
+  d.push([q.quotation_no, '', '', '', '', '', '', '']);
+  d.push([`Date: ${fmtDate(q.created_at)}  |  Valid Until: ${fmtDate(validUntil.toISOString())}`, '', '', '', '', '', '', '']);
+  d.push([]);
+
+  // === PARTIES ===
+  d.push(['SELLER / SUPPLIER', '', '', '', 'BUYER / CUSTOMER', '', '', '']);
+  d.push(['Dong Yi Technology Co., Limited', '', '', '', q.customer_company || '', '', '', '']);
+  d.push(['Contact: Sales Department', '', '', '', `Contact: ${q.customer_contact || ''}`, '', '', '']);
+  d.push(['Tel: +86-755-XXXXXXXX', '', '', '', `Tel: ${q.customer_phone || ''}`, '', '', '']);
+  d.push(['Email: sales@wowohcool.com', '', '', '', '', '', '', '']);
+  d.push(['Web: www.wowohcool.com', '', '', '', '', '', '', '']);
+  d.push(['Address: Shenzhen, Guangdong, China', '', '', '', `Address: ${q.customer_address || ''}`, '', '', '']);
+  d.push([]);
+
+  // Trade terms
+  if (q.trade_terms) {
+    d.push([`Trade Terms: ${q.trade_terms}`, '', '', '', '', '', '', '']);
+    d.push([]);
+  }
+
+  // === ITEMS TABLE HEADER ===
+  if (type === 'quotation') {
+    d.push(['#', 'Model', 'Description', 'MOQ', `Price (${currency})`, 'Remarks', '', '']);
+  } else {
+    d.push(['#', 'Model', 'Qty', `Price (${currency})`, `Total (${currency})`, '', '', '']);
+  }
+
+  // === ITEMS ===
+  items.forEach((item, i) => {
+    const p = showPrice(item);
+    if (type === 'quotation') {
+      d.push([i + 1, item.official_model, item.description || '-', itemQty(item), p.toFixed(2), item.remarks || '', '', '']);
+    } else {
+      d.push([i + 1, item.official_model, item.quantity, p.toFixed(2), r2(p * item.quantity).toFixed(2), '', '', '']);
+    }
+  });
+  d.push([]);
+
+  // === PI: Amounts breakdown ===
+  if (type === 'pi') {
+    d.push(['TOTAL DUE:', '', '', '', `${curSym} ${grandTotal.toFixed(2)}`, '', '', '']);
+    d.push(['Deposit:', `${depRate}%`, '', '', `${curSym} ${deposit.toFixed(2)}`, '', '', '']);
+    d.push(['Balance:', `${100 - depRate}%`, '', '', `${curSym} ${balance.toFixed(2)}`, '', '', '']);
+    d.push([]);
+    d.push([`Amount in Words: ${numberToWords(currency === 'USD' ? totalUSD : totalRMB)}`, '', '', '', '', '', '', '']);
+    d.push([]);
+    d.push([]);
+  }
+
+  // === BANK INFORMATION (PI) ===
+  if (type === 'pi') {
+    d.push(['BANK INFORMATION', '', '', '', '', '', '', '']);
+    d.push([`Beneficiary: ${q.bank_beneficiary || 'Dong Yi Technology Co., Limited'}`, '', '', '', '', '', '', '']);
+    d.push([`Account No: ${q.bank_account || '____________________'}`, '', '', '', '', '', '', '']);
+    d.push([`Bank Name: ${q.bank_name || '____________________'}`, '', '', '', '', '', '', '']);
+    d.push([`Bank Address: ${q.bank_address || '____________________'}`, '', '', '', '', '', '', '']);
+    d.push([`SWIFT Code: ${q.bank_swift || '____________________'}`, '', '', '', '', '', '', '']);
+    d.push([`Bank Code: ${q.bank_code || '____________________'}`, '', '', '', '', '', '', '']);
+    if (q.paypal_account) {
+      d.push([`PayPal: ${q.paypal_account} (Sample fee only)`, '', '', '', '', '', '', '']);
+    }
+    d.push([]);
+    d.push([]);
+  }
+
+  // === TERMS & CONDITIONS (QUO) ===
+  if (type === 'quotation') {
+    d.push(['TERMS & CONDITIONS', '', '', '', '', '', '', '']);
+    const terms = (q.terms_conditions || '').split('\n').filter(Boolean);
+    terms.forEach(line => d.push([line, '', '', '', '', '', '', '']));
+    if (terms.length === 0) {
+      d.push(['1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment.', '', '', '', '', '', '', '']);
+      d.push(['2. All banking charges outside Hong Kong are to be borne by the buyer.', '', '', '', '', '', '', '']);
+      d.push(['3. Delivery Terms: Within 35 days after payment confirmation.', '', '', '', '', '', '', '']);
+      d.push(['4. Requests for revision or cancellation will not be accepted.', '', '', '', '', '', '', '']);
+    }
+    d.push([`Validity: ${q.valid_days || 15} days from the date hereof.`, '', '', '', '', '', '', '']);
+    if (q.notes) d.push([`Remarks: ${q.notes}`, '', '', '', '', '', '', '']);
+    d.push([]);
+  }
+
+  // === SIGNATURE ===
+  d.push(['Authorized Signature', '', '', '', '', '', '', '']);
+  d.push([]);
+  d.push(['____________________________', '', '', '', '', '', '', '']);
+  d.push(['Signature & Stamp', '', '', '', '', '', '', '']);
+
+  return d;
+}
+
+// ============================================================
+// EXCEL EXPORT
+// ============================================================
+export function exportExcel(
+  q: Quotation,
+  items: QuotationItem[],
+  currency: 'USD' | 'RMB',
+  type?: 'quotation' | 'pi',
+) {
+  const docType = type || q.type || 'quotation';
+  const title = docType === 'quotation' ? 'QUOTATION' : 'INVOICE';
+  const d = buildExcelRows(q, items, docType, currency);
+
+  const ws = XLSX.utils.aoa_to_sheet(d);
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 5 },  // A: #
+    { wch: 24 }, // B: Model
+    { wch: 28 }, // C: Description
+    { wch: 8 },  // D: MOQ/Qty
+    { wch: 16 }, // E: Price
+    { wch: 22 }, // F: Remarks/Total
+    { wch: 8 },  // G
+    { wch: 8 },  // H
+  ];
+
+  // Merged cells for header rows (cols A-H = indices 0-7)
+  ws['!merges'] = [
+    // Title row: A1:H1
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+    // Quotation no: A2:H2
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },
+    // Date line: A3:H3
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 7 } },
+  ];
+
+  // Find important rows by scanning
+  let sellerRow = -1, buyerRow = -1;
+  let headerRow = -1;
+  let totalRow = -1;
+  let bankRow = -1, termsRow = -1, sigRow = -1;
+
+  d.forEach((row, i) => {
+    const first = String(row[0] || '').trim();
+    if (first === 'SELLER / SUPPLIER') sellerRow = i;
+    if (first === 'BUYER / CUSTOMER') buyerRow = i;
+    if (first === '#') headerRow = i;
+    if (first === 'TOTAL DUE:') totalRow = i;
+    if (first === 'BANK INFORMATION') bankRow = i;
+    if (first === 'TERMS & CONDITIONS') termsRow = i;
+    if (first === 'Authorized Signature') sigRow = i;
+  });
+
+  const merges: XLSX.Range[] = [
+    // Title row
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+    // Quotation no
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },
+    // Date line
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 7 } },
+  ];
+
+  // Merge party section headers (Seller side: col A-D, Buyer side: col E-H)
+  if (sellerRow >= 0) {
+    merges.push({ s: { r: sellerRow, c: 0 }, e: { r: sellerRow, c: 3 } });
+    merges.push({ s: { r: sellerRow, c: 4 }, e: { r: sellerRow, c: 7 } });
+    // Merge each party info row
+    for (let i = 1; i <= 6; i++) {
+      if (d[sellerRow + i]) {
+        merges.push({ s: { r: sellerRow + i, c: 0 }, e: { r: sellerRow + i, c: 3 } });
+        merges.push({ s: { r: sellerRow + i, c: 4 }, e: { r: sellerRow + i, c: 7 } });
+      }
+    }
+  }
+
+  // Merge trade terms
+  d.forEach((row, i) => {
+    if (String(row[0] || '').startsWith('Trade Terms:')) {
+      merges.push({ s: { r: i, c: 0 }, e: { r: i, c: 7 } });
+    }
+  });
+
+  // Merge section headers
+  if (bankRow >= 0) merges.push({ s: { r: bankRow, c: 0 }, e: { r: bankRow, c: 7 } });
+  if (termsRow >= 0) merges.push({ s: { r: termsRow, c: 0 }, e: { r: termsRow, c: 7 } });
+  if (sigRow >= 0) merges.push({ s: { r: sigRow, c: 0 }, e: { r: sigRow, c: 7 } });
+
+  // Merge section content rows (bank info, terms, signature)
+  d.forEach((row, i) => {
+    const first = String(row[0] || '');
+    // Bank info detail rows
+    if (first.startsWith('Beneficiary:') || first.startsWith('Account No:') ||
+        first.startsWith('Bank Name:') || first.startsWith('Bank Address:') ||
+        first.startsWith('SWIFT Code:') || first.startsWith('Bank Code:') ||
+        first.startsWith('PayPal:') || first.startsWith('Amount in Words:') ||
+        first.startsWith('Validity:') || first.startsWith('Remarks:') ||
+        first.startsWith('1. ') || first.startsWith('2. ') || first.startsWith('3. ') || first.startsWith('4. ')) {
+      merges.push({ s: { r: i, c: 0 }, e: { r: i, c: 7 } });
+    }
+    // Signature area
+    if (first.startsWith('___')) {
+      merges.push({ s: { r: i, c: 0 }, e: { r: i, c: 3 } });
+    }
+    if (first === 'Signature & Stamp') {
+      merges.push({ s: { r: i, c: 0 }, e: { r: i, c: 3 } });
+    }
+  });
+
+  ws['!merges'] = merges;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, title);
+  XLSX.writeFile(wb, `${q.quotation_no}.xlsx`);
 }
 
 // ============================================================
