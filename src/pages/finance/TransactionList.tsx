@@ -33,8 +33,6 @@ export default function TransactionList() {
       const { data } = await query.limit(200);
       return data ?? [];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const { data: customers } = useQuery({

@@ -35,8 +35,6 @@ export default function ProductList() {
       const { data } = await query;
       return (data ?? []) as (Product & { suppliers: Pick<Supplier, 'name'> | null })[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const { data: suppliersList } = useQuery({

@@ -29,8 +29,6 @@ export default function CustomerList() {
       const { data } = await query;
       return (data ?? []) as Customer[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const saveMutation = useApiMutation({

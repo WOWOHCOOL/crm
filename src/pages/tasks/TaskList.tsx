@@ -77,8 +77,6 @@ export default function TaskList() {
       const { data } = await query;
       return (data ?? []) as (Task & { customers: Customer | null })[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const { data: customers } = useQuery({

@@ -61,8 +61,6 @@ export default function AccountManage() {
       const { data } = await supabase.from('accounts').select('*').order('type').order('name');
       return (data ?? []) as Account[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const saveMutation = useMutation({

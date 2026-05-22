@@ -51,8 +51,6 @@ export default function PurchaseList() {
         .order('created_at', { ascending: false });
       return (data ?? []) as (PurchaseOrder & { suppliers: { name: string } | null })[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   // Fetch linked transactions

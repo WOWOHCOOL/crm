@@ -26,8 +26,6 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
       const { data } = await query;
       return (data ?? []) as Quotation[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   // Fetch linked transactions for PI finance status

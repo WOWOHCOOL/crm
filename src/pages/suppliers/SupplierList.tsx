@@ -31,8 +31,6 @@ export default function SupplierList() {
       const { data } = await query;
       return (data ?? []) as Supplier[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   // Get purchase stats per supplier

@@ -45,8 +45,6 @@ export default function OrderList() {
         .order('date', { ascending: false });
       return (data ?? []) as (Order & { customers: { name: string; company: string | null } | null })[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const deleteMutation = useMutation({
