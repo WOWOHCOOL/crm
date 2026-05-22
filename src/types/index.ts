@@ -32,6 +32,8 @@ export interface Account {
 
 export type TransactionType = 'income' | 'expense';
 
+export type RefType = 'purchase_order' | 'order' | null;
+
 export interface Transaction {
   id: string;
   customer_id: string | null;
@@ -42,6 +44,8 @@ export interface Transaction {
   date: string;
   created_at: string;
   user_id: string;
+  ref_type: RefType;
+  ref_id: string | null;
   customers?: Customer | null;
   accounts?: Account | null;
 }
