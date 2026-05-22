@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
-  message, Row, Col, Popconfirm, DatePicker, Typography, Modal,
+  message, Row, Col, Popconfirm, DatePicker, Typography, Modal, Upload, Image,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../auth/AuthContext';
@@ -32,7 +32,36 @@ export default function PurchaseForm() {
     unit_price: number;
   }[]>([]);
   const [saving, setSaving] = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const today = dayjs().format('YYYYMMDD');
+
+  const handleReceiptUpload = async (file: File): Promise<boolean> => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) { message.error('仅支持图片文件'); return false; }
+    if (file.size / 1024 / 1024 > 5) { message.error('图片不能超过 5MB'); return false; }
+
+    const ext = file.name.split('.').pop();
+    const fileName = `receipt_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { data: uploadData, error } = await supabase.storage
+      .from('receipts')
+      .upload(fileName, file, { contentType: file.type });
+
+    if (!error && uploadData) {
+      const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(fileName);
+      form.setFieldValue('payment_receipt_url', publicUrl);
+      setReceiptPreview(publicUrl);
+      return false;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      form.setFieldValue('payment_receipt_url', dataUrl);
+      setReceiptPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    return false;
+  };
 
   // Auto-generate order number via atomic DB sequence
   useEffect(() => {
@@ -94,11 +123,13 @@ export default function PurchaseForm() {
   // Load existing data into form
   useEffect(() => {
     if (existingOrder) {
+      setReceiptPreview(existingOrder.payment_receipt_url || null);
       form.setFieldsValue({
         supplier_id: existingOrder.supplier_id,
         order_no: existingOrder.order_no,
         order_date: existingOrder.order_date ? dayjs(existingOrder.order_date) : dayjs(),
         payment_terms: existingOrder.payment_terms,
+        payment_receipt_url: existingOrder.payment_receipt_url,
         buyer_name: existingOrder.buyer_name,
         buyer_contact: existingOrder.buyer_contact,
         buyer_phone: existingOrder.buyer_phone,
@@ -226,6 +257,7 @@ export default function PurchaseForm() {
       total_amount: totalAmount,
       status: 'draft',
       payment_terms: values.payment_terms || null,
+      payment_receipt_url: values.payment_receipt_url || null,
       buyer_name: values.buyer_name || '东易科技有限公司',
       buyer_contact: values.buyer_contact || null,
       buyer_phone: values.buyer_phone || null,
@@ -460,6 +492,25 @@ export default function PurchaseForm() {
           <div style={{ textAlign: 'right', marginTop: 16, fontSize: 16, fontWeight: 600 }}>
             合计：¥{totalAmount.toFixed(2)}
           </div>
+
+          <Form.Item name="payment_receipt_url" label="付款水单" style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                beforeUpload={handleReceiptUpload}
+              >
+                <Button icon={<UploadOutlined />}>上传付款凭证</Button>
+              </Upload>
+              {receiptPreview && (
+                <div style={{ position: 'relative' }}>
+                  <Image src={receiptPreview} width={100} style={{ borderRadius: 6, border: '1px solid #f0f0f0' }} />
+                  <Button size="small" danger type="text" style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, fontSize: 10, padding: 0, background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                    onClick={() => { form.setFieldValue('payment_receipt_url', null); setReceiptPreview(null); }}>✕</Button>
+                </div>
+              )}
+            </div>
+          </Form.Item>
 
           <Space style={{ marginTop: 16 }}>
             <Button type="primary" onClick={handleSubmit} loading={saving}>

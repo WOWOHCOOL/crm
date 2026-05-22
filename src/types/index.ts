@@ -41,6 +41,7 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   description: string | null;
+  voucher_url: string | null;
   date: string;
   created_at: string;
   user_id: string;
@@ -178,6 +179,7 @@ export interface PurchaseOrder {
   total_amount: number | null;
   status: PurchaseStatus;
   payment_terms: string | null;
+  payment_receipt_url: string | null;
   buyer_name: string | null;
   buyer_contact: string | null;
   buyer_phone: string | null;
@@ -278,6 +280,7 @@ export interface Quotation {
   terms_conditions: string | null;
   deposit_rate: number;
   status: string;
+  payment_receipt_url: string | null;
   created_at: string;
   updated_at: string;
   user_id: string;

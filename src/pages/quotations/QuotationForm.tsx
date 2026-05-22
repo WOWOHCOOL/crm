@@ -2,9 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Card, Form, Input, InputNumber, Button, Table, message, Space,
-  Select, Row, Col, Divider, Modal, Tag, Segmented, Typography, Image,
+  Select, Row, Col, Divider, Modal, Tag, Segmented, Typography, Image, Upload,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation, Customer } from '../../types';
@@ -13,6 +13,34 @@ import { exportExcel, exportPDF } from '../../utils/quotationExport';
 function r2(v: number): number {
   return Math.round(v * 100) / 100;
 }
+
+const handleReceiptUpload = async (file: File, form: any, setPreview: any): Promise<boolean> => {
+  const isImage = file.type.startsWith('image/');
+  if (!isImage) { message.error('仅支持图片文件'); return false; }
+  if (file.size / 1024 / 1024 > 5) { message.error('图片不能超过 5MB'); return false; }
+
+  const ext = file.name.split('.').pop();
+  const fileName = `receipt_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data: uploadData, error } = await supabase.storage
+    .from('receipts')
+    .upload(fileName, file, { contentType: file.type });
+
+  if (!error && uploadData) {
+    const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(fileName);
+    form.setFieldValue('payment_receipt_url', publicUrl);
+    setPreview(publicUrl);
+    return false;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target?.result as string;
+    form.setFieldValue('payment_receipt_url', dataUrl);
+    setPreview(dataUrl);
+  };
+  reader.readAsDataURL(file);
+  return false;
+};
 
 async function generateNo(type: 'QUO' | 'PI'): Promise<string> {
   const d = new Date();
@@ -65,6 +93,7 @@ export default function QuotationForm() {
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const defaultTerms = [
     '1. Payment Terms: 50% T/T advance as deposit, 50% balance before shipment. Samples require full payment.',
     '2. All banking charges outside Hong Kong are to be borne by the buyer.',
@@ -94,6 +123,7 @@ export default function QuotationForm() {
   useEffect(() => {
     if (existing) {
       setDocType(existing.type);
+      setReceiptPreview(existing.payment_receipt_url || null);
       form.setFieldsValue({
         ...existing,
         exchange_rate: existing.exchange_rate,
@@ -246,7 +276,8 @@ export default function QuotationForm() {
         bank_swift: values.bank_swift || '',
         bank_selection: bankSelection || null,
         paypal_account: values.paypal_account || null,
-        status: 'draft',
+        payment_receipt_url: values.payment_receipt_url || null,
+        status: isEdit ? existing?.status || 'draft' : 'draft',
         user_id: user.id,
       };
 
@@ -335,6 +366,7 @@ export default function QuotationForm() {
       bank_code: values.bank_code || null,
       bank_selection: bankSelection || null,
       paypal_account: values.paypal_account || null,
+      payment_receipt_url: values.payment_receipt_url || null,
       terms_conditions: values.terms_conditions || null,
       deposit_rate: values.deposit_rate || 50,
       status: 'draft',
@@ -641,6 +673,25 @@ export default function QuotationForm() {
                   </Form.Item>
                 </Col>
               </Row>
+
+              <Form.Item name="payment_receipt_url" label="付款水单" style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <Upload
+                    accept="image/*"
+                    showUploadList={false}
+                    beforeUpload={(file) => handleReceiptUpload(file, form, setReceiptPreview)}
+                  >
+                    <Button icon={<UploadOutlined />}>上传付款凭证</Button>
+                  </Upload>
+                  {receiptPreview && (
+                    <div style={{ position: 'relative' }}>
+                      <Image src={receiptPreview} width={100} style={{ borderRadius: 6, border: '1px solid #f0f0f0' }} />
+                      <Button size="small" danger type="text" style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, fontSize: 10, padding: 0, background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                        onClick={() => { form.setFieldValue('payment_receipt_url', null); setReceiptPreview(null); }}>✕</Button>
+                    </div>
+                  )}
+                </div>
+              </Form.Item>
             </>
           )}
 

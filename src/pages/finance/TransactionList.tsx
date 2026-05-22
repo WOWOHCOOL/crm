@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Button, Space, Modal, Form, Input, InputNumber, Select,
-  DatePicker, message, Popconfirm, Card, Tag, Tooltip,
+  DatePicker, message, Popconfirm, Card, Tag, Tooltip, Upload, Image,
 } from 'antd';
-import { PlusOutlined, LinkOutlined } from '@ant-design/icons';
+import { PlusOutlined, LinkOutlined, UploadOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
@@ -17,6 +17,36 @@ export default function TransactionList() {
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({ type: '', dateRange: [] as string[] });
+  const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+
+  const handleVoucherUpload = async (file: File): Promise<boolean> => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) { message.error('仅支持图片文件'); return false; }
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) { message.error('图片不能超过 5MB'); return false; }
+
+    const ext = file.name.split('.').pop();
+    const fileName = `voucher_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { data: uploadData, error } = await supabase.storage
+      .from('vouchers')
+      .upload(fileName, file, { contentType: file.type });
+
+    if (!error && uploadData) {
+      const { data: { publicUrl } } = supabase.storage.from('vouchers').getPublicUrl(fileName);
+      form.setFieldValue('voucher_url', publicUrl);
+      setVoucherPreview(publicUrl);
+      return false;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      form.setFieldValue('voucher_url', dataUrl);
+      setVoucherPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    return false;
+  };
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['transactions', filters],
@@ -59,6 +89,7 @@ export default function TransactionList() {
 
   const openEdit = (record: Record<string, unknown>) => {
     setEditing(record);
+    setVoucherPreview((record.voucher_url as string) || null);
     form.setFieldsValue({
       ...record,
       date: record.date ? dayjs(record.date as string) : dayjs(),
@@ -68,10 +99,11 @@ export default function TransactionList() {
 
   const saveMutation = useApiMutation({
     mutationFn: async (values: Record<string, unknown>) => {
+      const { voucher_file, ...rest } = values;
       const payload = {
-        ...values,
-        date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-        amount: Number(values.amount),
+        ...rest,
+        date: rest.date ? dayjs(rest.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        amount: Number(rest.amount),
       };
       if (editing) {
         const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string);
@@ -87,6 +119,7 @@ export default function TransactionList() {
     onSuccess: (_data, values) => {
       setModalOpen(false);
       setEditing(null);
+      setVoucherPreview(null);
       form.resetFields();
       logOperation('transaction', editing ? 'update' : 'create', undefined,
         `${values.type === 'income' ? '收入' : '支出'} ¥${values.amount}`);
@@ -140,6 +173,12 @@ export default function TransactionList() {
       },
     },
     { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true, onCell: () => ({ 'data-label': '描述' } as React.TdHTMLAttributes<any>) },
+    {
+      title: '凭证', key: 'voucher', width: 60, onCell: () => ({ 'data-label': '凭证' } as React.TdHTMLAttributes<any>),
+      render: (_: unknown, r: Record<string, unknown>) => r.voucher_url
+        ? <Image src={r.voucher_url as string} width={32} height={32} style={{ borderRadius: 4, objectFit: 'cover', cursor: 'pointer' }} preview={{ mask: <PaperClipOutlined /> }} />
+        : '-',
+    },
     {
       title: '操作', key: 'actions', width: 130,
       render: (_: unknown, record: Record<string, unknown>) => {
@@ -208,7 +247,7 @@ export default function TransactionList() {
       <Modal
         title={editing ? '编辑流水' : '添加流水'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={() => { setModalOpen(false); setEditing(null); setVoucherPreview(null); }}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         destroyOnClose
@@ -241,6 +280,24 @@ export default function TransactionList() {
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item name="voucher_url" label="凭证附件">
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                beforeUpload={handleVoucherUpload}
+              >
+                <Button icon={<UploadOutlined />}>上传凭证</Button>
+              </Upload>
+              {voucherPreview && (
+                <div style={{ position: 'relative' }}>
+                  <Image src={voucherPreview} width={80} style={{ borderRadius: 6, border: '1px solid #f0f0f0' }} />
+                  <Button size="small" danger type="text" style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, fontSize: 10, padding: 0, background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                    onClick={() => { form.setFieldValue('voucher_url', null); setVoucherPreview(null); }}>✕</Button>
+                </div>
+              )}
+            </div>
           </Form.Item>
         </Form>
       </Modal>
