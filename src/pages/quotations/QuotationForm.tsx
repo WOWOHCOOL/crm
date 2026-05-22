@@ -102,6 +102,46 @@ export default function QuotationForm() {
   ];
   const [terms, setTerms] = useState<string[]>(isEdit ? [] : defaultTerms);
 
+  // Restore draft from sessionStorage on mount (new form only)
+  useEffect(() => {
+    if (isEdit) return;
+    const draft = sessionStorage.getItem('quotation_form_draft');
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      if (data.docType) setDocType(data.docType);
+      if (data.currency) setCurrency(data.currency);
+      if (data.bankSelection) handleBankSelect(data.bankSelection);
+      if (data.terms) setTerms(data.terms);
+      if (data.formValues) form.setFieldsValue(data.formValues);
+      if (data.items && data.items.length > 0) {
+        setItems(data.items.map((item: any, i: number) => ({ ...item, _key: i + 1 })));
+      }
+      sessionStorage.removeItem('quotation_form_draft');
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft on visibility change (minimize) and before unload
+  useEffect(() => {
+    if (isEdit) return;
+    const save = () => {
+      sessionStorage.setItem('quotation_form_draft', JSON.stringify({
+        docType,
+        currency,
+        bankSelection,
+        terms,
+        formValues: form.getFieldsValue(),
+        items: items.map(({ _key, _image_url, ...rest }) => rest),
+      }));
+    };
+    document.addEventListener('visibilitychange', save);
+    window.addEventListener('beforeunload', save);
+    return () => {
+      document.removeEventListener('visibilitychange', save);
+      window.removeEventListener('beforeunload', save);
+    };
+  }, [form, docType, currency, bankSelection, terms, items, isEdit]);
+
   const exchangeRate = Form.useWatch('exchange_rate', form) ?? 7.25;
 
   // Load existing quotation for editing
@@ -329,6 +369,7 @@ export default function QuotationForm() {
       }
 
       const qty = items.reduce((s, i) => s + i.quantity, 0);
+      sessionStorage.removeItem('quotation_form_draft');
       message.success(isEdit ? '已更新' : '已保存');
       logOperation(docType === 'quotation' ? 'quotation' : 'pi', isEdit ? 'update' : 'create', qId, `${values.quotation_no} (${items.length} items)`);
       navigate(`/quotations/${docType === 'quotation' ? 'quo' : 'pi'}`);

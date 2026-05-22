@@ -35,6 +35,36 @@ export default function PurchaseForm() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const today = dayjs().format('YYYYMMDD');
 
+  // Restore draft from sessionStorage on mount (new form only)
+  useEffect(() => {
+    if (isEdit) return;
+    const draft = sessionStorage.getItem('purchase_form_draft');
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      if (data.formValues) form.setFieldsValue(data.formValues);
+      if (data.items && data.items.length > 0) setItems(data.items);
+      sessionStorage.removeItem('purchase_form_draft');
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft on visibility change (minimize) and before unload
+  useEffect(() => {
+    if (isEdit) return;
+    const save = () => {
+      sessionStorage.setItem('purchase_form_draft', JSON.stringify({
+        formValues: form.getFieldsValue(),
+        items,
+      }));
+    };
+    document.addEventListener('visibilitychange', save);
+    window.addEventListener('beforeunload', save);
+    return () => {
+      document.removeEventListener('visibilitychange', save);
+      window.removeEventListener('beforeunload', save);
+    };
+  }, [form, items, isEdit]);
+
   const handleReceiptUpload = async (file: File): Promise<boolean> => {
     const isImage = file.type.startsWith('image/');
     if (!isImage) { message.error('仅支持图片文件'); return false; }
@@ -311,6 +341,7 @@ export default function PurchaseForm() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      sessionStorage.removeItem('purchase_form_draft');
       message.success(isEdit ? '采购单已更新' : '采购单已创建');
       logOperation('purchase_order', isEdit ? 'update' : 'create', undefined, `采购单 ${orderData.order_no}`);
       navigate('/purchases');
