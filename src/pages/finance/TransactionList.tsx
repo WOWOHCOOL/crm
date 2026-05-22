@@ -21,6 +21,37 @@ export default function TransactionList() {
   const modalOpen = !!editId || isAdding;
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
 
+  // Restore draft from sessionStorage on mount (add mode only)
+  useEffect(() => {
+    if (editId) return;
+    const draft = sessionStorage.getItem('transaction_form_draft');
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      if (data.formValues) form.setFieldsValue(data.formValues);
+      if (data.voucherPreview) setVoucherPreview(data.voucherPreview);
+      sessionStorage.removeItem('transaction_form_draft');
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save draft on visibility change and before unload (add mode only)
+  const isEditMode = !!editId;
+  useEffect(() => {
+    if (isEditMode) return;
+    const save = () => {
+      sessionStorage.setItem('transaction_form_draft', JSON.stringify({
+        formValues: form.getFieldsValue(),
+        voucherPreview,
+      }));
+    };
+    document.addEventListener('visibilitychange', save);
+    window.addEventListener('beforeunload', save);
+    return () => {
+      document.removeEventListener('visibilitychange', save);
+      window.removeEventListener('beforeunload', save);
+    };
+  }, [form, voucherPreview, isEditMode]);
+
   const setModalParam = (params: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(params).forEach(([k, v]) => {
@@ -45,6 +76,7 @@ export default function TransactionList() {
   };
 
   const closeModal = () => {
+    sessionStorage.removeItem('transaction_form_draft');
     setVoucherPreview(null);
     form.resetFields();
     setModalParam({ add: null, edit: null });
