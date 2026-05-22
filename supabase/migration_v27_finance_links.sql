@@ -61,3 +61,69 @@ DROP TRIGGER IF EXISTS trg_purchase_order_auto_transaction ON purchase_orders;
 CREATE TRIGGER trg_purchase_order_auto_transaction
   AFTER UPDATE OF status ON purchase_orders
   FOR EACH ROW EXECUTE FUNCTION auto_create_purchase_transaction();
+
+-- ============================================================
+-- 3. PI 状态流转自动记账函数
+-- 当 PI 状态变为 sent 时自动生成收入流水
+-- ============================================================
+CREATE OR REPLACE FUNCTION auto_create_pi_transaction()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_account_id UUID;
+  v_customer_name TEXT;
+  v_description TEXT;
+  v_amount DECIMAL(12,2);
+BEGIN
+  -- 只在状态从 draft 变为 sent 时触发
+  IF OLD.status = 'draft' AND NEW.status = 'sent' THEN
+    -- 获取客户名称
+    SELECT COALESCE(company, name) INTO v_customer_name FROM customers WHERE id = NEW.customer_id;
+
+    -- 计算总金额（从明细汇总）
+    SELECT COALESCE(SUM(unit_price_rmb * quantity), 0) INTO v_amount
+    FROM quotation_items WHERE quotation_id = NEW.id;
+
+    -- 查找"商品销售收入"科目，找不到则使用第一个收入科目
+    SELECT id INTO v_account_id FROM accounts
+      WHERE name = '商品销售收入' AND user_id = NEW.user_id
+      LIMIT 1;
+    IF v_account_id IS NULL THEN
+      SELECT id INTO v_account_id FROM accounts
+        WHERE type = 'income' AND user_id = NEW.user_id
+        ORDER BY created_at LIMIT 1;
+    END IF;
+
+    -- 检查是否已有关联流水（幂等）
+    IF NOT EXISTS (SELECT 1 FROM transactions WHERE ref_type = 'pi' AND ref_id = NEW.id) THEN
+      v_description := COALESCE('PI ' || NEW.quotation_no || ' - ' || v_customer_name, 'PI ' || NEW.quotation_no);
+      INSERT INTO transactions (
+        type, amount, description, date, customer_id, account_id, ref_type, ref_id, user_id
+      ) VALUES (
+        'income',
+        v_amount,
+        v_description,
+        COALESCE(NEW.created_at::date, CURRENT_DATE),
+        NEW.customer_id,
+        v_account_id,
+        'pi',
+        NEW.id,
+        NEW.user_id
+      );
+    END IF;
+  END IF;
+
+  -- 撤回到草稿或取消时清除关联流水
+  IF NEW.status = 'draft' AND OLD.status = 'sent' THEN
+    DELETE FROM transactions WHERE ref_type = 'pi' AND ref_id = NEW.id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_pi_auto_transaction ON quotations;
+CREATE TRIGGER trg_pi_auto_transaction
+  AFTER UPDATE OF status ON quotations
+  FOR EACH ROW
+  WHEN (NEW.type = 'pi')
+  EXECUTE FUNCTION auto_create_pi_transaction();
