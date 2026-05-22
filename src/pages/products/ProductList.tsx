@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
   message, Popconfirm, Card, Row, Col, Tag, Image, Upload, Descriptions, Select,
@@ -15,15 +16,19 @@ export default function ProductList() {
   const { isOwner, isAdmin } = useAuth();
   const canEdit = isOwner || isAdmin;
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Product | null>(null);
   const [form] = Form.useForm();
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importData, setImportData] = useState<Record<string, unknown>[]>([]);
   const [importLoading, setImportLoading] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const queryClient = useQueryClient();
+
+  // ── Modal state via URL params (survives remount / page reload) ──
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || undefined;
+  const isAdding = searchParams.get('add') === '1';
+  const detailId = searchParams.get('detail') || undefined;
+  const modalOpen = !!editId || isAdding;
+  const detailOpen = !!detailId;
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', search],
@@ -45,6 +50,58 @@ export default function ProductList() {
     },
   });
 
+  // Resolve editing/detail product from URL and data
+  const editing = useMemo(() => {
+    if (!editId || !products) return null;
+    return products.find(p => p.id === editId) ?? null;
+  }, [editId, products]);
+
+  const detailProduct = useMemo(() => {
+    if (!detailId || !products) return null;
+    return products.find(p => p.id === detailId) ?? null;
+  }, [detailId, products]);
+
+  // Fill form when editing product changes (from URL on mount/data load)
+  useEffect(() => {
+    if (editing) form.setFieldsValue(editing);
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isAdding && !editing) form.resetFields();
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // URL param helpers
+  const setModalParam = (params: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === null) next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const openEdit = (record: Product) => {
+    form.setFieldsValue(record);
+    setModalParam({ edit: record.id, add: null, detail: null });
+  };
+
+  const openAdd = () => {
+    form.resetFields();
+    setModalParam({ add: '1', edit: null, detail: null });
+  };
+
+  const closeModal = () => {
+    form.resetFields();
+    setModalParam({ add: null, edit: null, detail: null });
+  };
+
+  const showDetail = (record: Product) => {
+    setModalParam({ detail: record.id, add: null, edit: null });
+  };
+
+  const closeDetail = () => {
+    setModalParam({ detail: null, add: null, edit: null });
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Product>) => {
       if (editing) {
@@ -60,9 +117,7 @@ export default function ProductList() {
     onSuccess: (_data, values) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      setModalOpen(false);
-      setEditing(null);
-      form.resetFields();
+      closeModal();
       const isUpdate = !!editing;
       message.success(isUpdate ? '商品已更新' : '商品已添加');
       logOperation('product', isUpdate ? 'update' : 'create', editing?.id, values.official_model);
@@ -87,12 +142,6 @@ export default function ProductList() {
     onError: (error: Error) => message.error(error.message),
   });
 
-  const openEdit = (record: Product) => {
-    setEditing(record);
-    form.setFieldsValue(record);
-    setModalOpen(true);
-  };
-
   const { data: purchaseHistory } = useQuery({
     queryKey: ['product-purchases', detailProduct?.id],
     queryFn: async () => {
@@ -106,11 +155,6 @@ export default function ProductList() {
     },
     enabled: !!detailProduct,
   });
-
-  const showDetail = (record: Product) => {
-    setDetailProduct(record);
-    setDetailOpen(true);
-  };
 
   const handleImportFile = (file: File) => {
     const reader = new FileReader();
@@ -244,8 +288,7 @@ export default function ProductList() {
             style={{ maxWidth: 280, width: '100%' }}
           />
           {canEdit && <Space>
-            <Button type="primary" icon={<PlusOutlined />}
-              onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
               添加商品
             </Button>
             <Button icon={<InboxOutlined />} onClick={() => setImportModalOpen(true)}>
@@ -264,10 +307,11 @@ export default function ProductList() {
         />
       </Card>
 
+      {/* Edit / Add Modal — state persisted in URL */}
       <Modal
         title={editing ? '编辑商品' : '添加商品'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={600}
@@ -412,7 +456,7 @@ export default function ProductList() {
       <Modal
         title={detailProduct ? detailProduct.official_model : '产品详情'}
         open={detailOpen}
-        onCancel={() => { setDetailOpen(false); setDetailProduct(null); }}
+        onCancel={closeDetail}
         footer={null}
         width={700}
         destroyOnClose
