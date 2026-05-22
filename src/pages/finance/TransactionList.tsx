@@ -143,12 +143,6 @@ export default function TransactionList() {
     }
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (isAdding && !editing) {
-      setVoucherPreview(null);
-      form.resetFields();
-    }
-  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: customers } = useQuery({
     queryKey: ['customers-select'],

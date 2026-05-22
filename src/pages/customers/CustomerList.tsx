@@ -76,13 +76,6 @@ export default function CustomerList() {
     }
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (isAdding && !editing) {
-      setCardPreview(null);
-      form.resetFields();
-    }
-  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const setModalParam = (params: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(params).forEach(([k, v]) => {
