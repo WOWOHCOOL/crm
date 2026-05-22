@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Card, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,12 +13,10 @@ async function getUserId() {
 }
 
 const defaultAccounts = [
-  // ── 收入类 ──
   { name: '商品销售收入', type: 'income' as const },
   { name: '出口退税收入', type: 'income' as const },
   { name: '样品收入', type: 'income' as const },
   { name: '其他收入', type: 'income' as const },
-  // ── 支出类 ──
   { name: '商品采购成本', type: 'expense' as const },
   { name: '国际运费', type: 'expense' as const },
   { name: '报关报检费', type: 'expense' as const },
@@ -50,10 +49,12 @@ const typeColors: Record<AccountType, string> = {
 };
 
 export default function AccountManage() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Account | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || undefined;
+  const isAdding = searchParams.get('add') === '1';
+  const modalOpen = !!editId || isAdding;
 
   const { data: accounts, isLoading } = useQuery({
     queryKey: ['accounts'],
@@ -62,6 +63,42 @@ export default function AccountManage() {
       return (data ?? []) as Account[];
     },
   });
+
+  const editing = useMemo(() => {
+    if (!editId || !accounts) return null;
+    return accounts.find(a => a.id === editId) ?? null;
+  }, [editId, accounts]);
+
+  useEffect(() => {
+    if (editing) form.setFieldsValue(editing);
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isAdding && !editing) form.resetFields();
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setModalParam = (params: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === null) next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const openEdit = (record: Account) => {
+    form.setFieldsValue(record);
+    setModalParam({ edit: record.id, add: null });
+  };
+
+  const openAdd = () => {
+    form.resetFields();
+    setModalParam({ add: '1', edit: null });
+  };
+
+  const closeModal = () => {
+    form.resetFields();
+    setModalParam({ add: null, edit: null });
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Account>) => {
@@ -78,9 +115,7 @@ export default function AccountManage() {
     onSuccess: (_data, values) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
-      setModalOpen(false);
-      setEditing(null);
-      form.resetFields();
+      closeModal();
       const isUpdate = !!editing;
       message.success(isUpdate ? '科目已更新' : '科目已添加');
       logOperation('account', isUpdate ? 'update' : 'create', editing?.id, values.name);
@@ -124,12 +159,6 @@ export default function AccountManage() {
     onError: (error: Error) => message.error(error.message),
   });
 
-  const openEdit = (record: Account) => {
-    setEditing(record);
-    form.setFieldsValue(record);
-    setModalOpen(true);
-  };
-
   const columns = [
     { title: '科目名称', dataIndex: 'name', key: 'name', onCell: () => ({ 'data-label': '科目名称' } as any) },
     {
@@ -157,9 +186,7 @@ export default function AccountManage() {
             onClick={() => initMutation.mutate()}>
             初始化默认科目（外贸专用）
           </Button>
-          <Button type="primary" icon={<PlusOutlined />}
-            onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}
-          >
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
             添加科目
           </Button>
         </Space>
@@ -176,7 +203,7 @@ export default function AccountManage() {
       <Modal
         title={editing ? '编辑科目' : '添加科目'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         destroyOnClose

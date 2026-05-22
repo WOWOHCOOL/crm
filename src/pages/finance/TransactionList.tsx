@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Modal, Form, Input, InputNumber, Select,
   DatePicker, message, Popconfirm, Card, Tag, Tooltip, Upload, Image,
@@ -13,11 +13,42 @@ import dayjs from 'dayjs';
 
 export default function TransactionList() {
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState({ type: '', dateRange: [] as string[] });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || undefined;
+  const isAdding = searchParams.get('add') === '1';
+  const modalOpen = !!editId || isAdding;
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+
+  const setModalParam = (params: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === null) next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const openAdd = () => {
+    setVoucherPreview(null);
+    form.resetFields();
+    setModalParam({ add: '1', edit: null });
+  };
+
+  const openEdit = (record: Record<string, unknown>) => {
+    setVoucherPreview((record.voucher_url as string) || null);
+    form.setFieldsValue({
+      ...record,
+      date: record.date ? dayjs(record.date as string) : dayjs(),
+    });
+    setModalParam({ edit: record.id as string, add: null });
+  };
+
+  const closeModal = () => {
+    setVoucherPreview(null);
+    form.resetFields();
+    setModalParam({ add: null, edit: null });
+  };
 
   const handleVoucherUpload = async (file: File): Promise<boolean> => {
     const isImage = file.type.startsWith('image/');
@@ -65,6 +96,28 @@ export default function TransactionList() {
     },
   });
 
+  const editing = useMemo(() => {
+    if (!editId || !transactions) return null;
+    return (transactions as Record<string, unknown>[]).find(t => t.id === editId) ?? null;
+  }, [editId, transactions]);
+
+  useEffect(() => {
+    if (editing) {
+      setVoucherPreview((editing.voucher_url as string) || null);
+      form.setFieldsValue({
+        ...editing,
+        date: editing.date ? dayjs(editing.date as string) : dayjs(),
+      });
+    }
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isAdding && !editing) {
+      setVoucherPreview(null);
+      form.resetFields();
+    }
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const { data: customers } = useQuery({
     queryKey: ['customers-select'],
     queryFn: async () => {
@@ -80,22 +133,6 @@ export default function TransactionList() {
       return data ?? [];
     },
   });
-
-  const openAdd = () => {
-    setEditing(null);
-    form.resetFields();
-    setModalOpen(true);
-  };
-
-  const openEdit = (record: Record<string, unknown>) => {
-    setEditing(record);
-    setVoucherPreview((record.voucher_url as string) || null);
-    form.setFieldsValue({
-      ...record,
-      date: record.date ? dayjs(record.date as string) : dayjs(),
-    });
-    setModalOpen(true);
-  };
 
   const saveMutation = useApiMutation({
     mutationFn: async (values: Record<string, unknown>) => {
@@ -117,10 +154,7 @@ export default function TransactionList() {
     },
     invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
-      setModalOpen(false);
-      setEditing(null);
-      setVoucherPreview(null);
-      form.resetFields();
+      closeModal();
       logOperation('transaction', editing ? 'update' : 'create', undefined,
         `${values.type === 'income' ? '收入' : '支出'} ¥${values.amount}`);
     },
@@ -247,7 +281,7 @@ export default function TransactionList() {
       <Modal
         title={editing ? '编辑流水' : '添加流水'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); setVoucherPreview(null); }}
+        onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         destroyOnClose

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, Select, DatePicker,
   message, Card, Tag, Checkbox, Popconfirm, Row, Col,
@@ -52,9 +53,11 @@ export default function TaskList() {
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Task | null>(null);
   const [form] = Form.useForm();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || undefined;
+  const isAdding = searchParams.get('add') === '1';
+  const modalOpen = !!editId || isAdding;
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['tasks', statusFilter, priorityFilter, search],
@@ -87,6 +90,52 @@ export default function TaskList() {
     },
   });
 
+  const editing = useMemo(() => {
+    if (!editId || !tasks) return null;
+    return tasks.find(t => t.id === editId) ?? null;
+  }, [editId, tasks]);
+
+  useEffect(() => {
+    if (editing) {
+      form.setFieldsValue({
+        ...editing,
+        due_date: editing.due_date ? dayjs(editing.due_date) : null,
+        reminder_time: editing.reminder_time ? dayjs(editing.reminder_time) : null,
+      });
+    }
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isAdding && !editing) form.resetFields();
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setModalParam = (params: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === null) next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const openEdit = (record: Task) => {
+    form.setFieldsValue({
+      ...record,
+      due_date: record.due_date ? dayjs(record.due_date) : null,
+      reminder_time: record.reminder_time ? dayjs(record.reminder_time) : null,
+    });
+    setModalParam({ edit: record.id, add: null });
+  };
+
+  const openAdd = () => {
+    form.resetFields();
+    setModalParam({ add: '1', edit: null });
+  };
+
+  const closeModal = () => {
+    form.resetFields();
+    setModalParam({ add: null, edit: null });
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (values: Partial<Task>) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,9 +162,7 @@ export default function TaskList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      setModalOpen(false);
-      setEditing(null);
-      form.resetFields();
+      closeModal();
       message.success(editing ? '任务已更新' : '任务已创建');
       logOperation('task', editing ? 'update' : 'create');
     },
@@ -146,16 +193,6 @@ export default function TaskList() {
     },
     onError: (error: Error) => message.error(error.message),
   });
-
-  const openEdit = (record: Task) => {
-    setEditing(record);
-    form.setFieldsValue({
-      ...record,
-      due_date: record.due_date ? dayjs(record.due_date) : null,
-      reminder_time: record.reminder_time ? dayjs(record.reminder_time) : null,
-    });
-    setModalOpen(true);
-  };
 
   const getDueDateTag = (dueDate: string | null) => {
     if (!dueDate) return null;
@@ -246,8 +283,7 @@ export default function TaskList() {
             />
           </Space>
           {canEdit && (
-            <Button type="primary" icon={<PlusOutlined />}
-              onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
               新建任务
             </Button>
           )}
@@ -265,7 +301,7 @@ export default function TaskList() {
       <Modal
         title={editing ? '编辑任务' : '新建任务'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={600}

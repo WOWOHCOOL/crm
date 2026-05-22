@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, message,
   Popconfirm, Card, Tag, Descriptions, Spin,
@@ -14,12 +15,14 @@ export default function SupplierList() {
   const { isOwner, isAdmin, orgInfo } = useAuth();
   const canEdit = isOwner || isAdmin;
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Supplier | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || undefined;
+  const isAdding = searchParams.get('add') === '1';
+  const detailId = searchParams.get('detail') || undefined;
+  const modalOpen = !!editId || isAdding;
+  const detailOpen = !!detailId;
 
   const { data: suppliers, isLoading } = useQuery({
     queryKey: ['suppliers', search],
@@ -33,7 +36,55 @@ export default function SupplierList() {
     },
   });
 
-  // Get purchase stats per supplier
+  const editing = useMemo(() => {
+    if (!editId || !suppliers) return null;
+    return suppliers.find(s => s.id === editId) ?? null;
+  }, [editId, suppliers]);
+
+  const detailSupplier = useMemo(() => {
+    if (!detailId || !suppliers) return null;
+    return suppliers.find(s => s.id === detailId) ?? null;
+  }, [detailId, suppliers]);
+
+  useEffect(() => {
+    if (editing) form.setFieldsValue(editing);
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isAdding && !editing) form.resetFields();
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setModalParam = (params: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === null) next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const openEdit = (record: Supplier) => {
+    form.setFieldsValue(record);
+    setModalParam({ edit: record.id, add: null, detail: null });
+  };
+
+  const openAdd = () => {
+    form.resetFields();
+    setModalParam({ add: '1', edit: null, detail: null });
+  };
+
+  const closeModal = () => {
+    form.resetFields();
+    setModalParam({ add: null, edit: null, detail: null });
+  };
+
+  const showDetail = (record: Supplier) => {
+    setModalParam({ detail: record.id, add: null, edit: null });
+  };
+
+  const closeDetail = () => {
+    setModalParam({ detail: null, add: null, edit: null });
+  };
+
   const { data: purchaseStats } = useQuery({
     queryKey: ['purchase-stats'],
     queryFn: async () => {
@@ -51,7 +102,6 @@ export default function SupplierList() {
     },
   });
 
-  // Get product count per supplier
   const { data: productCounts } = useQuery({
     queryKey: ['product-counts-by-supplier'],
     queryFn: async () => {
@@ -68,30 +118,30 @@ export default function SupplierList() {
   });
 
   const { data: supplierProducts } = useQuery({
-    queryKey: ['supplier-products', detailSupplier?.id],
+    queryKey: ['supplier-products', detailId],
     queryFn: async () => {
-      if (!detailSupplier) return [];
+      if (!detailId) return [];
       const { data } = await supabase
         .from('products')
         .select('*')
-        .eq('supplier_id', detailSupplier.id);
+        .eq('supplier_id', detailId);
       return data ?? [];
     },
-    enabled: !!detailSupplier,
+    enabled: !!detailId,
   });
 
   const { data: supplierPurchases } = useQuery({
-    queryKey: ['supplier-purchases', detailSupplier?.id],
+    queryKey: ['supplier-purchases', detailId],
     queryFn: async () => {
-      if (!detailSupplier) return [];
+      if (!detailId) return [];
       const { data } = await supabase
         .from('purchase_orders')
         .select('order_no, order_date, total_amount, status, created_at')
-        .eq('supplier_id', detailSupplier.id)
+        .eq('supplier_id', detailId)
         .order('created_at', { ascending: false });
       return data ?? [];
     },
-    enabled: !!detailSupplier,
+    enabled: !!detailId,
   });
 
   const saveMutation = useMutation({
@@ -109,9 +159,7 @@ export default function SupplierList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      setModalOpen(false);
-      setEditing(null);
-      form.resetFields();
+      closeModal();
       message.success(editing ? '供应商已更新' : '供应商已添加');
       logOperation('supplier', editing ? 'update' : 'create');
     },
@@ -130,17 +178,6 @@ export default function SupplierList() {
     },
     onError: (error: Error) => message.error(error.message),
   });
-
-  const openEdit = (record: Supplier) => {
-    setEditing(record);
-    form.setFieldsValue(record);
-    setModalOpen(true);
-  };
-
-  const showDetail = (record: Supplier) => {
-    setDetailSupplier(record);
-    setDetailOpen(true);
-  };
 
   const columns = [
     { title: '供应商名称', dataIndex: 'name', key: 'name', render: (v: string, r: Supplier) => <a onClick={() => showDetail(r)}>{v}</a> },
@@ -179,8 +216,7 @@ export default function SupplierList() {
             allowClear
             style={{ maxWidth: 280, width: '100%' }}
           />
-          {canEdit && <Button type="primary" icon={<PlusOutlined />}
-            onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true); }}>
+          {canEdit && <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
             添加供应商
           </Button>}
         </Space>
@@ -197,7 +233,7 @@ export default function SupplierList() {
       <Modal
         title={editing ? '编辑供应商' : '添加供应商'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={600}
@@ -252,7 +288,7 @@ export default function SupplierList() {
       <Modal
         title={detailSupplier ? detailSupplier.name : ''}
         open={detailOpen}
-        onCancel={() => { setDetailOpen(false); setDetailSupplier(null); }}
+        onCancel={closeDetail}
         footer={null}
         width={700}
       >

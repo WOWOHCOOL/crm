@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
   Popconfirm, Card, Row, Col,
@@ -13,11 +13,13 @@ import { logOperation } from '../../utils/log';
 
 export default function CustomerList() {
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Customer | null>(null);
   const [cardPreview, setCardPreview] = useState<string | null>(null);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || undefined;
+  const isAdding = searchParams.get('add') === '1';
+  const modalOpen = !!editId || isAdding;
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers', search],
@@ -30,6 +32,51 @@ export default function CustomerList() {
       return (data ?? []) as Customer[];
     },
   });
+
+  const editing = useMemo(() => {
+    if (!editId || !customers) return null;
+    return customers.find(c => c.id === editId) ?? null;
+  }, [editId, customers]);
+
+  useEffect(() => {
+    if (editing) {
+      setCardPreview(editing.business_card || null);
+      form.setFieldsValue(editing);
+    }
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isAdding && !editing) {
+      setCardPreview(null);
+      form.resetFields();
+    }
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setModalParam = (params: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === null) next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const openEdit = (record: Customer) => {
+    form.setFieldsValue(record);
+    setCardPreview(record.business_card || null);
+    setModalParam({ edit: record.id, add: null });
+  };
+
+  const openAdd = () => {
+    form.resetFields();
+    setCardPreview(null);
+    setModalParam({ add: '1', edit: null });
+  };
+
+  const closeModal = () => {
+    form.resetFields();
+    setCardPreview(null);
+    setModalParam({ add: null, edit: null });
+  };
 
   const saveMutation = useApiMutation({
     mutationFn: async (values: Partial<Customer>) => {
@@ -47,10 +94,7 @@ export default function CustomerList() {
     },
     invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
-      setModalOpen(false);
-      setEditing(null);
-      setCardPreview(null);
-      form.resetFields();
+      closeModal();
       logOperation('customer', editing ? 'update' : 'create', editing?.id, (values as Record<string, unknown>).name as string);
     },
   });
@@ -71,27 +115,12 @@ export default function CustomerList() {
     onSuccess: (data) => { logOperation('customer', 'delete', undefined, data?.name || ''); },
   });
 
-  const openEdit = (record: Customer) => {
-    setEditing(record);
-    setCardPreview(record.business_card || null);
-    form.setFieldsValue(record);
-    setModalOpen(true);
-  };
-
-  const openAdd = () => {
-    setEditing(null);
-    setCardPreview(null);
-    form.resetFields();
-    setModalOpen(true);
-  };
-
   const handleUpload = async (file: File): Promise<boolean> => {
     const isImage = file.type.startsWith('image/');
     if (!isImage) { message.error('仅支持图片文件'); return false; }
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) { message.error('图片不能超过 5MB'); return false; }
 
-    // Try Supabase Storage first
     if (supabase) {
       const ext = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
@@ -108,7 +137,6 @@ export default function CustomerList() {
       console.warn('Supabase Storage 上传失败，使用 base64 回退:', error?.message);
     }
 
-    // Fallback: read as data URL
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
@@ -173,7 +201,7 @@ export default function CustomerList() {
       <Modal
         title={editing ? '编辑客户' : '添加客户'}
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditing(null); setCardPreview(null); }}
+        onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={720}
