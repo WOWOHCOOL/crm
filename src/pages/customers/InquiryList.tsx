@@ -34,6 +34,7 @@ export default function InquiryList() {
   const editId = searchParams.get('edit') || undefined;
   const isAdding = searchParams.get('add') === '1';
   const modalOpen = !!editId || isAdding;
+  const intentionFilter = searchParams.get('intention') || '';
 
   // Restore draft
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function InquiryList() {
 
   // Fetch leads: all statuses EXCEPT 'dealt'
   const { data: customers, isLoading } = useQuery({
-    queryKey: ['inquiries', search, statusFilter],
+    queryKey: ['inquiries', search, statusFilter, intentionFilter],
     queryFn: async () => {
       let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
       if (search) {
@@ -79,6 +80,9 @@ export default function InquiryList() {
       } else {
         // Show all non-dealt leads
         query = query.neq('status', 'dealt');
+      }
+      if (intentionFilter) {
+        query = query.eq('intention', intentionFilter);
       }
       const { data } = await query;
       return (data ?? []) as Customer[];

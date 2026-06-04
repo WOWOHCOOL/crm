@@ -46,6 +46,7 @@ export default function MainLayout() {
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const p = location.pathname;
     const groups: string[] = [];
+    if (p.startsWith('/inquiries')) groups.push('inquiries-group');
     if (p.startsWith('/customers') || p.startsWith('/orders') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
     if (p.startsWith('/products') || p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
     if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
@@ -56,6 +57,7 @@ export default function MainLayout() {
   let selectedKey = '/' + (pathParts[0] || '');
   if (pathParts.length >= 2 && pathParts[0] === 'purchases') selectedKey = '/purchases';
   if (pathParts.length >= 2 && pathParts[0] === 'quotations') selectedKey = '/' + pathParts.slice(0, 2).join('/');
+  if (pathParts[0] === 'inquiries' && location.search) selectedKey = '/inquiries' + location.search;
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
   const hasPerm = (k: string) => isOwner || isAdmin || permissions.includes(k as never);
@@ -63,7 +65,15 @@ export default function MainLayout() {
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
     ...(hasPerm('tasks') ? [{ key: '/tasks', icon: <BellOutlined />, label: '任务跟进' }] : []),
-    ...(hasPerm('customers') ? [{ key: '/inquiries', icon: <BellOutlined />, label: '询盘线索' }] : []),
+    ...(hasPerm('customers') ? [{
+      key: 'inquiries-group', icon: <BellOutlined />, label: '询盘线索',
+      children: [
+        { key: '/inquiries', label: '全部线索' },
+        { key: '/inquiries?intention=high', label: '🔴 重点' },
+        { key: '/inquiries?intention=normal', label: '🟠 一般' },
+        { key: '/inquiries?intention=low', label: '⚪ 很差' },
+      ],
+    }] : []),
     ...(hasPerm('customers') ? [{
       key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
       children: [
