@@ -125,13 +125,17 @@ export default function CustomerList() {
       const { business_card, ...rest } = values;
       const payload = { ...rest, business_card: business_card || null };
       if (editId) {
-        const { error } = await supabase.from('customers').update(payload).eq('id', editId);
+        const { data, error } = await supabase.from('customers').update(payload).eq('id', editId).select();
         if (error) throw error;
+        console.log('Customer updated:', { editId, payload, result: data });
+        return data;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const { error } = await supabase.from('customers').insert([payload]);
+        const { data, error } = await supabase.from('customers').insert([payload]).select();
         if (error) throw error;
+        console.log('Customer created:', { payload, result: data });
+        return data;
       }
     },
     invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
@@ -139,6 +143,9 @@ export default function CustomerList() {
       sessionStorage.removeItem('customer_form_draft');
       closeModal();
       logOperation('customer', editId ? 'update' : 'create', editId, (values as Record<string, unknown>).name as string);
+    },
+    onError: (error) => {
+      console.error('Save error:', error);
     },
   });
 
