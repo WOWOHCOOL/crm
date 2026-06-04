@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Button, Space, Input, Modal, Form, Select, DatePicker,
-  message, Card, Tag, Row, Col, Pagination, Tooltip, Descriptions,
+  message, Popconfirm, Card, Tag, Row, Col, Pagination, Tooltip, Descriptions,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -114,7 +114,7 @@ export default function TaskList() {
     { title: '优先级', dataIndex: 'priority', key: 'priority', width: 60, render: (v: string) => <Tag color={priorityColors[v]}>{priorityLabels[v]}</Tag> },
     { title: '截止', dataIndex: 'due_date', key: 'due_date', width: 80, render: (v: string | null) => v || '-' },
     { title: '状态', dataIndex: 'status', key: 'status', width: 60, render: (v: string) => <Tag color={v === 'completed' ? 'green' : 'orange'}>{v === 'completed' ? '✓' : '待'}</Tag> },
-    ...(canEdit ? [{ title: '操作', key: 'actions', width: 100, render: (_: unknown, r: Task) => (<Space><Button size="small" type="link" onClick={() => openEdit(r)}>编辑</Button><Button size="small" type="link" danger onClick={() => deleteMutation.mutate(r.id)}>删除</Button></Space>) }] : []),
+    ...(canEdit ? [{ title: '操作', key: 'actions', width: 100, render: (_: unknown, r: Task) => (<Space><Button size="small" type="link" onClick={() => openEdit(r)}>编辑</Button><Popconfirm title="删除后无法恢复，确定删除此任务？" onConfirm={() => deleteMutation.mutate(r.id)} okText="确认删除" cancelText="取消"><Button size="small" type="link" danger>删除</Button></Popconfirm></Space>) }] : []),
   ];
 
   const total = tasks?.length ?? 0;

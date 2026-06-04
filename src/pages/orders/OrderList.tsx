@@ -106,7 +106,7 @@ export default function OrderList() {
         <Space>
           <Button size="small" onClick={() => navigate(`/customers/${record.customer_id}`)}>查看客户</Button>
           {canEdit && (
-            <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
+            <Popconfirm title="删除后无法恢复，确定删除此订单？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消">
               <Button size="small" danger>删除</Button>
             </Popconfirm>
           )}

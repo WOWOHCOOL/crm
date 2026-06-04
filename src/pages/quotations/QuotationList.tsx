@@ -197,12 +197,12 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             </Button>
           )}
           {listType === 'pi' && record.status === 'sent' && (
-            <Popconfirm title="撤回后将删除关联收入流水，确定吗？"
+            <Popconfirm title="撤回后将删除关联的收入流水，确定撤回？"
               onConfirm={() => piStatusMutation.mutate({ id: record.id, newStatus: 'draft' })}>
               <Button size="small">撤回草稿</Button>
             </Popconfirm>
           )}
-          <Popconfirm title="确定删除？" onConfirm={() => deleteMutation.mutate(record.id)}>
+          <Popconfirm title="删除后无法恢复，确定删除此报价单？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消">
             <Button size="small" danger><DeleteOutlined />删除</Button>
           </Popconfirm>
         </Space>

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button, Space, Input, Modal, Form, message,
-  Card, Row, Col, Pagination, Tooltip,
+  Popconfirm, Card, Row, Col, Pagination, Tooltip,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -184,7 +184,7 @@ export default function SupplierList() {
       render: (_: unknown, record: Supplier) => (
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
-          <Button size="small" danger onClick={() => deleteMutation.mutate(record.id)}>删除</Button>
+          <Popconfirm title="删除后无法恢复，确定删除此供应商？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消"><Button size="small" danger>删除</Button></Popconfirm>
         </Space>
       ),
     }] : []),

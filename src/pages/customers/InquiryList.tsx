@@ -214,7 +214,7 @@ export default function InquiryList() {
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
           <Button size="small" onClick={() => navigate(`/customers/${record.id}?from=inquiries`)}>详情</Button>
-          <Popconfirm title="确定删除此线索？" onConfirm={() => deleteMutation.mutate(record.id)}>
+          <Popconfirm title="删除后无法恢复，确定删除此线索？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消">
             <Button size="small" danger>删除</Button>
           </Popconfirm>
         </Space>

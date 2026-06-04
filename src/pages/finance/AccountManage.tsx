@@ -196,7 +196,7 @@ export default function AccountManage() {
       render: (_: unknown, record: Account) => (
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
-          <Popconfirm title="确定删除此科目？" onConfirm={() => deleteMutation.mutate(record.id)}>
+          <Popconfirm title="删除后无法恢复，确定删除此科目？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消">
             <Button size="small" danger>删除</Button>
           </Popconfirm>
         </Space>
