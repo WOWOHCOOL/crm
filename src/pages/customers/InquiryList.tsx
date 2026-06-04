@@ -209,7 +209,7 @@ export default function InquiryList() {
       render: (_: unknown, record: Customer) => (
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
-          <Button size="small" onClick={() => navigate(`/customers/${record.id}`)}>详情</Button>
+          <Button size="small" onClick={() => navigate(`/customers/${record.id}?from=inquiries`)}>详情</Button>
           <Popconfirm title="确定删除此线索？" onConfirm={() => deleteMutation.mutate(record.id)}>
             <Button size="small" danger>删除</Button>
           </Popconfirm>

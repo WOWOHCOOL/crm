@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Collapse } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, CheckCircleOutlined, TeamOutlined, OrderedListOutlined, SwapOutlined, PieChartOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,6 +26,9 @@ const statusActionLabels: Record<OrderStatus, string> = { pending: '确认订单
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const from = searchParams.get('from') || 'customers';
+  const backPath = from === 'inquiries' ? '/inquiries' : '/customers';
   const queryClient = useQueryClient();
   const [orderModal, setOrderModal] = useState(false);
   const [orderForm] = Form.useForm();
@@ -179,7 +182,7 @@ export default function CustomerDetail() {
   return (
     <PageContainer
       breadcrumb={[
-        { label: '客户管理' },
+        { label: from === 'inquiries' ? '询盘线索' : '客户管理' },
         { label: customer?.name || '客户详情' },
       ]}
       loading={false}
@@ -187,7 +190,7 @@ export default function CustomerDetail() {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         {/* ── Header actions ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacingLG, flexWrap: 'wrap', gap: 8 }}>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/customers')}>返回</Button>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>返回</Button>
           <Space wrap>
             <Button onClick={() => navigate(`/quotations/new?customer_id=${id}`)} icon={<FileTextOutlined />}>新建报价</Button>
           </Space>
