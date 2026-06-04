@@ -59,7 +59,7 @@ export default function StatCard({ icon, label, value, color, loading, onClick }
       >
         {icon}
       </div>
-      <div style={{ fontSize: tokens.fontSizeXXL, fontWeight: 700, color: color, lineHeight: 1.2 }}>
+      <div style={{ fontSize: tokens.fontSizeXXL, fontWeight: 700, color: color, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {formatted}
       </div>
       <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary, marginTop: 2 }}>

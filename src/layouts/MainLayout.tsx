@@ -215,11 +215,12 @@ export default function MainLayout() {
 
         <Content style={{
           margin: isMobile ? 8 : 24,
-          padding: isMobile ? 12 : 24,
+          padding: isMobile ? 8 : 24,
           background: '#fff',
           borderRadius: 8,
           minHeight: 280,
-          overflow: 'auto',
+          overflow: isMobile ? 'hidden auto' : 'auto',
+          overflowX: 'hidden',
           paddingBottom: isMobile ? 72 : 24, /* space for bottom nav */
         }}>
           <Outlet />
