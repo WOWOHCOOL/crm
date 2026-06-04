@@ -17,6 +17,7 @@ export interface Customer {
   status: string;
   inquiry_content: string | null;
   intention: string | null;
+  tags: string | null;
   created_at: string;
   updated_at: string;
   user_id: string;

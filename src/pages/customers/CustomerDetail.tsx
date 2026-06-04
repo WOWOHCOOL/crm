@@ -224,6 +224,18 @@ export default function CustomerDetail() {
             </div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>电话</div><div style={{ fontWeight: 600 }}>{customer?.phone || '-'}</div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer?.email || '-'}</div></Col>
+            {customer?.tags && (
+              <Col xs={24} style={{ marginTop: 4 }}>
+                <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, marginBottom: 4 }}>产品/服务</div>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {customer.tags.split(',').map((t: string, i: number) => {
+                    const trimmed = t.trim();
+                    if (!trimmed) return null;
+                    return <Tag key={i} color="blue">{trimmed}</Tag>;
+                  })}
+                </div>
+              </Col>
+            )}
             {customer?.business_card && (
               <Col xs={24} style={{ marginTop: 8 }}>
                 <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, marginBottom: 6 }}>名片</div>

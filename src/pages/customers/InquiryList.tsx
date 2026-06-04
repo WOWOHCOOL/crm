@@ -382,6 +382,11 @@ export default function InquiryList() {
               </Form.Item>
             </Col>
             <Col xs={24}>
+              <Form.Item name="tags" label="产品/服务标签">
+                <Input placeholder="如：power bank, wireless charger, OEM/ODM（逗号分隔）" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
               <Form.Item name="inquiry_content" label="询盘内容">
                 <Input.TextArea rows={3} placeholder="首次WhatsApp或邮件询盘的原始内容" />
               </Form.Item>

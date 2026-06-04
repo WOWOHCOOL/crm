@@ -152,6 +152,21 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
           )}
         </div>
 
+        {/* Product/Service tags */}
+        {customer.tags && (
+          <div style={{ display: 'flex', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
+            {customer.tags.split(',').map((t: string, i: number) => {
+              const trimmed = t.trim();
+              if (!trimmed) return null;
+              return (
+                <Tag key={i} color="blue" style={{ margin: 0, fontSize: 10, lineHeight: '18px', padding: '0 6px', borderRadius: 4 }}>
+                  {trimmed}
+                </Tag>
+              );
+            })}
+          </div>
+        )}
+
         {/* Country + company */}
         <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, display: 'flex', alignItems: 'center', gap: 4 }}>
           {flag && <span>{flag}</span>}
