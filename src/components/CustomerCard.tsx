@@ -163,6 +163,25 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
             </>
           )}
         </div>
+
+        {/* Inquiry summary — first line of inquiry content, truncated */}
+        {customer.inquiry_content && (
+          <div style={{
+            marginTop: tokens.spacingSM,
+            padding: `4px 8px`,
+            background: '#fafafa',
+            borderRadius: tokens.radiusSM,
+            fontSize: tokens.fontSizeXS,
+            color: tokens.colorTextSecondary,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.5,
+          }}>
+            {customer.inquiry_content.split('\n')[0].slice(0, 50)}
+            {(customer.inquiry_content.split('\n')[0].length > 50 || customer.inquiry_content.includes('\n')) ? '…' : ''}
+          </div>
+        )}
       </div>
 
       {/* Action menu */}
