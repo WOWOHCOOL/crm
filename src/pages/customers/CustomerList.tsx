@@ -102,6 +102,7 @@ export default function CustomerList() {
   };
 
   const openEdit = (record: Customer) => {
+    console.log('openEdit called, record:', { id: record.id, name: record.name, status: record.status, business_card: record.business_card, inquiry_content: record.inquiry_content });
     form.setFieldsValue(record);
     setCardPreview(record.business_card || null);
     setModalParam({ edit: record.id, add: null });
@@ -319,12 +320,24 @@ export default function CustomerList() {
         title={editing ? '编辑客户' : '添加客户'}
         open={modalOpen}
         onCancel={closeModal}
-        onOk={() => form.submit()}
+        onOk={() => {
+          console.log('Modal OK clicked, calling form.submit()');
+          form.submit();
+        }}
         confirmLoading={saveMutation.isPending}
         width={720}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
+        <Form form={form} layout="vertical"
+  onFinish={(values) => {
+    console.log('Form onFinish called, values:', JSON.stringify(values));
+    saveMutation.mutate(values);
+  }}
+  onFinishFailed={(err) => {
+    console.log('Form validation FAILED:', err);
+    message.warning('请检查表单中的必填项');
+  }}
+>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
