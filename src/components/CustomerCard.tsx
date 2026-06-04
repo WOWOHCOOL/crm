@@ -34,6 +34,14 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
   const status = customerStatusMap[customer.status] || customerStatusMap.new;
   const flag = getFlag(customer.country);
 
+  // Intention-based card background
+  const intentionColors: Record<string, { bg: string; border: string }> = {
+    high: { bg: '#fff1f0', border: '#ffccc7' },
+    normal: { bg: '#fffbe6', border: '#ffe58f' },
+    low: { bg: tokens.colorBgContainer, border: tokens.colorBorder },
+  };
+  const intentionStyle = customer.intention ? intentionColors[customer.intention] || intentionColors.low : intentionColors.low;
+
   const menuItems: MenuProps['items'] = [
     { key: 'view', icon: <EyeOutlined />, label: '查看详情', onClick: (e) => { e.domEvent.stopPropagation(); onClick(); } },
     ...(onEdit ? [{ key: 'edit', icon: <EditOutlined />, label: '编辑', onClick: (e: { domEvent: { stopPropagation: () => void } }) => { e.domEvent.stopPropagation(); onEdit(); } }] : []),
@@ -45,9 +53,9 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
       onClick={onClick}
       style={{
         position: 'relative',
-        background: tokens.colorBgContainer,
+        background: intentionStyle.bg,
         borderRadius: tokens.radiusXL,
-        border: `1px solid ${tokens.colorBorder}`,
+        border: `1px solid ${intentionStyle.border}`,
         overflow: 'hidden',
         cursor: 'pointer',
         transition: 'box-shadow 0.2s, transform 0.2s',
