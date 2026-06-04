@@ -20,6 +20,7 @@ import QuotationForm from './pages/quotations/QuotationForm';
 import OrgManage from './pages/OrgManage';
 import TaskList from './pages/tasks/TaskList';
 import SupplierList from './pages/suppliers/SupplierList';
+import SupplierDetail from './pages/suppliers/SupplierDetail';
 import PurchaseList from './pages/purchases/PurchaseList';
 import PurchaseForm from './pages/purchases/PurchaseForm';
 import OrderList from './pages/orders/OrderList';
@@ -129,6 +130,7 @@ function App() {
                 <Route path="tasks" element={<TaskList />} />
                 <Route path="orders" element={<OrderList />} />
                 <Route path="suppliers" element={<SupplierList />} />
+                <Route path="suppliers/:id" element={<SupplierDetail />} />
                 <Route path="purchases" element={<PurchaseList />} />
                 <Route path="purchases/new" element={<PurchaseForm />} />
                 <Route path="purchases/edit/:id" element={<PurchaseForm />} />
