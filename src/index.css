@@ -11,13 +11,26 @@ body {
   html, body {
     overflow-x: hidden;
     max-width: 100vw;
+    position: relative;
+  }
+  /* Prevent Ant Design modal from shifting body */
+  body.ant-modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
   }
   .ant-layout-content {
     overflow-x: hidden;
+    max-width: 100vw;
   }
   /* Prevent cards from exceeding viewport */
   .ant-card {
     max-width: 100%;
+  }
+  /* Force card grids to stay in bounds */
+  .ant-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 }
 
@@ -71,6 +84,11 @@ body {
     border-radius: 6px !important;
   }
 
+  /* Prevent iOS auto-zoom on input focus */
+  input, textarea, select, .ant-input, .ant-select-selector {
+    font-size: 16px !important;
+  }
+
   /* Toolbar input full width */
   .ant-card .ant-input-affix-wrapper {
     max-width: 100% !important;
@@ -96,6 +114,16 @@ body {
     word-break: break-all;
     overflow-wrap: break-word;
   }
+  /* Responsive table: ensure cells don't overflow card */
+  .ant-table-wrapper .ant-table-tbody > tr > td > * {
+    max-width: calc(100vw - 120px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Section nav scroll for mobile */
+  [style*="overflow: auto"] {
+    -webkit-overflow-scrolling: touch;
+  }
   /* Truncate long names in stat cards */
   .ant-statistic-content {
     max-width: 100%;
@@ -120,20 +148,20 @@ body {
     word-break: break-word;
   }
 
-  /* Modal fullscreen on mobile */
-  .ant-modal {
-    max-width: 100% !important;
-    margin: 0 !important;
+  /* Modal fullscreen on mobile — only when visible */
+  .ant-modal-wrap {
+    overflow: hidden;
+  }
+  .ant-modal-root .ant-modal {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto !important;
     top: 0 !important;
     padding: 0 !important;
   }
-  .ant-modal-content {
-    border-radius: 0 !important;
-    min-height: 100vh !important;
-    padding: 20px !important;
-  }
-  .ant-modal-header {
-    padding-right: 40px !important;
+  .ant-modal-root .ant-modal-content {
+    border-radius: 12px !important;
+    max-height: calc(100vh - 16px) !important;
+    overflow-y: auto !important;
   }
   .ant-modal-footer {
     position: sticky !important;

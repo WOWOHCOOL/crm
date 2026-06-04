@@ -246,26 +246,26 @@ export default function TaskList() {
         />
       ),
     },
-    { title: '标题', dataIndex: 'title', key: 'title', width: 200 },
+    { title: '标题', dataIndex: 'title', key: 'title', width: 160, ellipsis: true },
     {
-      title: '客户', key: 'customer', width: 150,
+      title: '客户', key: 'customer', width: 120, ellipsis: true,
       render: (_: unknown, record: Task & { customers: Customer | null }) =>
-        record.customers ? `${record.customers.name}${record.customers.company ? ` (${record.customers.company})` : ''}` : '-',
+        record.customers ? record.customers.name : '-',
     },
     {
-      title: '优先级', dataIndex: 'priority', key: 'priority', width: 80,
+      title: '优先级', dataIndex: 'priority', key: 'priority', width: 70,
       render: (v: string) => <Tag color={priorityColors[v]}>{priorityLabels[v]}</Tag>,
     },
     {
-      title: '截止日期', dataIndex: 'due_date', key: 'due_date', width: 140,
+      title: '截止', dataIndex: 'due_date', key: 'due_date', width: 110,
       render: (v: string | null) => getDueDateTag(v),
     },
     {
-      title: '状态', dataIndex: 'status', key: 'status', width: 80,
+      title: '状态', dataIndex: 'status', key: 'status', width: 70,
       render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
     },
     {
-      title: '操作', key: 'actions', width: 140,
+      title: '操作', key: 'actions', width: 120,
       render: (_: unknown, record: Task) => (
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
