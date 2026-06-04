@@ -246,7 +246,7 @@ export default function TaskList() {
         />
       ),
     },
-    { title: '标题', dataIndex: 'title', key: 'title', width: 160, ellipsis: true },
+    { title: '标题', dataIndex: 'title', key: 'title', width: 120, ellipsis: true },
     {
       title: '客户', key: 'customer', width: 120, ellipsis: true,
       render: (_: unknown, record: Task & { customers: Customer | null }) =>
@@ -321,7 +321,7 @@ export default function TaskList() {
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 650 }}
         />
       </Card>
 
