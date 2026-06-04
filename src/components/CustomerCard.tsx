@@ -153,22 +153,25 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
 
       {/* Action menu */}
       {(onEdit || onDelete) && (
-        <div style={{ position: 'absolute', top: 10, right: 8 }}>
+        <div style={{ position: 'absolute', top: 8, right: 8 }}>
           <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: tokens.radiusSM,
-                background: 'rgba(0,0,0,0.03)',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.65)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
+                transition: 'background 0.15s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = tokens.colorPrimary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; }}
             >
-              <MoreOutlined style={{ fontSize: 14, color: tokens.colorTextSecondary }} />
+              <MoreOutlined style={{ fontSize: 18, color: '#fff' }} />
             </div>
           </Dropdown>
         </div>
