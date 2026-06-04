@@ -14,6 +14,7 @@ import TransactionList from './pages/finance/TransactionList';
 import AccountManage from './pages/finance/AccountManage';
 import Reports from './pages/reports/Reports';
 import ProductList from './pages/products/ProductList';
+import ProductDetail from './pages/products/ProductDetail';
 import QuotationQuoList from './pages/quotations/QuotationQuoList';
 import QuotationPIList from './pages/quotations/QuotationPIList';
 import QuotationForm from './pages/quotations/QuotationForm';
@@ -118,6 +119,7 @@ function App() {
                 <Route path="customers" element={<CustomerList />} />
                 <Route path="customers/:id" element={<CustomerDetail />} />
                 <Route path="products" element={<ProductList />} />
+                <Route path="products/:id" element={<ProductDetail />} />
                 <Route path="finance" element={<TransactionList />} />
                 <Route path="accounts" element={<AccountManage />} />
                 <Route path="reports" element={<Reports />} />
