@@ -2,7 +2,7 @@ import { Image, Tag, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { EditOutlined, EyeOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import type { Customer } from '../types';
-import { tokens, customerStatusMap } from '../styles/theme';
+import { tokens, customerStatusMap, intentionMap } from '../styles/theme';
 
 interface CustomerCardProps {
   customer: Customer;
@@ -136,6 +136,20 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
           <Tag color={status.color} style={{ margin: 0, fontSize: 10, lineHeight: '18px', padding: '0 6px', flexShrink: 0 }}>
             {status.label}
           </Tag>
+        </div>
+
+        {/* Source + Intention */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+          {customer.source && (
+            <Tag style={{ margin: 0, fontSize: 10, lineHeight: '18px', padding: '0 6px', background: '#f5f5f5', border: 'none' }}>
+              {customer.source}
+            </Tag>
+          )}
+          {customer.intention && (
+            <Tag color={intentionMap[customer.intention]?.color} style={{ margin: 0, fontSize: 10, lineHeight: '18px', padding: '0 6px' }}>
+              {intentionMap[customer.intention]?.label || customer.intention}
+            </Tag>
+          )}
         </div>
 
         {/* Country + company */}

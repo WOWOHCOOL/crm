@@ -377,6 +377,15 @@ export default function CustomerList() {
                 ]} />
               </Form.Item>
             </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="intention" label="意向">
+                <Select allowClear placeholder="选择意向程度" options={[
+                  { label: '🔴 重点', value: 'high' },
+                  { label: '🟠 一般', value: 'normal' },
+                  { label: '⚪ 很差', value: 'low' },
+                ]} />
+              </Form.Item>
+            </Col>
             <Col xs={24}>
               <Form.Item name="inquiry_content" label="询盘内容">
                 <Input.TextArea rows={3} placeholder="首次WhatsApp或邮件询盘的原始内容" />

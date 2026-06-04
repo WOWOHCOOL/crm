@@ -16,6 +16,7 @@ export interface Customer {
   business_card: string | null;
   status: string;
   inquiry_content: string | null;
+  intention: string | null;
   created_at: string;
   updated_at: string;
   user_id: string;

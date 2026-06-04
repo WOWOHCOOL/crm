@@ -72,3 +72,10 @@ export const customerStatusMap: Record<string, { label: string; color: string }>
 };
 
 export type CustomerStatus = keyof typeof customerStatusMap;
+
+// Intention level config
+export const intentionMap: Record<string, { label: string; color: string }> = {
+  high: { label: '重点', color: 'red' },
+  normal: { label: '一般', color: 'orange' },
+  low: { label: '很差', color: 'default' },
+};

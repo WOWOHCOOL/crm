@@ -7,7 +7,7 @@ import { supabase } from '../../supabase';
 import type { Order, Quotation, Task, FollowUp, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import { useResponsive } from '../../hooks/useResponsive';
-import { tokens, customerStatusMap } from '../../styles/theme';
+import { tokens, customerStatusMap, intentionMap } from '../../styles/theme';
 import PageContainer from '../../components/PageContainer';
 import StatCard from '../../components/StatCard';
 import FollowUpChat from '../../components/FollowUpChat';
@@ -211,7 +211,14 @@ export default function CustomerDetail() {
               </div>
             </Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>国家</div><div style={{ fontWeight: 600 }}>{customer?.country || '-'}</div></Col>
-            <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>来源</div><div style={{ fontWeight: 600 }}>{customer?.source || '-'}</div></Col>
+            <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>来源 / 意向</div><div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {customer?.source || '-'}
+              {customer?.intention && (
+                <Tag color={intentionMap[customer.intention]?.color} style={{ margin: 0, fontSize: 10, lineHeight: '18px' }}>
+                  {intentionMap[customer.intention]?.label}
+                </Tag>
+              )}
+            </div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>电话</div><div style={{ fontWeight: 600 }}>{customer?.phone || '-'}</div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer?.email || '-'}</div></Col>
             {customer?.business_card && (
