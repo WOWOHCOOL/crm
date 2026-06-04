@@ -1,11 +1,10 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider, Spin } from 'antd';
+import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import { AuthProvider, useAuth } from './auth/AuthContext';
+import { AuthProvider } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LoginPage from './auth/LoginPage';
-import OrgSetup from './auth/OrgSetup';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import CustomerList from './pages/customers/CustomerList';
@@ -38,30 +37,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-/** 检查用户是否已设置团队，未设置则跳转到 /org-setup */
-function OrgGuard({ children }: { children: React.ReactNode }) {
-  const { orgLoading, hasOrgSetup } = useAuth();
-
-  if (orgLoading) {
-    return (
-      <div style={{
-        height: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-        <Spin size="large" tip="加载中..." />
-      </div>
-    );
-  }
-
-  if (!hasOrgSetup) {
-    return <Navigate to="/org-setup" replace />;
-  }
-
-  return <>{children}</>;
-}
 
 function App() {
   return (
@@ -99,20 +74,10 @@ function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route
-                path="/org-setup"
-                element={
-                  <ProtectedRoute>
-                    <OrgSetup />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <OrgGuard>
-                      <MainLayout />
-                    </OrgGuard>
+                    <MainLayout />
                   </ProtectedRoute>
                 }
               >
