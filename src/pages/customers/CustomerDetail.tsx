@@ -28,7 +28,14 @@ export default function CustomerDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const from = searchParams.get('from') || 'customers';
-  const backPath = from === 'inquiries' ? '/inquiries' : '/customers';
+  // Use browser history back when possible, fallback to source page
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(from === 'inquiries' ? '/inquiries' : '/customers');
+    }
+  };
   const queryClient = useQueryClient();
   const [orderModal, setOrderModal] = useState(false);
   const [orderForm] = Form.useForm();
@@ -190,7 +197,7 @@ export default function CustomerDetail() {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         {/* ── Header actions ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacingLG, flexWrap: 'wrap', gap: 8 }}>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>返回</Button>
+          <Button icon={<ArrowLeftOutlined />} onClick={goBack}>返回</Button>
           <Space wrap>
             <Button onClick={() => navigate(`/quotations/new?customer_id=${id}`)} icon={<FileTextOutlined />}>新建报价</Button>
           </Space>
