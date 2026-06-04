@@ -3,6 +3,7 @@ import type { MenuProps } from 'antd';
 import { EditOutlined, EyeOutlined, DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import type { Customer } from '../types';
 import { tokens, customerStatusMap, intentionMap } from '../styles/theme';
+import { extractKeywords } from '../utils/extractKeywords';
 
 interface CustomerCardProps {
   customer: Customer;
@@ -152,20 +153,20 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
           )}
         </div>
 
-        {/* Product/Service tags */}
-        {customer.tags && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
-            {customer.tags.split(',').map((t: string, i: number) => {
-              const trimmed = t.trim();
-              if (!trimmed) return null;
-              return (
+        {/* Auto-extracted product/service tags from inquiry */}
+        {(() => {
+          const keywords = extractKeywords(customer.inquiry_content);
+          if (keywords.length === 0) return null;
+          return (
+            <div style={{ display: 'flex', gap: 4, marginBottom: 4, flexWrap: 'wrap' }}>
+              {keywords.map((kw: string, i: number) => (
                 <Tag key={i} color="blue" style={{ margin: 0, fontSize: 10, lineHeight: '18px', padding: '0 6px', borderRadius: 4 }}>
-                  {trimmed}
+                  {kw}
                 </Tag>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Country + company */}
         <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, display: 'flex', alignItems: 'center', gap: 4 }}>
