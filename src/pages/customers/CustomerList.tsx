@@ -126,16 +126,17 @@ export default function CustomerList() {
       const { business_card, ...rest } = values;
       const payload = { ...rest, business_card: business_card || null };
       if (editId) {
-        const { data, error } = await supabase.from('customers').update(payload).eq('id', editId).select();
+        const { error } = await supabase.from('customers').update(payload).eq('id', editId);
         if (error) throw error;
-        console.log('Customer updated:', { editId, payload, result: data });
-        return data;
+        // Verify the update actually persisted
+        const { data: verify } = await supabase.from('customers').select('status,inquiry_content,business_card').eq('id', editId).single();
+        console.log('Update verified:', { editId, sent: { status: payload.status, inquiry_content: payload.inquiry_content, business_card: payload.business_card }, stored: verify });
+        return verify;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const { data, error } = await supabase.from('customers').insert([payload]).select();
+        const { data, error } = await supabase.from('customers').insert([payload]).select().single();
         if (error) throw error;
-        console.log('Customer created:', { payload, result: data });
         return data;
       }
     },
