@@ -46,7 +46,7 @@ export default function MainLayout() {
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
     const p = location.pathname;
     const groups: string[] = [];
-    if (p.startsWith('/customers') || p.startsWith('/orders') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
+    if (p.startsWith('/inquiries') || p.startsWith('/customers') || p.startsWith('/orders') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
     if (p.startsWith('/products') || p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
     if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
     return groups;
@@ -66,6 +66,7 @@ export default function MainLayout() {
     ...(hasPerm('customers') ? [{
       key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
       children: [
+        { key: '/inquiries', label: '询盘线索' },
         { key: '/customers', label: '客户列表' },
         { key: '/orders', label: '采购订单（PO）' },
         { key: '/quotations/quo', label: '报价单 (QUO)' },

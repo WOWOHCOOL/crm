@@ -9,6 +9,7 @@ import OrgSetup from './auth/OrgSetup';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import CustomerList from './pages/customers/CustomerList';
+import InquiryList from './pages/customers/InquiryList';
 import CustomerDetail from './pages/customers/CustomerDetail';
 import TransactionList from './pages/finance/TransactionList';
 import AccountManage from './pages/finance/AccountManage';
@@ -116,6 +117,7 @@ function App() {
                 }
               >
                 <Route index element={<Dashboard />} />
+                <Route path="inquiries" element={<InquiryList />} />
                 <Route path="customers" element={<CustomerList />} />
                 <Route path="customers/:id" element={<CustomerDetail />} />
                 <Route path="products" element={<ProductList />} />

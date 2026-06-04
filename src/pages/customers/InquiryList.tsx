@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
-  Popconfirm, Card, Row, Col, Tag, Pagination, Skeleton, Tooltip,
+  Popconfirm, Card, Row, Col, Tag, Radio, Pagination, Skeleton, Tooltip,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, UploadOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -17,12 +17,11 @@ import { TableSkeleton } from '../../components/Skeletons';
 import { logOperation } from '../../utils/log';
 
 const PAGE_SIZE = 20;
-const VIEW_KEY = 'customer_view_mode';
+const VIEW_KEY = 'inquiry_view_mode';
 
-export default function CustomerList() {
+export default function InquiryList() {
   const [search, setSearch] = useState('');
-  // Customer list only shows dealt (已成交) customers. Leads are in InquiryList.
-  const statusFilter = 'dealt';
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cardPreview, setCardPreview] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -36,25 +35,25 @@ export default function CustomerList() {
   const isAdding = searchParams.get('add') === '1';
   const modalOpen = !!editId || isAdding;
 
-  // Restore draft from sessionStorage on mount (add mode only)
+  // Restore draft
   useEffect(() => {
     if (editId) return;
-    const draft = sessionStorage.getItem('customer_form_draft');
+    const draft = sessionStorage.getItem('inquiry_form_draft');
     if (!draft) return;
     try {
       const data = JSON.parse(draft);
       if (data.formValues) form.setFieldsValue(data.formValues);
       if (data.cardPreview) setCardPreview(data.cardPreview);
-      sessionStorage.removeItem('customer_form_draft');
+      sessionStorage.removeItem('inquiry_form_draft');
     } catch { /* ignore */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Save draft on visibility change and before unload (add mode only)
+  // Save draft
   const isEditMode = !!editId;
   useEffect(() => {
     if (isEditMode) return;
     const save = () => {
-      sessionStorage.setItem('customer_form_draft', JSON.stringify({
+      sessionStorage.setItem('inquiry_form_draft', JSON.stringify({
         formValues: form.getFieldsValue(),
         cardPreview,
       }));
@@ -67,14 +66,20 @@ export default function CustomerList() {
     };
   }, [form, cardPreview, isEditMode]);
 
+  // Fetch leads: all statuses EXCEPT 'dealt'
   const { data: customers, isLoading } = useQuery({
-    queryKey: ['customers', search],
+    queryKey: ['inquiries', search, statusFilter],
     queryFn: async () => {
       let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
       if (search) {
         query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,country.ilike.%${search}%,source.ilike.%${search}%`);
       }
-      query = query.eq('status', 'dealt');
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      } else {
+        // Show all non-dealt leads
+        query = query.neq('status', 'dealt');
+      }
       const { data } = await query;
       return (data ?? []) as Customer[];
     },
@@ -101,7 +106,6 @@ export default function CustomerList() {
   };
 
   const openEdit = (record: Customer) => {
-    console.log('openEdit called, record:', { id: record.id, name: record.name, status: record.status, business_card: record.business_card, inquiry_content: record.inquiry_content });
     form.setFieldsValue(record);
     setCardPreview(record.business_card || null);
     setModalParam({ edit: record.id, add: null });
@@ -114,7 +118,7 @@ export default function CustomerList() {
   };
 
   const closeModal = () => {
-    sessionStorage.removeItem('customer_form_draft');
+    sessionStorage.removeItem('inquiry_form_draft');
     form.resetFields();
     setCardPreview(null);
     setModalParam({ add: null, edit: null });
@@ -127,26 +131,18 @@ export default function CustomerList() {
       if (editId) {
         const { error } = await supabase.from('customers').update(payload).eq('id', editId);
         if (error) throw error;
-        // Verify the update actually persisted
-        const { data: verify } = await supabase.from('customers').select('status,inquiry_content,business_card').eq('id', editId).single();
-        console.log('Update verified:', { editId, sent: { status: payload.status, inquiry_content: payload.inquiry_content, business_card: payload.business_card }, stored: verify });
-        return verify;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const { data, error } = await supabase.from('customers').insert([payload]).select().single();
+        const { error } = await supabase.from('customers').insert([payload]);
         if (error) throw error;
-        return data;
       }
     },
-    invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
+    invalidateKeys: [['inquiries'], ['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
-      sessionStorage.removeItem('customer_form_draft');
+      sessionStorage.removeItem('inquiry_form_draft');
       closeModal();
       logOperation('customer', editId ? 'update' : 'create', editId, (values as Record<string, unknown>).name as string);
-    },
-    onError: (error) => {
-      console.error('Save error:', error);
     },
   });
 
@@ -161,8 +157,8 @@ export default function CustomerList() {
       if (error) throw error;
       return data as { name: string } | null;
     },
-    successMsg: '客户已删除',
-    invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
+    successMsg: '线索已删除',
+    invalidateKeys: [['inquiries'], ['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (data) => { logOperation('customer', 'delete', undefined, data?.name || ''); },
   });
 
@@ -200,10 +196,6 @@ export default function CustomerList() {
 
   const columns = [
     { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const },
-    { title: '名片', key: 'card', width: 60,
-      render: (_: unknown, r: Customer) => r.business_card
-        ? <Image src={r.business_card} width={36} height={36} style={{ borderRadius: 4, objectFit: 'cover', cursor: 'pointer' }} preview={{ mask: null }} />
-        : '-' },
     { title: '公司', dataIndex: 'company', key: 'company', width: 150 },
     { title: '国家', dataIndex: 'country', key: 'country', width: 80 },
     { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
@@ -218,7 +210,7 @@ export default function CustomerList() {
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
           <Button size="small" onClick={() => navigate(`/customers/${record.id}`)}>详情</Button>
-          <Popconfirm title="确定删除此客户？" onConfirm={() => deleteMutation.mutate(record.id)}>
+          <Popconfirm title="确定删除此线索？" onConfirm={() => deleteMutation.mutate(record.id)}>
             <Button size="small" danger>删除</Button>
           </Popconfirm>
         </Space>
@@ -237,7 +229,7 @@ export default function CustomerList() {
   return (
     <div>
       <Card>
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
+        <Space style={{ marginBottom: tokens.spacingLG, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索姓名/公司/电话/邮箱"
             prefix={<SearchOutlined />}
@@ -246,9 +238,24 @@ export default function CustomerList() {
             allowClear
             style={{ maxWidth: 280, width: '100%' }}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加客户</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加询盘线索</Button>
         </Space>
-        {/* View toggle + result count */}
+
+        <Radio.Group
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          optionType="button"
+          buttonStyle="solid"
+          size="small"
+          style={{ marginBottom: 16 }}
+        >
+          <Radio.Button value="all">全部线索</Radio.Button>
+          <Radio.Button value="new">新线索</Radio.Button>
+          <Radio.Button value="following">跟进中</Radio.Button>
+          <Radio.Button value="closed">已关闭</Radio.Button>
+        </Radio.Group>
+
+        {/* View toggle + count */}
         <div style={{ marginBottom: tokens.spacingMD, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>共 {total} 条</span>
           <Tooltip title={viewMode === 'grid' ? '列表视图' : '卡片视图'}>
@@ -303,27 +310,15 @@ export default function CustomerList() {
       </Card>
 
       <Modal
-        title={editing ? '编辑客户' : '添加客户'}
+        title={editing ? '编辑线索' : '添加询盘线索'}
         open={modalOpen}
         onCancel={closeModal}
-        onOk={() => {
-          console.log('Modal OK clicked, calling form.submit()');
-          form.submit();
-        }}
+        onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={720}
         destroyOnClose
       >
-        <Form form={form} layout="vertical"
-  onFinish={(values) => {
-    console.log('Form onFinish called, values:', JSON.stringify(values));
-    saveMutation.mutate(values);
-  }}
-  onFinishFailed={(err) => {
-    console.log('Form validation FAILED:', err);
-    message.warning('请检查表单中的必填项');
-  }}
->
+        <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
