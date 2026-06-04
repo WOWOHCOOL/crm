@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, Modal, Form, InputNumber, Switch,
+  Button, Space, Input, Modal, Form, InputNumber, Switch,
   message, Popconfirm, Card, Row, Col, Tag, Image, Upload, Descriptions, Select,
 } from 'antd';
+import ResponsiveTable from '../../components/ResponsiveTable';
 import { PlusOutlined, SearchOutlined, InboxOutlined, EyeOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -374,7 +375,7 @@ export default function ProductList() {
             <Button type="link" size="small" onClick={downloadTemplate}>下载模板</Button>
           </Space>}
         </Space>
-        <Table
+        <ResponsiveTable
           dataSource={products}
           columns={columns}
           rowKey="id"
@@ -534,7 +535,7 @@ export default function ProductList() {
             <p style={{ marginBottom: 12, color: '#666' }}>
               共解析 <strong>{importData.length}</strong> 行，确认无误后点击"确认导入"
             </p>
-            <Table
+            <ResponsiveTable
               dataSource={importData.map((row, i) => ({ ...row, _key: i }))}
               columns={importColumns}
               rowKey="_key"
@@ -585,7 +586,7 @@ export default function ProductList() {
 
             <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14 }}>采购记录</div>
             {purchaseHistory && purchaseHistory.length > 0 ? (
-              <Table dataSource={purchaseHistory as Record<string, unknown>[]}
+              <ResponsiveTable dataSource={purchaseHistory as Record<string, unknown>[]}
                 rowKey="id" size="small" pagination={false}
                 columns={[
                   {

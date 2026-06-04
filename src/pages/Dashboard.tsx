@@ -102,10 +102,14 @@ export default function Dashboard() {
     { title: '科目', key: 'account', width: 80, render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
   ];
 
-  const statCards = [
+  const statCards = canViewFinance ? [
     { icon: <ArrowUpOutlined />, color: '#52c41a', bg: '#f6ffed', title: '本月收入', value: stats?.totalIncome ?? 0, suffix: '元', link: '/finance' },
     { icon: <ArrowDownOutlined />, color: '#ff4d4f', bg: '#fff2f0', title: '本月支出', value: stats?.totalExpense ?? 0, suffix: '元', link: '/finance' },
     { icon: <DollarOutlined />, color: '#1677ff', bg: '#f0f5ff', title: '本月结余', value: stats?.balance ?? 0, suffix: '元', link: '/reports' },
+    { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', value: stats?.customerCount ?? 0, suffix: '人', link: '/customers' },
+    { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', value: stats?.productCount ?? 0, suffix: '个', link: '/products' },
+    { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', value: stats?.pendingOrders ?? 0, suffix: '单', link: '/orders' },
+  ] : [
     { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', value: stats?.customerCount ?? 0, suffix: '人', link: '/customers' },
     { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', value: stats?.productCount ?? 0, suffix: '个', link: '/products' },
     { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', value: stats?.pendingOrders ?? 0, suffix: '单', link: '/orders' },
@@ -127,32 +131,30 @@ export default function Dashboard() {
         </span>
       </Typography.Title>
 
-      {canViewFinance && (
-        <Row gutter={[12, 12]}>
-          {statCards.map((card, i) => (
-            <Col xs={12} sm={8} lg={4} key={i}>
-              <Card hoverable size="small" style={cardStyle} onClick={() => navigate(card.link)}
-                styles={{ body: { padding: '14px 16px' } }}>
-                <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
-                    <Statistic value={card.value} precision={card.title.includes('率') ? 1 : 0}
-                      suffix={card.suffix} valueStyle={{ fontSize: 18, fontWeight: 600 }}
-                      loading={isLoading} />
-                  </div>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    background: card.bg, color: card.color, fontSize: 18,
-                  }}>
-                    {card.icon}
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
+      <Row gutter={[12, 12]}>
+        {statCards.map((card, i) => (
+          <Col xs={12} sm={8} lg={4} key={i}>
+            <Card hoverable size="small" style={cardStyle} onClick={() => navigate(card.link)}
+              styles={{ body: { padding: '14px 16px' } }}>
+              <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
+                  <Statistic value={card.value} precision={0}
+                    suffix={card.suffix} valueStyle={{ fontSize: 18, fontWeight: 600 }}
+                    loading={isLoading} />
+                </div>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  background: card.bg, color: card.color, fontSize: 18,
+                }}>
+                  {card.icon}
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
       {/* Middle Row: Tasks + Quick Actions */}
       <Row gutter={12} style={{ marginTop: 16 }}>

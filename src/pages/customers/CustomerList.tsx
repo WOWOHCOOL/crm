@@ -2,21 +2,34 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
-  Popconfirm, Card, Row, Col, Tag, Radio,
+  Popconfirm, Card, Row, Col, Tag, Radio, Pagination, Skeleton, Tooltip,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, UploadOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
+import { useResponsive } from '../../hooks/useResponsive';
 import type { Customer } from '../../types';
+import { tokens, customerStatusMap } from '../../styles/theme';
+import CustomerCard from '../../components/CustomerCard';
+import ResponsiveTable from '../../components/ResponsiveTable';
+import { TableSkeleton } from '../../components/Skeletons';
 import { logOperation } from '../../utils/log';
+
+const PAGE_SIZE = 20;
+const VIEW_KEY = 'customer_view_mode';
 
 export default function CustomerList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cardPreview, setCardPreview] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem(VIEW_KEY) as 'grid' | 'list') || 'grid';
+  });
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [searchParams, setSearchParams] = useSearchParams();
   const editId = searchParams.get('edit') || undefined;
   const isAdding = searchParams.get('add') === '1';
@@ -178,33 +191,21 @@ export default function CustomerList() {
   };
 
   const columns = [
-    { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const, onCell: () => ({ 'data-label': '姓名' } as React.TdHTMLAttributes<unknown>) },
-    { title: '名片', key: 'card', width: 60, onCell: () => ({ 'data-label': '名片' } as React.TdHTMLAttributes<unknown>),
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 100, fixed: 'left' as const },
+    { title: '名片', key: 'card', width: 60,
       render: (_: unknown, r: Customer) => r.business_card
         ? <Image src={r.business_card} width={36} height={36} style={{ borderRadius: 4, objectFit: 'cover', cursor: 'pointer' }} preview={{ mask: null }} />
         : '-' },
-    { title: '公司', dataIndex: 'company', key: 'company', width: 150, onCell: () => ({ 'data-label': '公司' } as React.TdHTMLAttributes<unknown>) },
-    { title: '电话', dataIndex: 'phone', key: 'phone', width: 130, onCell: () => ({ 'data-label': '电话' } as React.TdHTMLAttributes<unknown>) },
-    { title: '邮箱1', dataIndex: 'email', key: 'email', width: 160, onCell: () => ({ 'data-label': '邮箱1' } as React.TdHTMLAttributes<unknown>) },
-    { title: '邮箱2', dataIndex: 'email2', key: 'email2', width: 160, onCell: () => ({ 'data-label': '邮箱2' } as React.TdHTMLAttributes<unknown>), render: (v: string | null) => v || '-' },
-    { title: 'WhatsApp', dataIndex: 'whatsapp', key: 'whatsapp', width: 140, onCell: () => ({ 'data-label': 'WhatsApp' } as React.TdHTMLAttributes<unknown>) },
-    { title: '国家', dataIndex: 'country', key: 'country', width: 80, onCell: () => ({ 'data-label': '国家' } as React.TdHTMLAttributes<unknown>) },
-    { title: '来源', dataIndex: 'source', key: 'source', width: 100, onCell: () => ({ 'data-label': '来源' } as React.TdHTMLAttributes<unknown>) },
-    {
-      title: '状态', dataIndex: 'status', key: 'status', width: 80,
+    { title: '公司', dataIndex: 'company', key: 'company', width: 150 },
+    { title: '国家', dataIndex: 'country', key: 'country', width: 80 },
+    { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
+    { title: '状态', dataIndex: 'status', key: 'status', width: 80,
       render: (v: string) => {
-        const map: Record<string, { label: string; color: string }> = {
-          new: { label: '新线索', color: 'default' },
-          following: { label: '跟进中', color: 'blue' },
-          dealt: { label: '已成交', color: 'green' },
-          closed: { label: '已关闭', color: 'red' },
-        };
-        const item = map[v] || { label: v, color: 'default' };
+        const item = customerStatusMap[v] || customerStatusMap.new;
         return <Tag color={item.color}>{item.label}</Tag>;
       },
     },
-    {
-      title: '操作', key: 'actions', width: 220,
+    { title: '操作', key: 'actions', width: 220,
       render: (_: unknown, record: Customer) => (
         <Space>
           <Button size="small" onClick={() => openEdit(record)}>编辑</Button>
@@ -216,6 +217,14 @@ export default function CustomerList() {
       ),
     },
   ];
+
+  const total = customers?.length ?? 0;
+  const pagedCustomers = (customers ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const toggleView = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_KEY, mode);
+  };
 
   return (
     <div>
@@ -245,14 +254,58 @@ export default function CustomerList() {
           <Radio.Button value="dealt">已成交</Radio.Button>
           <Radio.Button value="closed">已关闭</Radio.Button>
         </Radio.Group>
-        <Table
-          dataSource={customers}
-          columns={columns}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
-          scroll={{ x: 1000 }}
-        />
+        {/* View toggle + result count */}
+        <div style={{ marginBottom: tokens.spacingMD, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>共 {total} 条</span>
+          <Tooltip title={viewMode === 'grid' ? '列表视图' : '卡片视图'}>
+            <Button
+              size="small"
+              type="text"
+              icon={viewMode === 'grid' ? <UnorderedListOutlined /> : <AppstoreOutlined />}
+              onClick={() => toggleView(viewMode === 'grid' ? 'list' : 'grid')}
+            />
+          </Tooltip>
+        </div>
+
+        {isLoading ? (
+          <TableSkeleton rows={isMobile ? 6 : 4} cols={4} />
+        ) : viewMode === 'grid' ? (
+          <>
+            <Row gutter={[tokens.spacingLG, tokens.spacingLG]}>
+              {pagedCustomers.map((c: Customer) => (
+                <Col xs={24} sm={12} lg={8} xl={6} key={c.id}>
+                  <CustomerCard
+                    customer={c}
+                    onClick={() => navigate(`/customers/${c.id}`)}
+                    onEdit={() => openEdit(c)}
+                    onDelete={() => deleteMutation.mutate(c.id)}
+                  />
+                </Col>
+              ))}
+            </Row>
+            {total > PAGE_SIZE && (
+              <div style={{ textAlign: 'center', marginTop: tokens.spacingXL }}>
+                <Pagination
+                  current={page}
+                  total={total}
+                  pageSize={PAGE_SIZE}
+                  onChange={setPage}
+                  showSizeChanger={false}
+                  showTotal={(t) => `共 ${t} 条`}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <ResponsiveTable
+            dataSource={customers}
+            columns={columns}
+            rowKey="id"
+            loading={isLoading}
+            pagination={{ pageSize: PAGE_SIZE, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
+            scroll={{ x: 800 }}
+          />
+        )}
       </Card>
 
       <Modal

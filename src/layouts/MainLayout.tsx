@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Button, Drawer, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
@@ -17,7 +17,9 @@ import {
   KeyOutlined,
   LockOutlined,
   SettingOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
+import { useResponsive } from '../hooks/useResponsive';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabase';
 
@@ -28,16 +30,17 @@ const bottomNavItems = [
   { key: '/customers', icon: <TeamOutlined />, label: '客户' },
   { key: '/tasks', icon: <BellOutlined />, label: '任务' },
   { key: '/finance', icon: <DollarOutlined />, label: '财务' },
-  { key: '/org', icon: <UserOutlined />, label: '我的' },
+  { key: '__more__', icon: <AppstoreOutlined />, label: '更多' },
 ];
 
 export default function MainLayout() {
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 1200);
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
   const { user, signOut, orgInfo, permissions, isOwner, isAdmin } = useAuth();
+  const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const location = useLocation();
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
@@ -48,8 +51,6 @@ export default function MainLayout() {
     if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
     return groups;
   });
-
-  const isMobile = window.innerWidth < 768;
 
   const pathParts = location.pathname.split('/').filter(Boolean);
   let selectedKey = '/' + (pathParts[0] || '');
@@ -227,10 +228,13 @@ export default function MainLayout() {
           paddingBottom: 'env(safe-area-inset-bottom, 0)',
         }}>
           {bottomNavItems.map(item => {
-            const active = isActive(item.key);
+            const active = item.key === '__more__' ? drawerOpen : isActive(item.key);
             return (
               <div key={item.key}
-                onClick={() => navigate(item.key)}
+                onClick={() => {
+                  if (item.key === '__more__') { setDrawerOpen(true); return; }
+                  navigate(item.key);
+                }}
                 style={{
                   flex: 1, display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',

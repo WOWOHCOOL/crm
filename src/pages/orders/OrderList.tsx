@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Space, Tag, Card, message, Popconfirm } from 'antd';
+import { Button, Space, Tag, Card, message, Popconfirm } from 'antd';
 import { PlusOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
+import ResponsiveTable from '../../components/ResponsiveTable';
 import type { Order, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import { logOperation } from '../../utils/log';
@@ -117,7 +118,7 @@ export default function OrderList() {
   return (
     <div>
       <Card title="采购订单（PO）">
-        <Table
+        <ResponsiveTable
           dataSource={orders}
           columns={columns}
           rowKey="id"

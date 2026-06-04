@@ -68,7 +68,26 @@ function App() {
         theme={{
           token: {
             colorPrimary: '#1677ff',
+            colorSuccess: '#52c41a',
+            colorWarning: '#fa8c16',
+            colorError: '#ff4d4f',
             borderRadius: 6,
+            colorText: 'rgba(0,0,0,0.88)',
+            colorTextSecondary: 'rgba(0,0,0,0.65)',
+            colorTextTertiary: 'rgba(0,0,0,0.45)',
+            colorBorder: '#f0f0f0',
+            colorBorderSecondary: '#f5f5f5',
+            colorBgLayout: '#f5f5f5',
+            fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
+            controlHeight: 36,
+            lineHeight: 1.5715,
+          },
+          components: {
+            Card: { borderRadiusLG: 8, paddingLG: 20 },
+            Table: { borderRadiusLG: 8, headerBg: '#fafafa' },
+            Button: { borderRadius: 6, controlHeight: 36 },
+            Tag: { borderRadiusSM: 4 },
+            Modal: { borderRadiusLG: 12 },
           },
         }}
       >

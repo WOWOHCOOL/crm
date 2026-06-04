@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, Modal, Form, Select, DatePicker,
+  Button, Space, Input, Modal, Form, Select, DatePicker,
   message, Card, Tag, Checkbox, Popconfirm, Row, Col,
 } from 'antd';
+import ResponsiveTable from '../../components/ResponsiveTable';
 import { PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -314,7 +315,7 @@ export default function TaskList() {
             </Button>
           )}
         </Space>
-        <Table
+        <ResponsiveTable
           dataSource={tasks}
           columns={columns}
           rowKey="id"

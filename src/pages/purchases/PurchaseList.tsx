@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Button, Space, Tag, Card, Popconfirm, message, Select,
+  Button, Space, Tag, Card, Popconfirm, message, Select,
 } from 'antd';
 import { PlusOutlined, DownloadOutlined, DollarOutlined } from '@ant-design/icons';
+import ResponsiveTable from '../../components/ResponsiveTable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { PurchaseOrder, PurchaseItem, PurchaseStatus, Supplier } from '../../types';
@@ -251,7 +252,7 @@ export default function PurchaseList() {
             </Button>
           )}
         </Space>
-        <Table
+        <ResponsiveTable
           dataSource={orders}
           columns={columns}
           rowKey="id"

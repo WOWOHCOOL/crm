@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, Modal, Form, message,
+  Button, Space, Input, Modal, Form, message,
   Popconfirm, Card, Tag, Descriptions, Spin,
 } from 'antd';
+import ResponsiveTable from '../../components/ResponsiveTable';
 import { PlusOutlined, SearchOutlined, TeamOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -246,7 +247,7 @@ export default function SupplierList() {
             添加供应商
           </Button>}
         </Space>
-        <Table
+        <ResponsiveTable
           dataSource={suppliers}
           columns={columns}
           rowKey="id"
@@ -339,7 +340,7 @@ export default function SupplierList() {
               供应的产品 ({supplierProducts?.length || 0})
             </div>
             {supplierProducts && supplierProducts.length > 0 ? (
-              <Table dataSource={supplierProducts as Record<string, unknown>[]}
+              <ResponsiveTable dataSource={supplierProducts as Record<string, unknown>[]}
                 rowKey="id" size="small" pagination={false}
                 columns={[
                   { title: '型号', dataIndex: 'official_model', key: 'official_model' },
@@ -359,7 +360,7 @@ export default function SupplierList() {
               📋 采购记录
             </div>
             {supplierPurchases && supplierPurchases.length > 0 ? (
-              <Table dataSource={supplierPurchases as Record<string, unknown>[]}
+              <ResponsiveTable dataSource={supplierPurchases as Record<string, unknown>[]}
                 rowKey="order_no" size="small" pagination={false}
                 columns={[
                   { title: '采购单号', dataIndex: 'order_no', key: 'order_no', width: 180 },
