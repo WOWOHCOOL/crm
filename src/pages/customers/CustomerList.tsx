@@ -124,8 +124,8 @@ export default function CustomerList() {
     mutationFn: async (values: Partial<Customer>) => {
       const { business_card, ...rest } = values;
       const payload = { ...rest, business_card: business_card || null };
-      if (editing) {
-        const { error } = await supabase.from('customers').update(payload).eq('id', editing.id);
+      if (editId) {
+        const { error } = await supabase.from('customers').update(payload).eq('id', editId);
         if (error) throw error;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
@@ -138,7 +138,7 @@ export default function CustomerList() {
     onSuccess: (_data, values) => {
       sessionStorage.removeItem('customer_form_draft');
       closeModal();
-      logOperation('customer', editing ? 'update' : 'create', editing?.id, (values as Record<string, unknown>).name as string);
+      logOperation('customer', editId ? 'update' : 'create', editId, (values as Record<string, unknown>).name as string);
     },
   });
 
