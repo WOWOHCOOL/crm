@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
-  Popconfirm, Card, Row, Col,
+  Popconfirm, Card, Row, Col, Tag, Radio,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { logOperation } from '../../utils/log';
 
 export default function CustomerList() {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cardPreview, setCardPreview] = useState<string | null>(null);
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -53,11 +54,14 @@ export default function CustomerList() {
   }, [form, cardPreview, isEditMode]);
 
   const { data: customers, isLoading } = useQuery({
-    queryKey: ['customers', search],
+    queryKey: ['customers', search, statusFilter],
     queryFn: async () => {
       let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
       if (search) {
         query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,country.ilike.%${search}%,source.ilike.%${search}%`);
+      }
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
       }
       const { data } = await query;
       return (data ?? []) as Customer[];
@@ -187,6 +191,19 @@ export default function CustomerList() {
     { title: '国家', dataIndex: 'country', key: 'country', width: 80, onCell: () => ({ 'data-label': '国家' } as React.TdHTMLAttributes<unknown>) },
     { title: '来源', dataIndex: 'source', key: 'source', width: 100, onCell: () => ({ 'data-label': '来源' } as React.TdHTMLAttributes<unknown>) },
     {
+      title: '状态', dataIndex: 'status', key: 'status', width: 80,
+      render: (v: string) => {
+        const map: Record<string, { label: string; color: string }> = {
+          new: { label: '新线索', color: 'default' },
+          following: { label: '跟进中', color: 'blue' },
+          dealt: { label: '已成交', color: 'green' },
+          closed: { label: '已关闭', color: 'red' },
+        };
+        const item = map[v] || { label: v, color: 'default' };
+        return <Tag color={item.color}>{item.label}</Tag>;
+      },
+    },
+    {
       title: '操作', key: 'actions', width: 220,
       render: (_: unknown, record: Customer) => (
         <Space>
@@ -214,6 +231,20 @@ export default function CustomerList() {
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加客户</Button>
         </Space>
+        <Radio.Group
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          optionType="button"
+          buttonStyle="solid"
+          size="small"
+          style={{ marginBottom: 16 }}
+        >
+          <Radio.Button value="all">全部</Radio.Button>
+          <Radio.Button value="new">新线索</Radio.Button>
+          <Radio.Button value="following">跟进中</Radio.Button>
+          <Radio.Button value="dealt">已成交</Radio.Button>
+          <Radio.Button value="closed">已关闭</Radio.Button>
+        </Radio.Group>
         <Table
           dataSource={customers}
           columns={columns}
@@ -268,13 +299,28 @@ export default function CustomerList() {
             <Col xs={24} sm={12}>
               <Form.Item name="source" label="来源">
                 <Select allowClear placeholder="选择来源" options={[
-                  { label: '表单询盘', value: '表单询盘' },
                   { label: 'WhatsApp', value: 'WhatsApp' },
+                  { label: '邮件询盘', value: '邮件询盘' },
                   { label: '展会', value: '展会' },
                   { label: 'LinkedIn', value: 'LinkedIn' },
                   { label: '老客户推荐', value: '老客户推荐' },
                   { label: '其他', value: '其他' },
                 ]} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="status" label="状态" initialValue="new">
+                <Select options={[
+                  { label: '新线索', value: 'new' },
+                  { label: '跟进中', value: 'following' },
+                  { label: '已成交', value: 'dealt' },
+                  { label: '已关闭', value: 'closed' },
+                ]} />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="inquiry_content" label="询盘内容">
+                <Input.TextArea rows={3} placeholder="首次WhatsApp或邮件询盘的原始内容" />
               </Form.Item>
             </Col>
             <Col xs={24}>

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Tabs, Statistic } from 'antd';
+import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Tabs, Statistic, Timeline } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Order, Quotation, Task, OrderStatus } from '../../types';
+import type { Order, Quotation, Task, FollowUp, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import dayjs from 'dayjs';
 
@@ -38,6 +38,7 @@ export default function CustomerDetail() {
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
   const [shippingOrder, setShippingOrder] = useState<Order | null>(null);
   const [shippingForm] = Form.useForm();
+  const [followUpForm] = Form.useForm();
 
   const { data: customer, isLoading } = useQuery({
     queryKey: ['customer', id],
@@ -79,6 +80,42 @@ export default function CustomerDetail() {
       return (data ?? []) as Task[];
     },
     enabled: !!id,
+  });
+
+  const { data: followUps } = useQuery({
+    queryKey: ['customer-followups', id],
+    queryFn: async () => {
+      const { data } = await supabase.from('follow_ups').select('*').eq('customer_id', id).order('follow_up_date', { ascending: false });
+      return (data ?? []) as FollowUp[];
+    },
+    enabled: !!id,
+  });
+
+  const addFollowUp = useMutation({
+    mutationFn: async (values: { content: string; next_plan?: string; follow_up_date: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('未登录');
+      const { error } = await supabase.from('follow_ups').insert([{
+        customer_id: id,
+        content: values.content,
+        next_plan: values.next_plan || null,
+        follow_up_date: values.follow_up_date ? dayjs(values.follow_up_date).toISOString() : new Date().toISOString(),
+        user_id: user.id,
+      }]);
+      if (error) throw error;
+      // Auto-set status to 'following' if currently 'new'
+      if (customer?.status === 'new') {
+        await supabase.from('customers').update({ status: 'following' }).eq('id', id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-followups'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', id] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      followUpForm.resetFields();
+      message.success('跟进记录已添加');
+    },
+    onError: (error: Error) => message.error(error.message),
   });
 
   const createOrder = useMutation({
@@ -161,7 +198,20 @@ export default function CustomerDetail() {
                 {customer?.name?.charAt(0) || '?'}
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>{customer?.name}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {customer?.name}
+                  {(() => {
+                    const s = customer?.status;
+                    const map: Record<string, { label: string; color: string }> = {
+                      new: { label: '新线索', color: 'default' },
+                      following: { label: '跟进中', color: 'blue' },
+                      dealt: { label: '已成交', color: 'green' },
+                      closed: { label: '已关闭', color: 'red' },
+                    };
+                    const item = map[s] || { label: s || '未知', color: 'default' };
+                    return <Tag color={item.color}>{item.label}</Tag>;
+                  })()}
+                </div>
                 <div style={{ fontSize: 13, color: '#64748b' }}>{customer?.company || '-'}</div>
               </div>
             </div>
@@ -207,6 +257,25 @@ export default function CustomerDetail() {
           // ═══ OVERVIEW ═══
           { key: 'overview', label: `总览`, children: (
             <div style={{ padding: '12px 20px 20px' }}>
+              {/* Inquiry content card */}
+              {customer?.inquiry_content && (
+                <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, color: '#ad8b00', marginBottom: 4, fontWeight: 600 }}>首次询盘内容</div>
+                  <div style={{ fontSize: 13, color: '#595959', whiteSpace: 'pre-wrap' }}>{customer.inquiry_content}</div>
+                </div>
+              )}
+              {/* Latest follow-ups preview */}
+              {(followUps ?? []).length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#1e293b' }}>最近跟进</div>
+                  {followUps!.slice(0, 3).map((f: FollowUp) => (
+                    <div key={f.id} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: '1px solid #fafafa', fontSize: 13 }}>
+                      <span style={{ color: '#94a3b8', flexShrink: 0, minWidth: 90 }}>{dayjs(f.follow_up_date).format('MM-DD HH:mm')}</span>
+                      <span style={{ color: '#334155', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.content}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <Row gutter={[16, 16]}>
                 <Col xs={24} lg={14}>
                   <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1e293b' }}>最近动态</div>
@@ -250,6 +319,60 @@ export default function CustomerDetail() {
                   </div>
                 </Col>
               </Row>
+            </div>
+          )},
+
+          // ═══ FOLLOW-UPS ═══
+          { key: 'followups', label: `跟进记录 (${(followUps ?? []).length})`, children: (
+            <div style={{ padding: '12px 20px 20px' }}>
+              {/* Add follow-up form */}
+              <Card size="small" style={{ marginBottom: 16, borderRadius: 8, background: '#fafafa' }}>
+                <Form form={followUpForm} layout="vertical" onFinish={(values) => addFollowUp.mutate(values)}>
+                  <Form.Item name="content" label="跟进内容" rules={[{ required: true, message: '请输入跟进内容' }]}>
+                    <Input.TextArea rows={3} placeholder="记录本次沟通内容..." />
+                  </Form.Item>
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="next_plan" label="下一步计划">
+                        <Input placeholder="下一步要做什么" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item name="follow_up_date" label="跟进时间" initialValue={dayjs().format('YYYY-MM-DDTHH:mm')}>
+                        <Input type="datetime-local" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Button type="primary" htmlType="submit" loading={addFollowUp.isPending} icon={<PlusOutlined />}>
+                    添加跟进记录
+                  </Button>
+                </Form>
+              </Card>
+              {/* Follow-up timeline */}
+              {(followUps ?? []).length === 0 ? (
+                <div style={{ color: '#94a3b8', textAlign: 'center', padding: 40 }}>暂无跟进记录</div>
+              ) : (
+                <Timeline
+                  items={(followUps ?? []).map((f: FollowUp) => ({
+                    color: 'blue',
+                    children: (
+                      <div key={f.id}>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>
+                          {dayjs(f.follow_up_date).format('YYYY-MM-DD HH:mm')}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#334155', whiteSpace: 'pre-wrap', marginBottom: f.next_plan ? 4 : 0 }}>
+                          {f.content}
+                        </div>
+                        {f.next_plan && (
+                          <div style={{ fontSize: 12, color: '#1677ff', background: '#e6f4ff', padding: '2px 8px', borderRadius: 4, display: 'inline-block' }}>
+                            下一步：{f.next_plan}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  }))}
+                />
+              )}
             </div>
           )},
 

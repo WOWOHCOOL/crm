@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS customers (
   source TEXT,
   address TEXT,
   notes TEXT,
+  status TEXT NOT NULL DEFAULT 'new',
+  inquiry_content TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE
@@ -116,9 +118,23 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- ============================================================
+-- 跟进记录表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS follow_ups (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  next_plan TEXT,
+  follow_up_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- ============================================================
 -- 索引
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_customers_user ON customers(user_id);
+CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
 CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
@@ -128,6 +144,9 @@ CREATE INDEX IF NOT EXISTS idx_products_user ON products(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_customer ON follow_ups(customer_id);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_date ON follow_ups(follow_up_date);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_user ON follow_ups(user_id);
 
 -- ============================================================
 -- RLS 策略
@@ -138,6 +157,7 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE follow_ups ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   CREATE POLICY "users_manage_own_customers" ON customers FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -166,6 +186,11 @@ END $$;
 
 DO $$ BEGIN
   CREATE POLICY "users_manage_own_order_items" ON order_items FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "users_manage_own_follow_ups" ON follow_ups FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

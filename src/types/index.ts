@@ -14,8 +14,20 @@ export interface Customer {
   address: string | null;
   notes: string | null;
   business_card: string | null;
+  status: string;
+  inquiry_content: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
+}
+
+export interface FollowUp {
+  id: string;
+  customer_id: string;
+  content: string;
+  next_plan: string | null;
+  follow_up_date: string;
+  created_at: string;
   user_id: string;
 }
 
