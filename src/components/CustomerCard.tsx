@@ -183,7 +183,7 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
           {customer.company && (
             <>
               <span style={{ opacity: 0.4 }}>·</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer.company}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{customer.company}</span>
             </>
           )}
         </div>

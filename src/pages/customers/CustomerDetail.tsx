@@ -230,7 +230,7 @@ export default function CustomerDetail() {
               )}
             </div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>电话</div><div style={{ fontWeight: 600 }}>{customer?.phone || '-'}</div></Col>
-            <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer?.email || '-'}</div></Col>
+            <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer?.email || '-'}</div></Col>
             {customer?.tags && (
               <Col xs={24} style={{ marginTop: 4 }}>
                 <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, marginBottom: 4 }}>产品/服务</div>
@@ -339,6 +339,7 @@ export default function CustomerDetail() {
                     extra={canManage && next ? <Button size="small" type="primary" onClick={() => updateOrderStatus.mutate({ orderId: order.id, status: next })}>{statusActionLabels[curStatus]}</Button> : undefined}>
                     {order.order_items && order.order_items.length > 0 ? (
                       <Table dataSource={order.order_items as any[]} rowKey="id" pagination={false} size="small"
+                        scroll={{ x: 'max-content' }}
                         columns={[
                           { title: '型号', dataIndex: 'model', key: 'model' },
                           { title: '数量', dataIndex: 'quantity', key: 'quantity' },
@@ -397,6 +398,7 @@ export default function CustomerDetail() {
                   <div style={{ fontSize: tokens.fontSizeLG, fontWeight: 600, marginBottom: tokens.spacingMD, color: tokens.colorTextSecondary }}>报价单</div>
                   <Table dataSource={(quotations ?? []).filter((q: Quotation) => q.type === 'quotation')}
                     rowKey="id" size="small" pagination={false}
+                    scroll={{ x: 'max-content' }}
                     columns={[
                       { title: '编号', dataIndex: 'quotation_no', key: 'quotation_no' },
                       { title: '日期', dataIndex: 'created_at', key: 'created_at', render: (v: string) => new Date(v).toLocaleDateString('zh-CN') },
@@ -409,6 +411,7 @@ export default function CustomerDetail() {
                   <div style={{ fontSize: tokens.fontSizeLG, fontWeight: 600, marginBottom: tokens.spacingMD, color: tokens.colorTextSecondary }}>PI</div>
                   <Table dataSource={(quotations ?? []).filter((q: Quotation) => q.type === 'pi')}
                     rowKey="id" size="small" pagination={false}
+                    scroll={{ x: 'max-content' }}
                     columns={[
                       { title: '编号', dataIndex: 'quotation_no', key: 'quotation_no' },
                       { title: '日期', dataIndex: 'created_at', key: 'created_at', render: (v: string) => new Date(v).toLocaleDateString('zh-CN') },
@@ -434,7 +437,7 @@ export default function CustomerDetail() {
                   <Col xs={12}><Card size="small"><StatCard icon={<DollarOutlined />} label="总收入" value={`¥${totalIncome.toFixed(2)}`} color={tokens.colorSuccess} /></Card></Col>
                   <Col xs={12}><Card size="small"><StatCard icon={<DollarOutlined />} label="总支出" value={`¥${totalExpense.toFixed(2)}`} color={tokens.colorError} /></Card></Col>
                 </Row>
-                <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" locale={{ emptyText: '暂无收支记录' }} />
+                <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" scroll={{ x: 'max-content' }} locale={{ emptyText: '暂无收支记录' }} />
               </>
             )}
           </Card>
@@ -449,6 +452,7 @@ export default function CustomerDetail() {
           >
             {collapsedSections['tasks'] ? null : (
               <Table dataSource={tasks ?? []} rowKey="id" size="small" pagination={false}
+                scroll={{ x: 'max-content' }}
                 columns={[
                   { title: '状态', dataIndex: 'status', key: 'status', width: 70, render: (v: string) => <Tag color={v === 'pending' ? 'orange' : v === 'completed' ? 'green' : 'default'}>{v === 'pending' ? '待处理' : v === 'completed' ? '已完成' : '已取消'}</Tag> },
                   { title: '标题', dataIndex: 'title', key: 'title', width: 180 },

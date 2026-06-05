@@ -189,6 +189,7 @@ export default function ProductDetail() {
             <ResponsiveTable
               dataSource={purchaseHistory as Record<string, unknown>[]}
               rowKey="id" size="small" pagination={{ pageSize: 10 }}
+              scroll={{ x: 'max-content' }}
               columns={[
                 { title: '采购单号', key: 'order_no', width: 160, render: (_: unknown, r: Record<string, unknown>) => (r.purchase_orders as Record<string, unknown> | null)?.order_no as string || '-' },
                 { title: '日期', key: 'order_date', width: 100, render: (_: unknown, r: Record<string, unknown>) => (r.purchase_orders as Record<string, unknown> | null)?.order_date as string || '-' },

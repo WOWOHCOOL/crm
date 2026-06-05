@@ -114,7 +114,7 @@ export default function SupplierDetail() {
               </div>
             </Col>
             <Col xs={12} md={3}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>电话</div><div style={{ fontWeight: 600 }}>{supplier?.phone || '-'}</div></Col>
-            <Col xs={12} md={3}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{supplier?.email || '-'}</div></Col>
+            <Col xs={12} md={3}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{supplier?.email || '-'}</div></Col>
             <Col xs={12} md={3}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>付款条件</div><div style={{ fontWeight: 600 }}>{supplier?.payment_terms || '-'}</div></Col>
             <Col xs={12} md={3}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>税号</div><div style={{ fontWeight: 600 }}>{supplier?.tax_id || '-'}</div></Col>
           </Row>
@@ -179,6 +179,7 @@ export default function SupplierDetail() {
             <ResponsiveTable
               dataSource={products as Record<string, unknown>[]}
               rowKey="id" size="small" pagination={{ pageSize: 10 }}
+              scroll={{ x: 'max-content' }}
               columns={[
                 { title: '型号', dataIndex: 'official_model', key: 'official_model' },
                 { title: '供货价', dataIndex: 'supply_price', key: 'supply_price', render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-' },
@@ -200,6 +201,7 @@ export default function SupplierDetail() {
             <ResponsiveTable
               dataSource={purchases as Record<string, unknown>[]}
               rowKey="order_no" size="small" pagination={{ pageSize: 10 }}
+              scroll={{ x: 'max-content' }}
               columns={[
                 { title: '采购单号', dataIndex: 'order_no', key: 'order_no', width: 200 },
                 { title: '日期', dataIndex: 'order_date', key: 'order_date', width: 120 },
