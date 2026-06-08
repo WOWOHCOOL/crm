@@ -4,7 +4,7 @@ import {
   Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
   Popconfirm, Card, Row, Col, Tag, Radio, Pagination, Skeleton, Tooltip,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, UploadOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, UploadOutlined, AppstoreOutlined, UnorderedListOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
@@ -15,6 +15,7 @@ import CustomerCard from '../../components/CustomerCard';
 import ResponsiveTable from '../../components/ResponsiveTable';
 import { TableSkeleton } from '../../components/Skeletons';
 import { logOperation } from '../../utils/log';
+import { exportInquiriesToExcel } from '../../utils/inquiryExport';
 
 const PAGE_SIZE = 20;
 const VIEW_KEY = 'inquiry_view_mode';
@@ -242,7 +243,12 @@ export default function InquiryList() {
             allowClear
             style={{ maxWidth: 280, width: '100%' }}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加询盘线索</Button>
+          <Space wrap>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加询盘线索</Button>
+            <Button icon={<DownloadOutlined />} onClick={() => exportInquiriesToExcel(customers ?? [])} disabled={!customers?.length}>
+              导出 Excel
+            </Button>
+          </Space>
         </Space>
 
         <Radio.Group
