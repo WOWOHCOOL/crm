@@ -171,16 +171,18 @@ export function exportExcel(
 
   const ws = XLSX.utils.aoa_to_sheet(d);
 
-  // Column widths
+  // Column widths — designed to match PDF export proportions
+  // QUO: #(28px) Model(22%) Desc(25%) MOQ(8%) Price(20%) Remarks(15%)
+  // PI:  #(28px) Model(35%) Qty(8%)   Price(15%) Total(15%)
   ws['!cols'] = [
-    { wch: 5 },  // A: #
-    { wch: 24 }, // B: Model
-    { wch: 28 }, // C: Description
-    { wch: 8 },  // D: MOQ/Qty
-    { wch: 16 }, // E: Price
-    { wch: 22 }, // F: Remarks/Total
-    { wch: 8 },  // G
-    { wch: 8 },  // H
+    { wch: 5 },   // A: # (tight, fits 3-digit)
+    { wch: 29 },  // B: Model (QUO 22% / PI 35%, compromise at ~25%)
+    { wch: 30 },  // C: Description (QUO 25%) / Qty (PI 8%)
+    { wch: 10 },  // D: MOQ (QUO 8%) / Price (PI 15%)
+    { wch: 21 },  // E: Price (QUO 20%) / Total (PI 15%)
+    { wch: 18 },  // F: Remarks (QUO 15%) / empty (PI)
+    { wch: 6 },   // G: padding
+    { wch: 6 },   // H: padding
   ];
 
   // Merged cells for header rows (cols A-H = indices 0-7)
