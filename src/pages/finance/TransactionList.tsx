@@ -232,17 +232,14 @@ export default function TransactionList() {
         ref_id: (values.ref_id as string) || null,
       };
       console.log('[TransactionList] Payload:', JSON.stringify(payload));
-      console.log('[TransactionList] Editing ID:', editing?.id);
       if (editing) {
         const res = await supabase.from('transactions').update(payload).eq('id', editing.id as string).select();
-        console.log('[TransactionList] Update response:', JSON.stringify(res));
         if (res.error) throw new Error(res.error.message);
         if (!res.data || res.data.length === 0) throw new Error('更新失败：RLS 阻止或记录不存在');
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
         const res = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]).select();
-        console.log('[TransactionList] Insert response:', JSON.stringify(res));
         if (res.error) throw new Error(res.error.message);
         if (!res.data || res.data.length === 0) throw new Error('添加失败');
       }
@@ -389,7 +386,6 @@ export default function TransactionList() {
         onCancel={closeModal}
         onOk={() => {
           const values = form.getFieldsValue();
-          console.log('[TransactionList] Form values:', JSON.stringify(values));
           if (!values.type) { message.error('请选择类型'); return; }
           if (!values.amount && values.amount !== 0) { message.error('请输入金额'); return; }
           saveMutation.mutate(values);
