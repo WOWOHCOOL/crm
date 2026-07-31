@@ -231,16 +231,20 @@ export default function TransactionList() {
         ref_type: (values.ref_type as string) || null,
         ref_id: (values.ref_id as string) || null,
       };
+      console.log('[TransactionList] Payload:', JSON.stringify(payload));
+      console.log('[TransactionList] Editing ID:', editing?.id);
       if (editing) {
-        const { data, error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string).select('id');
-        if (error) { console.error('Update failed:', error); throw new Error(error.message); }
-        if (!data || data.length === 0) throw new Error('更新失败：未找到该记录，可能已被删除或无权限');
+        const res = await supabase.from('transactions').update(payload).eq('id', editing.id as string).select();
+        console.log('[TransactionList] Update response:', JSON.stringify(res));
+        if (res.error) throw new Error(res.error.message);
+        if (!res.data || res.data.length === 0) throw new Error('更新失败：RLS 阻止或记录不存在');
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const { data, error } = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]).select('id');
-        if (error) { console.error('Insert failed:', error); throw new Error(error.message); }
-        if (!data || data.length === 0) throw new Error('添加失败');
+        const res = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]).select();
+        console.log('[TransactionList] Insert response:', JSON.stringify(res));
+        if (res.error) throw new Error(res.error.message);
+        if (!res.data || res.data.length === 0) throw new Error('添加失败');
       }
     },
     invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
