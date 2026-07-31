@@ -24,6 +24,7 @@ export default function TransactionList() {
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
   const [accountEntityFilter, setAccountEntityFilter] = useState<string>('');
   const currencyWatch = Form.useWatch('currency', form);
+  const typeWatch = Form.useWatch('type', form);
 
   // Restore draft from sessionStorage on mount (add mode only)
   useEffect(() => {
@@ -108,7 +109,7 @@ export default function TransactionList() {
       amount: record.amount,
       currency: record.currency || 'RMB',
       date: record.date ? dayjs(record.date as string) : dayjs(),
-      customer_id: record.customer_id || undefined,
+      customer_id: record.type === 'expense' ? (record.supplier_id || undefined) : (record.customer_id || undefined),
       account_id: record.account_id || undefined,
       description: record.description,
       voucher_url: record.voucher_url,
@@ -159,7 +160,7 @@ export default function TransactionList() {
     queryFn: async () => {
       let query = supabase
         .from('transactions')
-        .select('*, customers(name), accounts(name,entity)')
+        .select('*, customers(name), suppliers(name), accounts(name,entity)')
         .order('date', { ascending: false });
 
       if (filters.type) query = query.eq('type', filters.type);
@@ -188,7 +189,7 @@ export default function TransactionList() {
         amount: editing.amount,
         currency: editing.currency || 'RMB',
         date: editing.date ? dayjs(editing.date as string) : dayjs(),
-        customer_id: editing.customer_id || undefined,
+        customer_id: editing.type === 'expense' ? (editing.supplier_id || undefined) : (editing.customer_id || undefined),
         account_id: editing.account_id || undefined,
         description: editing.description,
         voucher_url: editing.voucher_url,
@@ -203,6 +204,14 @@ export default function TransactionList() {
     queryKey: ['customers-select'],
     queryFn: async () => {
       const { data } = await supabase.from('customers').select('id,name').order('name');
+      return data ?? [];
+    },
+  });
+
+  const { data: suppliers } = useQuery({
+    queryKey: ['suppliers-select'],
+    queryFn: async () => {
+      const { data } = await supabase.from('suppliers').select('id,name').order('name');
       return data ?? [];
     },
   });
@@ -231,17 +240,23 @@ export default function TransactionList() {
         ref_type: (values.ref_type as string) || null,
         ref_id: (values.ref_id as string) || null,
       };
-      console.log('[TransactionList] Payload:', JSON.stringify(payload));
+      const isExpense = payload.type === 'expense';
+      const relatedId = (values.customer_id as string) || null;
+      const finalPayload = {
+        ...payload,
+        customer_id: isExpense ? null : relatedId,
+        supplier_id: isExpense ? relatedId : null,
+      };
       if (editing) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const res = await supabase.from('transactions').update({ ...payload, user_id: user.id }).eq('id', editing.id as string).select();
+        const res = await supabase.from('transactions').update({ ...finalPayload, user_id: user.id }).eq('id', editing.id as string).select();
         if (res.error) throw new Error(res.error.message);
         if (!res.data || res.data.length === 0) throw new Error('更新失败：无权限编辑此记录');
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const res = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]).select();
+        const res = await supabase.from('transactions').insert([{ ...finalPayload, user_id: user.id }]).select();
         if (res.error) throw new Error(res.error.message);
         if (!res.data || res.data.length === 0) throw new Error('添加失败');
       }
@@ -276,8 +291,11 @@ export default function TransactionList() {
         const color = currency === 'USD' ? '#1677ff' : undefined;
         return <span style={{ fontWeight: 600, color }}>{sym}{Number(r.amount || 0).toFixed(2)}</span>;
       } },
-    { title: '客户', key: 'customer', width: 100, onCell: () => ({ 'data-label': '客户' } as React.TdHTMLAttributes<any>),
-      render: (_: unknown, r: Record<string, unknown>) => (r.customers as Record<string, string> | null)?.name ?? '-' },
+    { title: '客户/供应商', key: 'customer', width: 120, onCell: () => ({ 'data-label': '客户/供应商' } as React.TdHTMLAttributes<any>),
+      render: (_: unknown, r: Record<string, unknown>) => {
+        if (r.type === 'expense') return (r.suppliers as Record<string, string> | null)?.name ?? '-';
+        return (r.customers as Record<string, string> | null)?.name ?? '-';
+      } },
     { title: '科目', key: 'account', width: 140, onCell: () => ({ 'data-label': '科目' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => {
         const acc = r.accounts as Record<string, string> | null;
@@ -420,10 +438,13 @@ export default function TransactionList() {
           <Form.Item name="date" label="日期" initialValue={dayjs()}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="customer_id" label="关联客户">
+          <Form.Item name="customer_id" label={typeWatch === 'expense' ? '关联供应商' : '关联客户'}>
             <Select
-              allowClear placeholder="选择客户（可选）"
-              options={(customers ?? []).map((c: Record<string, string>) => ({ label: c.name, value: c.id }))}
+              allowClear placeholder={typeWatch === 'expense' ? '选择供应商（可选）' : '选择客户（可选）'}
+              options={typeWatch === 'expense'
+                ? (suppliers ?? []).map((s: Record<string, string>) => ({ label: s.name, value: s.id }))
+                : (customers ?? []).map((c: Record<string, string>) => ({ label: c.name, value: c.id }))
+              }
               showSearch filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>

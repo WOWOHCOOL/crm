@@ -78,6 +78,7 @@ export type RefType = 'purchase_order' | 'order' | null;
 export interface Transaction {
   id: string;
   customer_id: string | null;
+  supplier_id: string | null;
   account_id: string | null;
   type: TransactionType;
   amount: number;
@@ -90,6 +91,7 @@ export interface Transaction {
   ref_type: RefType;
   ref_id: string | null;
   customers?: Customer | null;
+  suppliers?: { name: string } | null;
   accounts?: Account | null;
 }
 
