@@ -381,7 +381,12 @@ export default function TransactionList() {
         title={editing ? '编辑流水' : '添加流水'}
         open={modalOpen}
         onCancel={closeModal}
-        onOk={() => form.submit()}
+        onOk={async () => {
+          try {
+            const values = await form.validateFields();
+            saveMutation.mutate(values);
+          } catch { /* validation failed, Ant Design shows errors inline */ }
+        }}
         confirmLoading={saveMutation.isPending}
         destroyOnClose
       >
