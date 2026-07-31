@@ -35,10 +35,25 @@ export interface FollowUp {
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense';
 
+export type EntityType = 'dongyixin' | 'dongyi' | 'private';
+
+export const ENTITY_LABELS: Record<EntityType, string> = {
+  dongyixin: '东易鑫',
+  dongyi: '东易',
+  private: '私账',
+};
+
+export const ENTITY_COLORS: Record<EntityType, string> = {
+  dongyixin: 'blue',
+  dongyi: 'green',
+  private: 'orange',
+};
+
 export interface Account {
   id: string;
   name: string;
   type: AccountType;
+  entity: EntityType | null;
   parent_id: string | null;
   created_at: string;
   user_id: string;
@@ -54,6 +69,7 @@ export interface Transaction {
   account_id: string | null;
   type: TransactionType;
   amount: number;
+  amount_usd: number | null;
   description: string | null;
   voucher_url: string | null;
   date: string;

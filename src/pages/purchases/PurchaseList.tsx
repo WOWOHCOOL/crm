@@ -152,6 +152,7 @@ export default function PurchaseList() {
             ref_type: 'purchase_order',
             ref_id: r.id,
             amount: String(r.total_amount || 0),
+            amount_usd: '0',
             type: 'expense',
             description: desc,
           });

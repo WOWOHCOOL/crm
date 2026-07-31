@@ -98,7 +98,11 @@ export default function Dashboard() {
     { title: '日期', dataIndex: 'date', key: 'date', width: 90 },
     { title: '类型', dataIndex: 'type', key: 'type', width: 55,
       render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'} style={{ borderRadius: 8 }}>{v === 'income' ? '收入' : '支出'}</Tag> },
-    { title: '金额', dataIndex: 'amount', key: 'amount', width: 100, render: (v: number) => <span style={{ fontWeight: 500 }}>¥{v.toFixed(2)}</span> },
+    { title: '金额', key: 'amount', width: 110, render: (_: unknown, r: Record<string, unknown>) => {
+      const rmb = Number(r.amount) || 0;
+      const usd = r.amount_usd ? Number(r.amount_usd) : null;
+      return <span><span style={{ fontWeight: 500 }}>¥{rmb.toFixed(2)}</span>{usd ? <span style={{ color: '#999', fontSize: 11, marginLeft: 4 }}>${usd.toFixed(2)}</span> : null}</span>;
+    } },
     { title: '科目', key: 'account', width: 80, render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
   ];
 

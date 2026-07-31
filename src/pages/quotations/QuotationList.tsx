@@ -125,6 +125,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             ref_type: 'pi',
             ref_id: r.id,
             amount: '0',
+            amount_usd: '0',
             type: 'income',
             description: desc,
           });

@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
 import { logOperation } from '../../utils/log';
+import { ENTITY_LABELS, ENTITY_COLORS } from '../../types';
 import dayjs from 'dayjs';
 
 export default function TransactionList() {
@@ -72,6 +73,7 @@ export default function TransactionList() {
         ref_id: refId,
         type: searchParams.get('type') || undefined,
         amount: Number(searchParams.get('amount')) || undefined,
+        amount_usd: Number(searchParams.get('amount_usd')) || undefined,
         description: searchParams.get('description') || undefined,
       });
     }
@@ -167,7 +169,7 @@ export default function TransactionList() {
   const { data: accounts } = useQuery({
     queryKey: ['accounts-select'],
     queryFn: async () => {
-      const { data } = await supabase.from('accounts').select('id,name,type');
+      const { data } = await supabase.from('accounts').select('id,name,type,entity');
       return data ?? [];
     },
   });
@@ -175,10 +177,14 @@ export default function TransactionList() {
   const saveMutation = useApiMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       const { voucher_file, ...rest } = values;
+      const rmb = rest.amount ? Number(rest.amount) : 0;
+      const usd = rest.amount_usd ? Number(rest.amount_usd) : null;
+      if (!rmb && !usd) throw new Error('请至少填写人民币或美元金额');
       const payload = {
         ...rest,
         date: rest.date ? dayjs(rest.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-        amount: Number(rest.amount),
+        amount: rmb,
+        amount_usd: usd,
       };
       if (editing) {
         const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string);
@@ -212,8 +218,17 @@ export default function TransactionList() {
       sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => (a.date as string).localeCompare(b.date as string) },
     { title: '类型', dataIndex: 'type', key: 'type', width: 80, onCell: () => ({ 'data-label': '类型' } as React.TdHTMLAttributes<any>),
       render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'}>{v === 'income' ? '收入' : '支出'}</Tag> },
-    { title: '金额', dataIndex: 'amount', key: 'amount', width: 120, onCell: () => ({ 'data-label': '金额' } as React.TdHTMLAttributes<any>),
-      render: (v: number) => <span style={{ fontWeight: 600 }}>¥{v.toFixed(2)}</span> },
+    { title: '金额', key: 'amount', width: 140, onCell: () => ({ 'data-label': '金额' } as React.TdHTMLAttributes<any>),
+      render: (_: unknown, r: Record<string, unknown>) => {
+        const rmb = Number(r.amount) || 0;
+        const usd = r.amount_usd ? Number(r.amount_usd) : null;
+        return (
+          <span>
+            <span style={{ fontWeight: 600 }}>¥{rmb.toFixed(2)}</span>
+            {usd ? <span style={{ color: '#999', fontSize: 12, marginLeft: 4 }}>${usd.toFixed(2)}</span> : null}
+          </span>
+        );
+      } },
     { title: '客户', key: 'customer', width: 100, onCell: () => ({ 'data-label': '客户' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => (r.customers as Record<string, string> | null)?.name ?? '-' },
     { title: '科目', key: 'account', width: 100, onCell: () => ({ 'data-label': '科目' } as React.TdHTMLAttributes<any>),
@@ -305,7 +320,7 @@ export default function TransactionList() {
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
-          scroll={{ x: 900 }}
+          scroll={{ x: 950 }}
         />
       </Card>
 
@@ -324,8 +339,15 @@ export default function TransactionList() {
               { label: '支出', value: 'expense' },
             ]} />
           </Form.Item>
-          <Form.Item name="amount" label="金额" rules={[{ required: true, message: '请输入金额' }]}>
-            <InputNumber min={0.01} step={0.01} precision={2} style={{ width: '100%' }} prefix="¥" />
+          <Form.Item label="金额" required>
+            <Space.Compact style={{ width: '100%' }}>
+              <Form.Item noStyle name="amount" rules={[{ type: 'number', min: 0 }]}>
+                <InputNumber min={0} step={0.01} precision={2} style={{ width: '50%' }} prefix="¥" placeholder="人民币" />
+              </Form.Item>
+              <Form.Item noStyle name="amount_usd">
+                <InputNumber min={0} step={0.01} precision={2} style={{ width: '50%' }} prefix="$" placeholder="美元" />
+              </Form.Item>
+            </Space.Compact>
           </Form.Item>
           <Form.Item name="date" label="日期" initialValue={dayjs()}>
             <DatePicker style={{ width: '100%' }} />
@@ -338,10 +360,25 @@ export default function TransactionList() {
             />
           </Form.Item>
           <Form.Item name="account_id" label="科目">
-            <Select
-              allowClear placeholder="选择科目（可选）"
-              options={(accounts ?? []).map((a: Record<string, string>) => ({ label: a.name, value: a.id }))}
-            />
+            <Select allowClear placeholder="选择科目（可选）">
+              {(accounts ?? []).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
+                const group = acc.find(g => g[0]?.entity === (a.entity || null));
+                const item = { entity: (a.entity as string) || null, id: a.id as string, name: a.name as string };
+                if (group) { group.push(item); } else { acc.push([item]); }
+                return acc;
+              }, []).map(group => {
+                const entity = group[0]?.entity as keyof typeof ENTITY_LABELS | null;
+                const label = entity ? ENTITY_LABELS[entity] : '未分类';
+                const color = entity ? ENTITY_COLORS[entity] : undefined;
+                return (
+                  <Select.OptGroup key={entity || '__untyped__'} label={<span style={{ color, fontWeight: 500 }}>{label}</span>}>
+                    {group.map(a => (
+                      <Select.Option key={a.id} value={a.id}>{a.name}</Select.Option>
+                    ))}
+                  </Select.OptGroup>
+                );
+              })}
+            </Select>
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} />

@@ -4,7 +4,8 @@ import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, 
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
-import type { Account, AccountType } from '../../types';
+import type { Account, AccountType, EntityType } from '../../types';
+import { ENTITY_LABELS, ENTITY_COLORS } from '../../types';
 import { logOperation } from '../../utils/log';
 
 async function getUserId() {
@@ -192,6 +193,10 @@ export default function AccountManage() {
       render: (v: AccountType) => <Tag color={typeColors[v]} style={{ borderRadius: 6 }}>{typeLabels[v]}</Tag>,
     },
     {
+      title: '归属主体', dataIndex: 'entity', key: 'entity', width: 100, onCell: () => ({ 'data-label': '归属主体' } as any),
+      render: (v: EntityType | null) => v ? <Tag color={ENTITY_COLORS[v]} style={{ borderRadius: 6 }}>{ENTITY_LABELS[v]}</Tag> : <span style={{ color: '#999' }}>-</span>,
+    },
+    {
       title: '操作', key: 'actions', width: 160,
       render: (_: unknown, record: Account) => (
         <Space>
@@ -222,7 +227,7 @@ export default function AccountManage() {
           rowKey="id"
           loading={isLoading}
           pagination={false}
-          scroll={{ x: 500 }}
+          scroll={{ x: 650 }}
         />
       </Card>
 
@@ -240,6 +245,12 @@ export default function AccountManage() {
           </Form.Item>
           <Form.Item name="type" label="类型" rules={[{ required: true, message: '请选择类型' }]}>
             <Select options={Object.entries(typeLabels).map(([value, label]) => ({ label, value }))} />
+          </Form.Item>
+          <Form.Item name="entity" label="归属主体">
+            <Select
+              allowClear placeholder="选择主体（可选）"
+              options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
+            />
           </Form.Item>
         </Form>
       </Modal>
