@@ -99,9 +99,19 @@ export default function TransactionList() {
 
   const openEdit = (record: Record<string, unknown>) => {
     setVoucherPreview((record.voucher_url as string) || null);
+    setAccountEntityFilter('');
+    form.resetFields();
     form.setFieldsValue({
-      ...record,
+      type: record.type,
+      amount: record.amount,
+      currency: record.currency,
       date: record.date ? dayjs(record.date as string) : dayjs(),
+      customer_id: record.customer_id || undefined,
+      account_id: record.account_id || undefined,
+      description: record.description,
+      voucher_url: record.voucher_url,
+      ref_type: record.ref_type,
+      ref_id: record.ref_id,
     });
     setModalParam({ edit: record.id as string, add: null });
   };
@@ -168,9 +178,19 @@ export default function TransactionList() {
   useEffect(() => {
     if (editing) {
       setVoucherPreview((editing.voucher_url as string) || null);
+      setAccountEntityFilter('');
+      form.resetFields();
       form.setFieldsValue({
-        ...editing,
+        type: editing.type,
+        amount: editing.amount,
+        currency: editing.currency,
         date: editing.date ? dayjs(editing.date as string) : dayjs(),
+        customer_id: editing.customer_id || undefined,
+        account_id: editing.account_id || undefined,
+        description: editing.description,
+        voucher_url: editing.voucher_url,
+        ref_type: editing.ref_type,
+        ref_id: editing.ref_id,
       });
     }
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -194,14 +214,19 @@ export default function TransactionList() {
 
   const saveMutation = useApiMutation({
     mutationFn: async (values: Record<string, unknown>) => {
-      const { voucher_file, ...rest } = values;
-      const amount = Number(rest.amount);
+      const amount = Number(values.amount);
       if (!amount || amount <= 0) throw new Error('请输入金额');
       const payload = {
-        ...rest,
-        date: rest.date ? dayjs(rest.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        type: values.type,
         amount,
-        currency: rest.currency || 'RMB',
+        currency: (values.currency as string) || 'RMB',
+        date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
+        customer_id: (values.customer_id as string) || null,
+        account_id: (values.account_id as string) || null,
+        description: (values.description as string) || null,
+        voucher_url: (values.voucher_url as string) || null,
+        ref_type: (values.ref_type as string) || null,
+        ref_id: (values.ref_id as string) || null,
       };
       if (editing) {
         const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string);
