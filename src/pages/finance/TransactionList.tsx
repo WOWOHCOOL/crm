@@ -386,8 +386,11 @@ export default function TransactionList() {
         onOk={async () => {
           try {
             const values = await form.validateFields();
+            console.log('[TransactionList] Save values:', values);
             saveMutation.mutate(values);
-          } catch { /* validation failed, Ant Design shows errors inline */ }
+          } catch (e) {
+            console.log('[TransactionList] Validation failed:', e);
+          }
         }}
         confirmLoading={saveMutation.isPending}
       >
@@ -419,40 +422,27 @@ export default function TransactionList() {
               showSearch filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>
-          <Form.Item label="科目">
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Select
-                style={{ width: 110, flexShrink: 0 }}
-                placeholder="主体"
-                allowClear
-                value={accountEntityFilter || undefined}
-                onChange={(v) => setAccountEntityFilter(v ?? '')}
-                options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
-              />
-              <Form.Item noStyle name="account_id">
-                <Select allowClear placeholder="选择科目（可选）" style={{ flex: 1 }}
-                  notFoundContent={accountEntityFilter ? <span style={{ color: '#999', fontSize: 12 }}>该主体下无科目，请去「科目管理」初始化</span> : null}
-                >
-                  {(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || !a.entity || a.entity === accountEntityFilter).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
-                const group = acc.find(g => g[0]?.entity === (a.entity || null));
-                const item = { entity: (a.entity as string) || null, id: a.id as string, name: a.name as string };
-                if (group) { group.push(item); } else { acc.push([item]); }
-                return acc;
-              }, []).map(group => {
-                const entity = group[0]?.entity as keyof typeof ENTITY_LABELS | null;
-                const label = entity ? ENTITY_LABELS[entity] : '未分类';
-                const color = entity ? ENTITY_COLORS[entity] : undefined;
-                return (
-                  <Select.OptGroup key={entity || '__untyped__'} label={<span style={{ color, fontWeight: 500 }}>{label}</span>}>
-                    {group.map(a => (
-                      <Select.Option key={a.id} value={a.id}>{a.name}</Select.Option>
-                    ))}
-                  </Select.OptGroup>
-                );
-              })}
-                </Select>
-              </Form.Item>
-            </div>
+          <Form.Item label="主体筛选">
+            <Select
+              allowClear
+              placeholder="全部主体"
+              value={accountEntityFilter || undefined}
+              onChange={(v) => setAccountEntityFilter(v ?? '')}
+              options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
+            />
+          </Form.Item>
+          <Form.Item name="account_id" label="科目">
+            <Select
+              allowClear
+              placeholder="选择科目（可选）"
+              showSearch
+              filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+              notFoundContent={accountEntityFilter ? <span style={{ color: '#999', fontSize: 12 }}>该主体下无科目，请去「科目管理」初始化</span> : null}
+              options={(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || !a.entity || a.entity === accountEntityFilter).map((a: Record<string, unknown>) => ({
+                label: `${a.name}${a.entity ? ` (${ENTITY_LABELS[a.entity as keyof typeof ENTITY_LABELS]})` : ''}`,
+                value: a.id as string,
+              }))}
+            />
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} />
