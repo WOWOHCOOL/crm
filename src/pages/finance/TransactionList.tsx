@@ -392,19 +392,17 @@ export default function TransactionList() {
               { label: '支出', value: 'expense' },
             ]} />
           </Form.Item>
-          <Form.Item label="金额" required>
-            <Space.Compact style={{ width: '100%' }}>
-              <Form.Item noStyle name="currency" initialValue="RMB" rules={[{ required: true }]}>
-                <Select style={{ width: 100 }} options={[
-                  { label: '¥ 人民币', value: 'RMB' },
-                  { label: '$ 美元', value: 'USD' },
-                ]} />
-              </Form.Item>
-              <Form.Item noStyle name="amount" rules={[{ required: true, message: '请输入金额' }]}>
-                <InputNumber min={0} step={0.01} precision={2} style={{ flex: 1 }} prefix={CURRENCY_SYMBOLS[(currencyWatch as CurrencyType) || 'RMB']} placeholder="金额" />
-              </Form.Item>
-            </Space.Compact>
-          </Form.Item>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Form.Item name="currency" label="币种" initialValue="RMB" rules={[{ required: true }]} style={{ width: 130, flexShrink: 0 }}>
+              <Select options={[
+                { label: '¥ 人民币', value: 'RMB' },
+                { label: '$ 美元', value: 'USD' },
+              ]} />
+            </Form.Item>
+            <Form.Item name="amount" label="金额" rules={[{ required: true, message: '请输入金额' }]} style={{ flex: 1 }}>
+              <InputNumber min={0} step={0.01} precision={2} style={{ width: '100%' }} prefix={CURRENCY_SYMBOLS[(currencyWatch as CurrencyType) || 'RMB']} placeholder="金额" />
+            </Form.Item>
+          </div>
           <Form.Item name="date" label="日期" initialValue={dayjs()}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
