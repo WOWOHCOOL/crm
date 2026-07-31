@@ -168,7 +168,16 @@ export default function TransactionList() {
       if (filters.dateRange[0]) query = query.gte('date', filters.dateRange[0]);
       if (filters.dateRange[1]) query = query.lte('date', filters.dateRange[1]);
 
-      const { data } = await query.limit(200);
+      const { data, error } = await query.limit(200);
+      if (error) {
+        // Fallback: supplier_id column might not exist yet
+        const fallback = await supabase
+          .from('transactions')
+          .select('*, customers(name), accounts(name,entity)')
+          .order('date', { ascending: false })
+          .limit(200);
+        return fallback.data ?? [];
+      }
       return data ?? [];
     },
   });
