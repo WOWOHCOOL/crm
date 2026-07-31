@@ -426,7 +426,9 @@ export default function TransactionList() {
                 options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
               />
               <Form.Item noStyle name="account_id">
-                <Select allowClear placeholder="选择科目（可选）" style={{ flex: 1 }}>
+                <Select allowClear placeholder="选择科目（可选）" style={{ flex: 1 }}
+                  notFoundContent={accountEntityFilter ? <span style={{ color: '#999', fontSize: 12 }}>该主体下无科目，请去「科目管理」初始化</span> : null}
+                >
                   {(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || !a.entity || a.entity === accountEntityFilter).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
                 const group = acc.find(g => g[0]?.entity === (a.entity || null));
                 const item = { entity: (a.entity as string) || null, id: a.id as string, name: a.name as string };
