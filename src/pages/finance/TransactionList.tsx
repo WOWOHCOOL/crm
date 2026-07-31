@@ -386,7 +386,7 @@ export default function TransactionList() {
               />
               <Form.Item noStyle name="account_id">
                 <Select allowClear placeholder="选择科目（可选）" style={{ flex: 1 }}>
-                  {(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || a.entity === accountEntityFilter).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
+                  {(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || !a.entity || a.entity === accountEntityFilter).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
                 const group = acc.find(g => g[0]?.entity === (a.entity || null));
                 const item = { entity: (a.entity as string) || null, id: a.id as string, name: a.name as string };
                 if (group) { group.push(item); } else { acc.push([item]); }
