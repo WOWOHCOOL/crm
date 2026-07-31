@@ -72,7 +72,6 @@ export default function PurchaseList() {
   });
 
   const handleStatusChange = async (id: string, newStatus: PurchaseStatus) => {
-    // 1. Update purchase order status
     const { data: updatedOrder, error: updateErr } = await supabase
       .from('purchase_orders')
       .update({ status: newStatus })
@@ -81,72 +80,8 @@ export default function PurchaseList() {
       .single();
     if (updateErr) { message.error(updateErr.message); return; }
 
-    // 2. Auto-create expense transaction when ordered/received
-    if (newStatus === 'ordered' || newStatus === 'received') {
-      const { data: order } = await supabase
-        .from('purchase_orders')
-        .select('*, suppliers(name)')
-        .eq('id', id)
-        .single();
-      if (!order) return;
-
-      // Check if transaction already exists
-      const { data: existing } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('ref_type', 'purchase_order')
-        .eq('ref_id', id)
-        .maybeSingle();
-
-      if (!existing) {
-        // Find "商品采购成本" account, fallback to first expense account
-        const { data: accounts } = await supabase
-          .from('accounts')
-          .select('id')
-          .eq('name', '商品采购成本')
-          .limit(1);
-        let accountId = accounts?.[0]?.id || null;
-        if (!accountId) {
-          const { data: fallback } = await supabase
-            .from('accounts')
-            .select('id')
-            .eq('type', 'expense')
-            .order('created_at')
-            .limit(1);
-          accountId = fallback?.[0]?.id || null;
-        }
-
-        const { data: { user } } = await supabase.auth.getUser();
-        const supplierName = (order as any).suppliers?.name || '';
-
-        const { error: txErr } = await supabase.from('transactions').insert([{
-          type: 'expense',
-          amount: order.total_amount || 0,
-          description: `采购单 ${order.order_no} - ${supplierName}`,
-          date: order.order_date,
-          account_id: accountId,
-          ref_type: 'purchase_order',
-          ref_id: id,
-          user_id: user?.id,
-        }]);
-        if (txErr) console.error('Failed to create transaction:', txErr);
-      }
-    }
-
-    // 3. Remove linked transaction if cancelled
-    if (newStatus === 'cancelled') {
-      await supabase
-        .from('transactions')
-        .delete()
-        .eq('ref_type', 'purchase_order')
-        .eq('ref_id', id);
-    }
-
     queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
     queryClient.invalidateQueries({ queryKey: ['purchase-linked-txns'] });
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     message.success(`状态已更新为「${statusLabels[newStatus]}」`);
     logOperation('purchase_order', 'status_change', id, `${updatedOrder?.order_no || ''} → ${newStatus}`);
   };
@@ -197,19 +132,37 @@ export default function PurchaseList() {
       render: (v: PurchaseStatus) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
     },
     {
-      title: '财务', key: 'finance', width: 60,
-      render: (_: unknown, r: PurchaseOrder) => {
+      title: '财务', key: 'finance', width: 80,
+      render: (_: unknown, r: PurchaseOrder & { suppliers: { name: string } | null }) => {
         const tx = linkedTxns?.[r.id];
-        const inFinancialStatus = r.status === 'ordered' || r.status === 'partial' || r.status === 'received';
-        return tx ? (
-          <Tag color="green" style={{ borderRadius: 6 }}>
-            <DollarOutlined /> 已记账
-          </Tag>
-        ) : inFinancialStatus ? (
-          <Tag color="orange" style={{ borderRadius: 6 }}>
-            <DollarOutlined /> 待记账
-          </Tag>
-        ) : null;
+        const needsAccounting = r.status === 'ordered' || r.status === 'partial' || r.status === 'received';
+        if (tx) {
+          return (
+            <Tag color="green" style={{ borderRadius: 6, cursor: 'pointer' }}
+              onClick={() => navigate(`/finance?edit=${tx.id}`)}>
+              <DollarOutlined /> 已记账
+            </Tag>
+          );
+        }
+        if (needsAccounting) {
+          const supplierName = r.suppliers?.name || '';
+          const desc = `采购单 ${r.order_no}${supplierName ? ` - ${supplierName}` : ''}`;
+          const params = new URLSearchParams({
+            add: '1',
+            ref_type: 'purchase_order',
+            ref_id: r.id,
+            amount: String(r.total_amount || 0),
+            type: 'expense',
+            description: desc,
+          });
+          return (
+            <Button size="small" type="primary" ghost icon={<DollarOutlined />}
+              onClick={() => navigate(`/finance?${params.toString()}`)}>
+              记账
+            </Button>
+          );
+        }
+        return null;
       },
     },
     {

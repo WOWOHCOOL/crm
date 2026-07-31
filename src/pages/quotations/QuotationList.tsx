@@ -45,77 +45,19 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
     enabled: piIds.length > 0,
   });
 
-  // PI status change + auto-create income transaction
+  // PI status change (manual accounting — no auto transaction)
   const handlePiStatusChange = async (id: string, newStatus: string) => {
     const { data: pi, error: updateErr } = await supabase
       .from('quotations')
       .update({ status: newStatus })
       .eq('id', id)
-      .select('*, quotation_items(*)')
+      .select('quotation_no')
       .single();
     if (updateErr) { message.error(updateErr.message); return; }
 
-    if (newStatus === 'sent') {
-      // Check if transaction already exists
-      const { data: existing } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('ref_type', 'pi')
-        .eq('ref_id', id)
-        .maybeSingle();
-
-      if (!existing) {
-        // Find "商品销售收入" account, fallback to first income account
-        const { data: accounts } = await supabase
-          .from('accounts')
-          .select('id')
-          .eq('name', '商品销售收入')
-          .limit(1);
-        let accountId = accounts?.[0]?.id || null;
-        if (!accountId) {
-          const { data: fallback } = await supabase
-            .from('accounts')
-            .select('id')
-            .eq('type', 'income')
-            .order('created_at')
-            .limit(1);
-          accountId = fallback?.[0]?.id || null;
-        }
-
-        const { data: { user } } = await supabase.auth.getUser();
-        // Calculate total from items
-        const items = (pi.quotation_items ?? []) as QuotationItem[];
-        const totalAmount = items.reduce((s, i) => s + (i.unit_price_rmb || 0) * i.quantity, 0);
-
-        const { error: txErr } = await supabase.from('transactions').insert([{
-          type: 'income',
-          amount: totalAmount,
-          description: `PI ${pi.quotation_no} - ${pi.customer_company || ''}`,
-          date: new Date().toISOString().split('T')[0],
-          customer_id: pi.customer_id,
-          account_id: accountId,
-          ref_type: 'pi',
-          ref_id: id,
-          user_id: user?.id,
-        }]);
-        if (txErr) console.error('Failed to create transaction:', txErr);
-      }
-    }
-
-    if (newStatus === 'draft') {
-      await supabase
-        .from('transactions')
-        .delete()
-        .eq('ref_type', 'pi')
-        .eq('ref_id', id);
-    }
-
     queryClient.invalidateQueries({ queryKey: ['quotations'] });
     queryClient.invalidateQueries({ queryKey: ['pi-linked-txns'] });
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-    message.success(newStatus === 'sent' ? 'PI 已发送，收入流水已生成' : 'PI 已撤回');
+    message.success(newStatus === 'sent' ? 'PI 已标记为已发送' : 'PI 已撤回草稿');
     logOperation('pi', 'status_change', id, `${pi.quotation_no} → ${newStatus}`);
   };
 
@@ -127,14 +69,12 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
   const deleteMutation = useApiMutation({
     mutationFn: async (id: string) => {
       const { data: q } = await supabase.from('quotations').select('quotation_no,type').eq('id', id).single();
-      // Also clean up linked transaction
-      await supabase.from('transactions').delete().eq('ref_type', 'pi').eq('ref_id', id);
       const { error } = await supabase.from('quotations').delete().eq('id', id);
       if (error) throw error;
       return q as { quotation_no: string; type: string } | null;
     },
     successMsg: '已删除',
-    invalidateKeys: [['quotations'], ['pi-linked-txns'], ['transactions'], ['recent-transactions'], ['dashboard-stats']],
+    invalidateKeys: [['quotations'], ['pi-linked-txns']],
     onSuccess: (data) => {
       logOperation(data?.type === 'pi' ? 'pi' : 'quotation', 'delete', undefined, data?.quotation_no || '');
     },
@@ -167,14 +107,35 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
     { title: '日期', dataIndex: 'created_at', key: 'created_at', width: 120, render: (v: string) => new Date(v).toLocaleDateString('zh-CN'), onCell: () => ({ 'data-label': '日期' } as React.TdHTMLAttributes<unknown>) },
     { title: '状态', dataIndex: 'status', key: 'status', width: 80, render: (v: string) => <Tag color={v === 'sent' ? 'green' : 'default'}>{v === 'draft' ? '草稿' : '已发送'}</Tag>, onCell: () => ({ 'data-label': '状态' } as React.TdHTMLAttributes<unknown>) },
     ...(listType === 'pi' ? [{
-      title: '财务', key: 'finance', width: 60,
+      title: '财务', key: 'finance', width: 80,
       render: (_: unknown, r: Quotation) => {
         const tx = linkedTxns?.[r.id];
-        return tx ? (
-          <Tag color="green" style={{ borderRadius: 6 }}><DollarOutlined /> 已记账</Tag>
-        ) : r.status === 'sent' ? (
-          <Tag color="orange" style={{ borderRadius: 6 }}><DollarOutlined /> 待记账</Tag>
-        ) : null;
+        if (tx) {
+          return (
+            <Tag color="green" style={{ borderRadius: 6, cursor: 'pointer' }}
+              onClick={() => navigate(`/finance?edit=${tx.id}`)}>
+              <DollarOutlined /> 已记账
+            </Tag>
+          );
+        }
+        if (r.status === 'sent') {
+          const desc = `PI ${r.quotation_no}${r.customer_company ? ` - ${r.customer_company}` : ''}`;
+          const params = new URLSearchParams({
+            add: '1',
+            ref_type: 'pi',
+            ref_id: r.id,
+            amount: '0',
+            type: 'income',
+            description: desc,
+          });
+          return (
+            <Button size="small" type="primary" ghost icon={<DollarOutlined />}
+              onClick={() => navigate(`/finance?${params.toString()}`)}>
+              记账
+            </Button>
+          );
+        }
+        return null;
       },
     }] : []),
     {
@@ -197,7 +158,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             </Button>
           )}
           {listType === 'pi' && record.status === 'sent' && (
-            <Popconfirm title="撤回后将删除关联的收入流水，确定撤回？"
+            <Popconfirm title="确定将 PI 撤回草稿状态？"
               onConfirm={() => piStatusMutation.mutate({ id: record.id, newStatus: 'draft' })}>
               <Button size="small">撤回草稿</Button>
             </Popconfirm>
