@@ -443,7 +443,7 @@ export default function TransactionList() {
               showSearch
               filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
               notFoundContent={accountEntityFilter ? <span style={{ color: '#999', fontSize: 12 }}>该主体下无科目，请去「科目管理」初始化</span> : null}
-              options={(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || !a.entity || a.entity === accountEntityFilter).map((a: Record<string, unknown>) => ({
+              options={(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || a.entity === accountEntityFilter).map((a: Record<string, unknown>) => ({
                 label: `${a.name}${a.entity ? ` (${ENTITY_LABELS[a.entity as keyof typeof ENTITY_LABELS]})` : ''}`,
                 value: a.id as string,
               }))}
