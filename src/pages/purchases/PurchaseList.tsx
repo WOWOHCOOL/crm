@@ -71,16 +71,24 @@ export default function PurchaseList() {
     enabled: !!orders && orders.length > 0,
   });
 
-  // Match supplier names to customer IDs for quick-bookkeep
+  // Match supplier names to customer IDs for quick-bookkeep (case-insensitive)
   const { data: supplierCustomerMap } = useQuery({
     queryKey: ['supplier-customer-map', orders],
     queryFn: async () => {
       if (!orders || orders.length === 0) return {};
-      const names = [...new Set(orders.map(o => o.suppliers?.name).filter(Boolean) as string[])];
-      if (names.length === 0) return {};
-      const { data: customers } = await supabase.from('customers').select('id,name').in('name', names);
+      const { data: customers } = await supabase.from('customers').select('id,name');
       const map: Record<string, string> = {};
-      (customers ?? []).forEach((c: { id: string; name: string }) => { map[c.name] = c.id; });
+      // Build lowercase lookup: customer name (lowercase) → customer id
+      const custLowerMap: Record<string, string> = {};
+      (customers ?? []).forEach((c: { id: string; name: string }) => {
+        custLowerMap[c.name.toLowerCase().trim()] = c.id;
+      });
+      // Match each supplier name to a customer
+      const supplierNames = [...new Set(orders.map(o => o.suppliers?.name).filter(Boolean) as string[])];
+      supplierNames.forEach(name => {
+        const cid = custLowerMap[name.toLowerCase().trim()];
+        if (cid) map[name] = cid;
+      });
       return map;
     },
     enabled: !!orders && orders.length > 0,

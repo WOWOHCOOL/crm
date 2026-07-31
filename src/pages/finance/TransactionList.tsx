@@ -64,22 +64,31 @@ export default function TransactionList() {
     setSearchParams(next, { replace: true });
   };
 
-  // Shared pre-fill logic for URL params (记账 button from PO/PI)
+  // Shared pre-fill from URL params (记账 button from PO/PI)
   const applyPrefill = () => {
     const refType = searchParams.get('ref_type');
     const refId = searchParams.get('ref_id');
-    if (refType && refId) {
-      form.setFieldsValue({
-        ref_type: refType,
-        ref_id: refId,
-        type: searchParams.get('type') || undefined,
-        currency: searchParams.get('currency') || 'RMB',
-        amount: Number(searchParams.get('amount')) || undefined,
-        description: searchParams.get('description') || undefined,
-        customer_id: searchParams.get('customer_id') || undefined,
-      });
-    }
+    if (!refType || !refId) return;
+    form.setFieldsValue({
+      ref_type: refType,
+      ref_id: refId,
+      type: searchParams.get('type') || undefined,
+      currency: searchParams.get('currency') || 'RMB',
+      amount: Number(searchParams.get('amount')) || undefined,
+      description: searchParams.get('description') || undefined,
+      customer_id: searchParams.get('customer_id') || undefined,
+    });
   };
+
+  // On mount: if opened from external link, reset + pre-fill
+  useEffect(() => {
+    if (isAdding) {
+      setVoucherPreview(null);
+      setAccountEntityFilter('');
+      form.resetFields();
+      applyPrefill();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openAdd = () => {
     setVoucherPreview(null);
@@ -87,15 +96,6 @@ export default function TransactionList() {
     form.resetFields();
     setModalParam({ add: '1', edit: null });
   };
-
-  // Pre-fill when modal opens (from button click or external link)
-  const prevAdding = useRef(false);
-  useEffect(() => {
-    if (isAdding && !prevAdding.current) {
-      applyPrefill();
-    }
-    prevAdding.current = isAdding;
-  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openEdit = (record: Record<string, unknown>) => {
     setVoucherPreview((record.voucher_url as string) || null);
@@ -373,7 +373,7 @@ export default function TransactionList() {
                 ]} />
               </Form.Item>
               <Form.Item noStyle name="amount" rules={[{ required: true, message: '请输入金额' }]}>
-                <InputNumber min={0.01} step={0.01} precision={2} style={{ flex: 1 }} prefix={CURRENCY_SYMBOLS[(currencyWatch as CurrencyType) || 'RMB']} placeholder="金额" />
+                <InputNumber min={0} step={0.01} precision={2} style={{ flex: 1 }} prefix={CURRENCY_SYMBOLS[(currencyWatch as CurrencyType) || 'RMB']} placeholder="金额" />
               </Form.Item>
             </Space.Compact>
           </Form.Item>
