@@ -159,7 +159,7 @@ export default function TransactionList() {
     queryFn: async () => {
       let query = supabase
         .from('transactions')
-        .select('*, customers(name), accounts(name)')
+        .select('*, customers(name), accounts(name,entity)')
         .order('date', { ascending: false });
 
       if (filters.type) query = query.eq('type', filters.type);
@@ -276,8 +276,13 @@ export default function TransactionList() {
       } },
     { title: '客户', key: 'customer', width: 100, onCell: () => ({ 'data-label': '客户' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => (r.customers as Record<string, string> | null)?.name ?? '-' },
-    { title: '科目', key: 'account', width: 100, onCell: () => ({ 'data-label': '科目' } as React.TdHTMLAttributes<any>),
-      render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
+    { title: '科目', key: 'account', width: 140, onCell: () => ({ 'data-label': '科目' } as React.TdHTMLAttributes<any>),
+      render: (_: unknown, r: Record<string, unknown>) => {
+        const acc = r.accounts as Record<string, string> | null;
+        if (!acc) return '-';
+        const entity = acc.entity as keyof typeof ENTITY_LABELS | undefined;
+        return <span>{acc.name}{entity ? <Tag color={ENTITY_COLORS[entity]} style={{ marginLeft: 4, borderRadius: 4, fontSize: 11 }}>{ENTITY_LABELS[entity]}</Tag> : null}</span>;
+      } },
     {
       title: '来源', key: 'source', width: 100, onCell: () => ({ 'data-label': '来源' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => {
