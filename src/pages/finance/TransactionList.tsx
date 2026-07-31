@@ -422,15 +422,17 @@ export default function TransactionList() {
               showSearch filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>
-          <Form.Item label="主体筛选">
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 4, fontSize: 14 }}>主体筛选</div>
             <Select
               allowClear
+              style={{ width: '100%' }}
               placeholder="全部主体"
               value={accountEntityFilter || undefined}
               onChange={(v) => setAccountEntityFilter(v ?? '')}
               options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
             />
-          </Form.Item>
+          </div>
           <Form.Item name="account_id" label="科目">
             <Select
               allowClear
