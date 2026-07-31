@@ -71,6 +71,21 @@ export default function PurchaseList() {
     enabled: !!orders && orders.length > 0,
   });
 
+  // Match supplier names to customer IDs for quick-bookkeep
+  const { data: supplierCustomerMap } = useQuery({
+    queryKey: ['supplier-customer-map', orders],
+    queryFn: async () => {
+      if (!orders || orders.length === 0) return {};
+      const names = [...new Set(orders.map(o => o.suppliers?.name).filter(Boolean) as string[])];
+      if (names.length === 0) return {};
+      const { data: customers } = await supabase.from('customers').select('id,name').in('name', names);
+      const map: Record<string, string> = {};
+      (customers ?? []).forEach((c: { id: string; name: string }) => { map[c.name] = c.id; });
+      return map;
+    },
+    enabled: !!orders && orders.length > 0,
+  });
+
   const handleStatusChange = async (id: string, newStatus: PurchaseStatus) => {
     const { data: updatedOrder, error: updateErr } = await supabase
       .from('purchase_orders')
@@ -147,6 +162,7 @@ export default function PurchaseList() {
         if (needsAccounting) {
           const supplierName = r.suppliers?.name || '';
           const desc = `采购单 ${r.order_no}${supplierName ? ` - ${supplierName}` : ''}`;
+          const custId = supplierName ? supplierCustomerMap?.[supplierName] : undefined;
           const params = new URLSearchParams({
             add: '1',
             ref_type: 'purchase_order',
@@ -156,6 +172,7 @@ export default function PurchaseList() {
             type: 'expense',
             description: desc,
           });
+          if (custId) params.set('customer_id', custId);
           return (
             <Button size="small" type="primary" ghost icon={<DollarOutlined />}
               onClick={() => navigate(`/finance?${params.toString()}`)}>
