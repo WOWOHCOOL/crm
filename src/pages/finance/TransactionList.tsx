@@ -9,18 +9,20 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
 import { logOperation } from '../../utils/log';
-import { ENTITY_LABELS, ENTITY_COLORS } from '../../types';
+import { ENTITY_LABELS, ENTITY_COLORS, CURRENCY_SYMBOLS, CURRENCY_LABELS } from '../../types';
+import type { CurrencyType } from '../../types';
 import dayjs from 'dayjs';
 
 export default function TransactionList() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [filters, setFilters] = useState({ type: '', dateRange: [] as string[] });
+  const [filters, setFilters] = useState({ type: '', currency: '' as string, dateRange: [] as string[] });
   const [searchParams, setSearchParams] = useSearchParams();
   const editId = searchParams.get('edit') || undefined;
   const isAdding = searchParams.get('add') === '1';
   const modalOpen = !!editId || isAdding;
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+  const currencyWatch = Form.useWatch('currency', form);
 
   // Restore draft from sessionStorage on mount (add mode only)
   useEffect(() => {
@@ -72,8 +74,8 @@ export default function TransactionList() {
         ref_type: refType,
         ref_id: refId,
         type: searchParams.get('type') || undefined,
+        currency: searchParams.get('currency') || 'RMB',
         amount: Number(searchParams.get('amount')) || undefined,
-        amount_usd: Number(searchParams.get('amount_usd')) || undefined,
         description: searchParams.get('description') || undefined,
       });
     }
@@ -134,6 +136,7 @@ export default function TransactionList() {
         .order('date', { ascending: false });
 
       if (filters.type) query = query.eq('type', filters.type);
+      if (filters.currency) query = query.eq('currency', filters.currency);
       if (filters.dateRange[0]) query = query.gte('date', filters.dateRange[0]);
       if (filters.dateRange[1]) query = query.lte('date', filters.dateRange[1]);
 
@@ -177,14 +180,13 @@ export default function TransactionList() {
   const saveMutation = useApiMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       const { voucher_file, ...rest } = values;
-      const rmb = rest.amount ? Number(rest.amount) : 0;
-      const usd = rest.amount_usd ? Number(rest.amount_usd) : null;
-      if (!rmb && !usd) throw new Error('请至少填写人民币或美元金额');
+      const amount = Number(rest.amount);
+      if (!amount || amount <= 0) throw new Error('请输入金额');
       const payload = {
         ...rest,
         date: rest.date ? dayjs(rest.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-        amount: rmb,
-        amount_usd: usd,
+        amount,
+        currency: rest.currency || 'RMB',
       };
       if (editing) {
         const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string);
@@ -199,8 +201,9 @@ export default function TransactionList() {
     invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
       closeModal();
+      const sym = CURRENCY_SYMBOLS[values.currency as CurrencyType] || '¥';
       logOperation('transaction', editing ? 'update' : 'create', undefined,
-        `${values.type === 'income' ? '收入' : '支出'} ¥${values.amount}`);
+        `${values.type === 'income' ? '收入' : '支出'} ${sym}${values.amount}`);
     },
   });
 
@@ -218,16 +221,12 @@ export default function TransactionList() {
       sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => (a.date as string).localeCompare(b.date as string) },
     { title: '类型', dataIndex: 'type', key: 'type', width: 80, onCell: () => ({ 'data-label': '类型' } as React.TdHTMLAttributes<any>),
       render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'}>{v === 'income' ? '收入' : '支出'}</Tag> },
-    { title: '金额', key: 'amount', width: 140, onCell: () => ({ 'data-label': '金额' } as React.TdHTMLAttributes<any>),
+    { title: '金额', key: 'amount', width: 120, onCell: () => ({ 'data-label': '金额' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => {
-        const rmb = Number(r.amount) || 0;
-        const usd = r.amount_usd ? Number(r.amount_usd) : null;
-        return (
-          <span>
-            <span style={{ fontWeight: 600 }}>¥{rmb.toFixed(2)}</span>
-            {usd ? <span style={{ color: '#999', fontSize: 12, marginLeft: 4 }}>${usd.toFixed(2)}</span> : null}
-          </span>
-        );
+        const currency = (r.currency as CurrencyType) || 'RMB';
+        const sym = CURRENCY_SYMBOLS[currency] || '¥';
+        const color = currency === 'USD' ? '#1677ff' : undefined;
+        return <span style={{ fontWeight: 600, color }}>{sym}{Number(r.amount || 0).toFixed(2)}</span>;
       } },
     { title: '客户', key: 'customer', width: 100, onCell: () => ({ 'data-label': '客户' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => (r.customers as Record<string, string> | null)?.name ?? '-' },
@@ -291,12 +290,23 @@ export default function TransactionList() {
             <Select
               placeholder="全部类型"
               allowClear
-              style={{ width: 120 }}
+              style={{ width: 100 }}
               value={filters.type || undefined}
               onChange={(v) => setFilters({ ...filters, type: v ?? '' })}
               options={[
                 { label: '收入', value: 'income' },
                 { label: '支出', value: 'expense' },
+              ]}
+            />
+            <Select
+              placeholder="全部币种"
+              allowClear
+              style={{ width: 110 }}
+              value={filters.currency || undefined}
+              onChange={(v) => setFilters({ ...filters, currency: v ?? '' })}
+              options={[
+                { label: '¥ 人民币', value: 'RMB' },
+                { label: '$ 美元', value: 'USD' },
               ]}
             />
             <DatePicker.RangePicker
@@ -341,11 +351,14 @@ export default function TransactionList() {
           </Form.Item>
           <Form.Item label="金额" required>
             <Space.Compact style={{ width: '100%' }}>
-              <Form.Item noStyle name="amount" rules={[{ type: 'number', min: 0 }]}>
-                <InputNumber min={0} step={0.01} precision={2} style={{ width: '50%' }} prefix="¥" placeholder="人民币" />
+              <Form.Item noStyle name="currency" initialValue="RMB" rules={[{ required: true }]}>
+                <Select style={{ width: 100 }} options={[
+                  { label: '¥ 人民币', value: 'RMB' },
+                  { label: '$ 美元', value: 'USD' },
+                ]} />
               </Form.Item>
-              <Form.Item noStyle name="amount_usd">
-                <InputNumber min={0} step={0.01} precision={2} style={{ width: '50%' }} prefix="$" placeholder="美元" />
+              <Form.Item noStyle name="amount" rules={[{ required: true, message: '请输入金额' }]}>
+                <InputNumber min={0.01} step={0.01} precision={2} style={{ flex: 1 }} prefix={CURRENCY_SYMBOLS[(currencyWatch as CurrencyType) || 'RMB']} placeholder="金额" />
               </Form.Item>
             </Space.Compact>
           </Form.Item>

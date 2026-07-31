@@ -61,6 +61,18 @@ export interface Account {
 
 export type TransactionType = 'income' | 'expense';
 
+export type CurrencyType = 'RMB' | 'USD';
+
+export const CURRENCY_SYMBOLS: Record<CurrencyType, string> = {
+  RMB: '¥',
+  USD: '$',
+};
+
+export const CURRENCY_LABELS: Record<CurrencyType, string> = {
+  RMB: '人民币',
+  USD: '美元',
+};
+
 export type RefType = 'purchase_order' | 'order' | null;
 
 export interface Transaction {
@@ -69,7 +81,7 @@ export interface Transaction {
   account_id: string | null;
   type: TransactionType;
   amount: number;
-  amount_usd: number | null;
+  currency: CurrencyType;
   description: string | null;
   voucher_url: string | null;
   date: string;

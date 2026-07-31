@@ -99,9 +99,10 @@ export default function Dashboard() {
     { title: '类型', dataIndex: 'type', key: 'type', width: 55,
       render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'} style={{ borderRadius: 8 }}>{v === 'income' ? '收入' : '支出'}</Tag> },
     { title: '金额', key: 'amount', width: 110, render: (_: unknown, r: Record<string, unknown>) => {
-      const rmb = Number(r.amount) || 0;
-      const usd = r.amount_usd ? Number(r.amount_usd) : null;
-      return <span><span style={{ fontWeight: 500 }}>¥{rmb.toFixed(2)}</span>{usd ? <span style={{ color: '#999', fontSize: 11, marginLeft: 4 }}>${usd.toFixed(2)}</span> : null}</span>;
+      const currency = (r.currency as string) || 'RMB';
+      const sym = currency === 'USD' ? '$' : '¥';
+      const color = currency === 'USD' ? '#1677ff' : undefined;
+      return <span style={{ fontWeight: 500, color }}>{sym}{Number(r.amount || 0).toFixed(2)}</span>;
     } },
     { title: '科目', key: 'account', width: 80, render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
   ];

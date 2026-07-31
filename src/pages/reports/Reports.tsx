@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Spin, DatePicker, Button, Space, Tag } from 'antd';
+import { useState, useMemo } from 'react';
+import { Card, Row, Col, Statistic, Table, Spin, DatePicker, Button, Space, Tag, Select } from 'antd';
 import { DownloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -9,6 +9,8 @@ import {
 } from 'recharts';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+import { ENTITY_LABELS, CURRENCY_SYMBOLS } from '../../types';
+import type { CurrencyType, EntityType } from '../../types';
 
 // ── Premium Color Palette ──
 const COLORS = {
@@ -32,7 +34,7 @@ const COLORS = {
 const CHART_COLORS = [COLORS.gold, COLORS.blue, COLORS.green, COLORS.orange, COLORS.purple, COLORS.cyan, COLORS.pink, COLORS.indigo, COLORS.red, '#14b8a6'];
 const PIE_COLORS = ['#d4a843', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1', '#ef4444', '#14b8a6', '#f97316', '#84cc16'];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, sym = '¥' }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
@@ -43,27 +45,45 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       {payload.map((p: any, i: number) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
-          {p.name}: ¥{Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+          {p.name}: {sym}{Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
         </div>
       ))}
     </div>
   );
 };
 
-const formatY = (v: number) => v >= 10000 ? `¥${(v / 10000).toFixed(1)}w` : `¥${v.toFixed(0)}`;
+const formatY = (v: number, sym = '¥') => v >= 10000 ? `${sym}${(v / 10000).toFixed(1)}w` : `${sym}${v.toFixed(0)}`;
 
 export default function ReportPage() {
   const [year, setYear] = useState(dayjs().year());
+  const [currencyFilter, setCurrencyFilter] = useState<string>('');
+  const [entityFilter, setEntityFilter] = useState<string>('');
+
+  // Fetch account IDs for entity filter
+  const { data: entityAccountIds } = useQuery({
+    queryKey: ['entity-account-ids', entityFilter],
+    queryFn: async () => {
+      if (!entityFilter) return null;
+      const { data } = await supabase.from('accounts').select('id').eq('entity', entityFilter);
+      return (data ?? []).map((a: { id: string }) => a.id);
+    },
+    enabled: !!entityFilter,
+  });
+
+  const currencySym = currencyFilter ? CURRENCY_SYMBOLS[currencyFilter as CurrencyType] : '¥';
+  const currencyLabel = currencyFilter ? (currencyFilter === 'USD' ? '美元' : '人民币') : '全部币种';
+  const entityLabel = entityFilter ? ENTITY_LABELS[entityFilter as EntityType] : '全部主体';
 
   const { data: monthlyData, isLoading } = useQuery({
-    queryKey: ['monthly-report', year],
+    queryKey: ['monthly-report', year, currencyFilter, entityFilter],
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      const [{ data: incomes }, { data: expenses }] = await Promise.all([
-        supabase.from('transactions').select('date,amount').eq('type', 'income').gte('date', start).lte('date', end),
-        supabase.from('transactions').select('date,amount').eq('type', 'expense').gte('date', start).lte('date', end),
-      ]);
+      let incQ = supabase.from('transactions').select('date,amount').eq('type', 'income').gte('date', start).lte('date', end);
+      let expQ = supabase.from('transactions').select('date,amount').eq('type', 'expense').gte('date', start).lte('date', end);
+      if (currencyFilter) { incQ = incQ.eq('currency', currencyFilter); expQ = expQ.eq('currency', currencyFilter); }
+      if (entityAccountIds) { incQ = incQ.in('account_id', entityAccountIds); expQ = expQ.in('account_id', entityAccountIds); }
+      const [{ data: incomes }, { data: expenses }] = await Promise.all([incQ, expQ]);
       const months = Array.from({ length: 12 }, (_, i) => {
         const m = String(i + 1).padStart(2, '0');
         const inc = (incomes ?? []).filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
@@ -75,11 +95,14 @@ export default function ReportPage() {
   });
 
   const { data: accountData } = useQuery({
-    queryKey: ['account-breakdown', year],
+    queryKey: ['account-breakdown', year, currencyFilter, entityFilter],
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      const { data } = await supabase.from('transactions').select('amount,type,accounts(name)').gte('date', start).lte('date', end);
+      let query = supabase.from('transactions').select('amount,type,accounts(name,entity)').gte('date', start).lte('date', end);
+      if (currencyFilter) query = query.eq('currency', currencyFilter);
+      if (entityAccountIds) query = query.in('account_id', entityAccountIds);
+      const { data } = await query;
       const im: Record<string, number> = {}, em: Record<string, number> = {};
       (data ?? []).forEach((t: any) => {
         const name = (t.accounts as any)?.name ?? '未分类';
@@ -94,11 +117,14 @@ export default function ReportPage() {
   });
 
   const { data: customerRank } = useQuery({
-    queryKey: ['customer-rank', year],
+    queryKey: ['customer-rank', year, currencyFilter, entityFilter],
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      const { data } = await supabase.from('transactions').select('amount,customers(name)').eq('type', 'income').gte('date', start).lte('date', end);
+      let query = supabase.from('transactions').select('amount,customers(name)').eq('type', 'income').gte('date', start).lte('date', end);
+      if (currencyFilter) query = query.eq('currency', currencyFilter);
+      if (entityAccountIds) query = query.in('account_id', entityAccountIds);
+      const { data } = await query;
       const map: Record<string, number> = {};
       (data ?? []).forEach((t: any) => { const n = (t.customers as any)?.name ?? '未关联'; map[n] = (map[n] ?? 0) + Number(t.amount); });
       return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, amount], i) => ({ rank: i + 1, name, amount }));
@@ -127,7 +153,26 @@ export default function ReportPage() {
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: COLORS.text }}>财务报表</h2>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: COLORS.muted }}>{year}年 财务数据汇总</p>
         </div>
-        <Space>
+        <Space wrap>
+          <Select
+            style={{ width: 110 }}
+            value={currencyFilter || undefined}
+            placeholder="全部币种"
+            allowClear
+            onChange={(v) => setCurrencyFilter(v ?? '')}
+            options={[
+              { label: '¥ 人民币', value: 'RMB' },
+              { label: '$ 美元', value: 'USD' },
+            ]}
+          />
+          <Select
+            style={{ width: 110 }}
+            value={entityFilter || undefined}
+            placeholder="全部主体"
+            allowClear
+            onChange={(v) => setEntityFilter(v ?? '')}
+            options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
+          />
           <DatePicker picker="year" value={dayjs(`${year}`)} onChange={(d) => setYear(d?.year() ?? dayjs().year())} />
           <Button icon={<DownloadOutlined />} onClick={handleExport}>导出 Excel</Button>
         </Space>
@@ -136,9 +181,9 @@ export default function ReportPage() {
       {/* ── KPI Row ── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
-          { label: '年度收入', value: monthlyData?.totalIncome ?? 0, prefix: '¥', color: COLORS.green, icon: <ArrowUpOutlined />, bg: '#ecfdf5' },
-          { label: '年度支出', value: monthlyData?.totalExpense ?? 0, prefix: '¥', color: COLORS.red, icon: <ArrowDownOutlined />, bg: '#fef2f2' },
-          { label: '年度利润', value: totalProfit, prefix: '¥', color: totalProfit >= 0 ? COLORS.gold : COLORS.red, icon: null, bg: totalProfit >= 0 ? '#fffbeb' : '#fef2f2' },
+          { label: `年度收入（${currencyLabel}）`, value: monthlyData?.totalIncome ?? 0, prefix: currencySym, color: COLORS.green, icon: <ArrowUpOutlined />, bg: '#ecfdf5' },
+          { label: `年度支出（${currencyLabel}）`, value: monthlyData?.totalExpense ?? 0, prefix: currencySym, color: COLORS.red, icon: <ArrowDownOutlined />, bg: '#fef2f2' },
+          { label: `年度利润（${currencyLabel}）`, value: totalProfit, prefix: currencySym, color: totalProfit >= 0 ? COLORS.gold : COLORS.red, icon: null, bg: totalProfit >= 0 ? '#fffbeb' : '#fef2f2' },
           { label: '利润率', value: profitMargin, suffix: '%', color: COLORS.blue, icon: null, bg: '#eff6ff' },
         ].map((card, i) => (
           <Col xs={12} sm={6} key={i}>
@@ -178,8 +223,8 @@ export default function ReportPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={formatY} />
-              <Tooltip content={<CustomTooltip />} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={(v: number) => formatY(v, currencySym)} />
+              <Tooltip content={<CustomTooltip sym={currencySym} />} />
               <Area type="monotone" dataKey="收入" stroke={COLORS.gold} strokeWidth={2} fill="url(#gradIncome)" />
               <Area type="monotone" dataKey="支出" stroke={COLORS.red} strokeWidth={2} fill="url(#gradExpense)" />
             </AreaChart>
@@ -206,7 +251,7 @@ export default function ReportPage() {
                       <Pie data={section.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={100} paddingAngle={3}>
                         {section.data.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />)}
                       </Pie>
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<CustomTooltip sym={currencySym} />} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div style={{ flex: 1, paddingRight: 20 }}>
@@ -216,7 +261,7 @@ export default function ReportPage() {
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
                           {item.name}
                         </span>
-                        <span style={{ fontWeight: 600, color: COLORS.text }}>¥{Number(item.value).toLocaleString()}</span>
+                        <span style={{ fontWeight: 600, color: COLORS.text }}>{currencySym}{Number(item.value).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -244,9 +289,9 @@ export default function ReportPage() {
                     <linearGradient id="gradBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.gold} stopOpacity={0.7} /><stop offset="100%" stopColor={COLORS.goldLight} stopOpacity={1} /></linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={formatY} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={(v: number) => formatY(v, currencySym)} />
                   <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.text }} width={120} />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip sym={currencySym} />} />
                   <Bar dataKey="amount" fill="url(#gradBar)" radius={[0, 4, 4, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
@@ -258,7 +303,7 @@ export default function ReportPage() {
                 columns={[
                   { title: '#', dataIndex: 'rank', key: 'rank', width: 40, render: (v: number) => <Tag style={{ borderRadius: 10, minWidth: 22, textAlign: 'center' }}>{v}</Tag> },
                   { title: '客户', dataIndex: 'name', key: 'name', ellipsis: true },
-                  { title: '金额', dataIndex: 'amount', key: 'amount', render: (v: number) => <span style={{ fontWeight: 600 }}>¥{v.toLocaleString()}</span> },
+                  { title: '金额', dataIndex: 'amount', key: 'amount', render: (v: number) => <span style={{ fontWeight: 600 }}>{currencySym}{v.toLocaleString()}</span> },
                 ]}
               />
             </div>
