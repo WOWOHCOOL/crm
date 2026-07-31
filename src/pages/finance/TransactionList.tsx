@@ -22,6 +22,7 @@ export default function TransactionList() {
   const isAdding = searchParams.get('add') === '1';
   const modalOpen = !!editId || isAdding;
   const [voucherPreview, setVoucherPreview] = useState<string | null>(null);
+  const [accountEntityFilter, setAccountEntityFilter] = useState<string>('');
   const currencyWatch = Form.useWatch('currency', form);
 
   // Restore draft from sessionStorage on mount (add mode only)
@@ -65,6 +66,7 @@ export default function TransactionList() {
 
   const openAdd = () => {
     setVoucherPreview(null);
+    setAccountEntityFilter('');
     form.resetFields();
     // Pre-fill from URL params (e.g. from "记账" button on purchase order / PI)
     const refType = searchParams.get('ref_type');
@@ -372,9 +374,19 @@ export default function TransactionList() {
               showSearch filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>
-          <Form.Item name="account_id" label="科目">
-            <Select allowClear placeholder="选择科目（可选）">
-              {(accounts ?? []).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
+          <Form.Item label="科目">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Select
+                style={{ width: 110, flexShrink: 0 }}
+                placeholder="主体"
+                allowClear
+                value={accountEntityFilter || undefined}
+                onChange={(v) => { setAccountEntityFilter(v ?? ''); form.setFieldValue('account_id', undefined); }}
+                options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
+              />
+              <Form.Item noStyle name="account_id">
+                <Select allowClear placeholder="选择科目（可选）" style={{ flex: 1 }}>
+                  {(accounts ?? []).filter((a: Record<string, unknown>) => !accountEntityFilter || a.entity === accountEntityFilter).reduce((acc: { entity: string | null; id: string; name: string }[][], a: Record<string, unknown>) => {
                 const group = acc.find(g => g[0]?.entity === (a.entity || null));
                 const item = { entity: (a.entity as string) || null, id: a.id as string, name: a.name as string };
                 if (group) { group.push(item); } else { acc.push([item]); }
@@ -391,7 +403,9 @@ export default function TransactionList() {
                   </Select.OptGroup>
                 );
               })}
-            </Select>
+                </Select>
+              </Form.Item>
+            </div>
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} />
