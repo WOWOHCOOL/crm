@@ -232,13 +232,15 @@ export default function TransactionList() {
         ref_id: (values.ref_id as string) || null,
       };
       if (editing) {
-        const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string);
-        if (error) throw error;
+        const { data, error } = await supabase.from('transactions').update(payload).eq('id', editing.id as string).select('id');
+        if (error) { console.error('Update failed:', error); throw new Error(error.message); }
+        if (!data || data.length === 0) throw new Error('更新失败：未找到该记录，可能已被删除或无权限');
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
-        const { error } = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]);
-        if (error) throw error;
+        const { data, error } = await supabase.from('transactions').insert([{ ...payload, user_id: user.id }]).select('id');
+        if (error) { console.error('Insert failed:', error); throw new Error(error.message); }
+        if (!data || data.length === 0) throw new Error('添加失败');
       }
     },
     invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
@@ -388,7 +390,6 @@ export default function TransactionList() {
           } catch { /* validation failed, Ant Design shows errors inline */ }
         }}
         confirmLoading={saveMutation.isPending}
-        destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Form.Item name="type" label="类型" rules={[{ required: true, message: '请选择类型' }]}>
