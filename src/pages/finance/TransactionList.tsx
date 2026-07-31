@@ -99,7 +99,9 @@ export default function TransactionList() {
 
   const openEdit = (record: Record<string, unknown>) => {
     setVoucherPreview((record.voucher_url as string) || null);
-    setAccountEntityFilter('');
+    // Pre-set entity filter to match selected account's entity
+    const accEntity = (accounts ?? []).find((a: Record<string, unknown>) => a.id === record.account_id)?.entity;
+    setAccountEntityFilter((accEntity as string) || '');
     form.resetFields();
     form.setFieldsValue({
       type: record.type,
@@ -178,7 +180,8 @@ export default function TransactionList() {
   useEffect(() => {
     if (editing) {
       setVoucherPreview((editing.voucher_url as string) || null);
-      setAccountEntityFilter('');
+      const accEntity = (accounts ?? []).find((a: Record<string, unknown>) => a.id === editing.account_id)?.entity;
+      setAccountEntityFilter((accEntity as string) || '');
       form.resetFields();
       form.setFieldsValue({
         type: editing.type,
@@ -419,7 +422,7 @@ export default function TransactionList() {
                 placeholder="主体"
                 allowClear
                 value={accountEntityFilter || undefined}
-                onChange={(v) => { setAccountEntityFilter(v ?? ''); form.setFieldValue('account_id', undefined); }}
+                onChange={(v) => setAccountEntityFilter(v ?? '')}
                 options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
               />
               <Form.Item noStyle name="account_id">
