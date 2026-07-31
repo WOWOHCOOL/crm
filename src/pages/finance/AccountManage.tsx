@@ -171,9 +171,18 @@ export default function AccountManage() {
     mutationFn: async () => {
       const uid = await getUserId();
       if (!uid) throw new Error('未登录');
-      const { data: existing } = await supabase.from('accounts').select('name').eq('user_id', uid);
-      const existingNames = new Set((existing ?? []).map((a: { name: string }) => a.name));
-      const newAccounts = defaultAccounts.filter(a => !existingNames.has(a.name)).map(a => ({ ...a, user_id: uid }));
+      const { data: existing } = await supabase.from('accounts').select('name,entity').eq('user_id', uid);
+      // Build set of existing "name|entity" pairs
+      const existingPairs = new Set((existing ?? []).map((a: { name: string; entity: string | null }) => `${a.name}|${a.entity || ''}`));
+      const entities = ['dongyixin', 'dongyi', 'private'] as const;
+      const newAccounts: { name: string; type: string; entity: string; user_id: string }[] = [];
+      for (const entity of entities) {
+        for (const a of defaultAccounts) {
+          if (!existingPairs.has(`${a.name}|${entity}`)) {
+            newAccounts.push({ ...a, entity, user_id: uid });
+          }
+        }
+      }
       if (newAccounts.length === 0) throw new Error('所有科目已存在，无需重复添加');
       const { error } = await supabase.from('accounts').insert(newAccounts);
       if (error) throw error;
@@ -181,7 +190,7 @@ export default function AccountManage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['accounts-select'] });
-      message.success('外贸科目已添加');
+      message.success('已为东易鑫/东易/私账创建科目');
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -215,7 +224,7 @@ export default function AccountManage() {
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Button size="small" loading={initMutation.isPending}
             onClick={() => initMutation.mutate()}>
-            初始化默认科目（外贸专用）
+            初始化科目（东易鑫/东易/私账）
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
             添加科目
