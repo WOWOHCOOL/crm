@@ -106,7 +106,7 @@ export default function TransactionList() {
     form.setFieldsValue({
       type: record.type,
       amount: record.amount,
-      currency: record.currency,
+      currency: record.currency || 'RMB',
       date: record.date ? dayjs(record.date as string) : dayjs(),
       customer_id: record.customer_id || undefined,
       account_id: record.account_id || undefined,
@@ -186,7 +186,7 @@ export default function TransactionList() {
       form.setFieldsValue({
         type: editing.type,
         amount: editing.amount,
-        currency: editing.currency,
+        currency: editing.currency || 'RMB',
         date: editing.date ? dayjs(editing.date as string) : dayjs(),
         customer_id: editing.customer_id || undefined,
         account_id: editing.account_id || undefined,
@@ -388,8 +388,12 @@ export default function TransactionList() {
             const values = await form.validateFields();
             console.log('[TransactionList] Save values:', values);
             saveMutation.mutate(values);
-          } catch (e) {
+          } catch (e: any) {
             console.log('[TransactionList] Validation failed:', e);
+            const fields = e?.errorFields;
+            if (fields?.length) {
+              message.error(`请填写：${fields.map((f: any) => f.errors?.[0]).join('、')}`);
+            }
           }
         }}
         confirmLoading={saveMutation.isPending}
@@ -402,7 +406,7 @@ export default function TransactionList() {
             ]} />
           </Form.Item>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Form.Item name="currency" label="币种" initialValue="RMB" rules={[{ required: true }]} style={{ width: 130, flexShrink: 0 }}>
+            <Form.Item name="currency" label="币种" initialValue="RMB" style={{ width: 130, flexShrink: 0 }}>
               <Select options={[
                 { label: '¥ 人民币', value: 'RMB' },
                 { label: '$ 美元', value: 'USD' },
