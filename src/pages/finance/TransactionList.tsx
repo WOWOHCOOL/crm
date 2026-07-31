@@ -233,9 +233,11 @@ export default function TransactionList() {
       };
       console.log('[TransactionList] Payload:', JSON.stringify(payload));
       if (editing) {
-        const res = await supabase.from('transactions').update(payload).eq('id', editing.id as string).select();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('未登录');
+        const res = await supabase.from('transactions').update({ ...payload, user_id: user.id }).eq('id', editing.id as string).select();
         if (res.error) throw new Error(res.error.message);
-        if (!res.data || res.data.length === 0) throw new Error('更新失败：RLS 阻止或记录不存在');
+        if (!res.data || res.data.length === 0) throw new Error('更新失败：无权限编辑此记录');
       } else {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('未登录');
