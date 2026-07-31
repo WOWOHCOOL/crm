@@ -387,23 +387,17 @@ export default function TransactionList() {
         title={editing ? '编辑流水' : '添加流水'}
         open={modalOpen}
         onCancel={closeModal}
-        onOk={async () => {
-          try {
-            const values = await form.validateFields();
-            console.log('[TransactionList] Save values:', values);
-            saveMutation.mutate(values);
-          } catch (e: any) {
-            console.log('[TransactionList] Validation failed:', e);
-            const fields = e?.errorFields;
-            if (fields?.length) {
-              message.error(`请填写：${fields.map((f: any) => f.errors?.[0]).join('、')}`);
-            }
-          }
+        onOk={() => {
+          const values = form.getFieldsValue();
+          console.log('[TransactionList] Form values:', JSON.stringify(values));
+          if (!values.type) { message.error('请选择类型'); return; }
+          if (!values.amount && values.amount !== 0) { message.error('请输入金额'); return; }
+          saveMutation.mutate(values);
         }}
         confirmLoading={saveMutation.isPending}
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
-          <Form.Item name="type" label="类型" rules={[{ required: true, message: '请选择类型' }]}>
+          <Form.Item name="type" label="类型">
             <Select options={[
               { label: '收入', value: 'income' },
               { label: '支出', value: 'expense' },
@@ -416,7 +410,7 @@ export default function TransactionList() {
                 { label: '$ 美元', value: 'USD' },
               ]} />
             </Form.Item>
-            <Form.Item name="amount" label="金额" rules={[{ required: true, message: '请输入金额' }]} style={{ flex: 1 }}>
+            <Form.Item name="amount" label="金额" style={{ flex: 1 }}>
               <InputNumber min={0} step={0.01} precision={2} style={{ width: '100%' }} prefix={CURRENCY_SYMBOLS[(currencyWatch as CurrencyType) || 'RMB']} placeholder="金额" />
             </Form.Item>
           </div>
