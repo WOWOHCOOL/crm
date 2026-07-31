@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Modal, Form, Input, InputNumber, Select,
@@ -64,11 +64,8 @@ export default function TransactionList() {
     setSearchParams(next, { replace: true });
   };
 
-  const openAdd = () => {
-    setVoucherPreview(null);
-    setAccountEntityFilter('');
-    form.resetFields();
-    // Pre-fill from URL params (e.g. from "记账" button on purchase order / PI)
+  // Shared pre-fill logic for URL params (记账 button from PO/PI)
+  const applyPrefill = () => {
     const refType = searchParams.get('ref_type');
     const refId = searchParams.get('ref_id');
     if (refType && refId) {
@@ -79,10 +76,26 @@ export default function TransactionList() {
         currency: searchParams.get('currency') || 'RMB',
         amount: Number(searchParams.get('amount')) || undefined,
         description: searchParams.get('description') || undefined,
+        customer_id: searchParams.get('customer_id') || undefined,
       });
     }
+  };
+
+  const openAdd = () => {
+    setVoucherPreview(null);
+    setAccountEntityFilter('');
+    form.resetFields();
     setModalParam({ add: '1', edit: null });
   };
+
+  // Pre-fill when modal opens (from button click or external link)
+  const prevAdding = useRef(false);
+  useEffect(() => {
+    if (isAdding && !prevAdding.current) {
+      applyPrefill();
+    }
+    prevAdding.current = isAdding;
+  }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openEdit = (record: Record<string, unknown>) => {
     setVoucherPreview((record.voucher_url as string) || null);
