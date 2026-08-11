@@ -1,6 +1,7 @@
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
+  X-Robots-Tag: noindex, nofollow
 
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
