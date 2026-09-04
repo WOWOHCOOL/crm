@@ -99,11 +99,10 @@ export default function CustomerList() {
   // Calculate deal count and totals per customer, kept per currency
   // (USD and RMB are never summed together - financial records are the source of truth)
   //
-  // Deal counting: one order can be paid in multiple installments (deposit + balance),
-  // each recorded as its own income transaction. A "deal" = a distinct order:
-  //   - transactions sharing the same ref (ref_type + ref_id) count as ONE deal
-  //   - transactions without ref are grouped per customer per date (same-day
-  //     manual entries for one shipment) so they don't inflate the count either
+  // Deal counting rule (以 PI 为准): a "deal" = a distinct PI. Transactions
+  // recorded via a PI share ref_type='pi' + ref_id, so deposit + balance
+  // installments collapse into ONE deal per PI. Transactions without a PI
+  // ref (pure manual entries) are NOT counted as deals - amounts still count.
   const customerAmounts = useMemo(() => {
     if (!customers || !allTransactions) return {};
 
@@ -114,8 +113,8 @@ export default function CustomerList() {
       amounts[c.id] = { count: 0, usd: 0, rmb: 0 };
     });
 
-    // Track seen deals: keyed by ref (ref_type|ref_id) or customer|date for unreferenced entries
-    const seenDeals = new Set<string>();
+    // Track seen PIs so multiple installments of one PI count once
+    const seenPis = new Set<string>();
 
     // Accumulate income transactions
     allTransactions.forEach((t: any) => {
@@ -123,15 +122,14 @@ export default function CustomerList() {
       const customerId = t.customer_id;
       if (!customerId || !amounts[customerId]) return;
 
-      // Deal key: prefer explicit source-document ref (deposit + balance share it);
-      // fall back to customer+date so same-day installments don't count twice
-      const dealKey = (t.ref_type && t.ref_id)
-        ? `${t.ref_type}|${t.ref_id}`
-        : `noRef|${customerId}|${t.date}`;
-
-      if (!seenDeals.has(dealKey)) {
-        seenDeals.add(dealKey);
-        amounts[customerId].count += 1;
+      // Count a deal only when the transaction is linked to a PI (ref_type='pi');
+      // each distinct PI counts exactly once, regardless of payment installments
+      if (t.ref_type === 'pi' && t.ref_id) {
+        const piKey = String(t.ref_id);
+        if (!seenPis.has(piKey)) {
+          seenPis.add(piKey);
+          amounts[customerId].count += 1;
+        }
       }
 
       if (t.currency === 'USD') {

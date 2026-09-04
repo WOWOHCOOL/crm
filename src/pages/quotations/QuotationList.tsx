@@ -129,6 +129,9 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             type: 'income',
             description: desc,
           });
+          // Link the transaction to the PI's customer so deal stats and
+          // customer cards pick it up
+          if (r.customer_id) params.set('customer_id', r.customer_id);
           return (
             <Button size="small" type="primary" ghost icon={<DollarOutlined />}
               onClick={() => navigate(`/finance?${params.toString()}`)}>
