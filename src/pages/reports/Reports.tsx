@@ -121,13 +121,23 @@ export default function ReportPage() {
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      let query = supabase.from('transactions').select('amount,customers(name)').eq('type', 'income').gte('date', start).lte('date', end);
+      let query = supabase.from('transactions').select('amount,currency,customers(name)').eq('type', 'income').gte('date', start).lte('date', end);
       if (currencyFilter) query = query.eq('currency', currencyFilter);
       if (entityAccountIds) query = query.in('account_id', entityAccountIds);
       const { data } = await query;
-      const map: Record<string, number> = {};
-      (data ?? []).forEach((t: any) => { const n = (t.customers as any)?.name ?? '未关联'; map[n] = (map[n] ?? 0) + Number(t.amount); });
-      return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, amount], i) => ({ rank: i + 1, name, amount }));
+      // Group by (customer, currency) - USD and RMB are never summed together
+      const map: Record<string, { name: string; currency: CurrencyType; amount: number }> = {};
+      (data ?? []).forEach((t: any) => {
+        const n = (t.customers as any)?.name ?? '未关联';
+        const cur = (t.currency as CurrencyType) || 'RMB';
+        const key = `${n}|${cur}`;
+        if (!map[key]) map[key] = { name: n, currency: cur, amount: 0 };
+        map[key].amount += Number(t.amount);
+      });
+      return Object.values(map)
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10)
+        .map((r, i) => ({ rank: i + 1, ...r, sym: CURRENCY_SYMBOLS[r.currency] || '¥' }));
     },
   });
 
@@ -139,7 +149,7 @@ export default function ReportPage() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((monthlyData?.months ?? []).map((m: any) => ({ '月份': m.month, '收入': m.收入, '支出': m.支出, '利润': m.利润 }))), '月度收支');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((accountData?.income ?? []).map((i: any) => ({ '科目': i.name, '金额': i.value }))), '收入科目');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((accountData?.expense ?? []).map((i: any) => ({ '科目': i.name, '金额': i.value }))), '支出科目');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((customerRank ?? []).map((r: any) => ({ '排名': r.rank, '客户': r.name, '贡献金额': r.amount }))), '客户排行');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((customerRank ?? []).map((r: any) => ({ '排名': r.rank, '客户': r.name, '币种': r.currency, '贡献金额': r.amount }))), '客户排行');
     XLSX.writeFile(wb, `财务报表_${year}年.xlsx`);
   };
 
@@ -287,12 +297,15 @@ export default function ReportPage() {
                 <BarChart data={customerRank ?? []} margin={{ top: 16, right: 20, left: 10, bottom: 10 }} layout="vertical">
                   <defs>
                     <linearGradient id="gradBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.gold} stopOpacity={0.7} /><stop offset="100%" stopColor={COLORS.goldLight} stopOpacity={1} /></linearGradient>
+                    <linearGradient id="gradBarUsd" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.7} /><stop offset="100%" stopColor={COLORS.blueLight} stopOpacity={1} /></linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={(v: number) => formatY(v, currencySym)} />
                   <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.text }} width={120} />
                   <Tooltip content={<CustomTooltip sym={currencySym} />} />
-                  <Bar dataKey="amount" fill="url(#gradBar)" radius={[0, 4, 4, 0]} barSize={20} />
+                  <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={20}>
+                    {(customerRank ?? []).map((r: any, i: number) => <Cell key={i} fill={r.currency === 'USD' ? 'url(#gradBarUsd)' : 'url(#gradBar)'} />)}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -303,7 +316,8 @@ export default function ReportPage() {
                 columns={[
                   { title: '#', dataIndex: 'rank', key: 'rank', width: 40, render: (v: number) => <Tag style={{ borderRadius: 10, minWidth: 22, textAlign: 'center' }}>{v}</Tag> },
                   { title: '客户', dataIndex: 'name', key: 'name', ellipsis: true },
-                  { title: '金额', dataIndex: 'amount', key: 'amount', render: (v: number) => <span style={{ fontWeight: 600 }}>{currencySym}{v.toLocaleString()}</span> },
+                  { title: '币种', dataIndex: 'currency', key: 'currency', width: 60, render: (v: string) => <Tag color={v === 'USD' ? 'blue' : 'gold'} style={{ borderRadius: 6, margin: 0 }}>{v === 'USD' ? 'USD' : 'RMB'}</Tag> },
+                  { title: '金额', dataIndex: 'amount', key: 'amount', render: (v: number, r: any) => <span style={{ fontWeight: 600 }}>{(r.sym || '¥')}{v.toLocaleString()}</span> },
                 ]}
               />
             </div>

@@ -89,7 +89,7 @@ export default function CustomerList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, customer_id, type, amount, currency')
+        .select('id, customer_id, type, amount, currency, ref_type, ref_id, date')
         .order('date', { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -98,6 +98,12 @@ export default function CustomerList() {
 
   // Calculate deal count and totals per customer, kept per currency
   // (USD and RMB are never summed together - financial records are the source of truth)
+  //
+  // Deal counting: one order can be paid in multiple installments (deposit + balance),
+  // each recorded as its own income transaction. A "deal" = a distinct order:
+  //   - transactions sharing the same ref (ref_type + ref_id) count as ONE deal
+  //   - transactions without ref are grouped per customer per date (same-day
+  //     manual entries for one shipment) so they don't inflate the count either
   const customerAmounts = useMemo(() => {
     if (!customers || !allTransactions) return {};
 
@@ -108,13 +114,26 @@ export default function CustomerList() {
       amounts[c.id] = { count: 0, usd: 0, rmb: 0 };
     });
 
+    // Track seen deals: keyed by ref (ref_type|ref_id) or customer|date for unreferenced entries
+    const seenDeals = new Set<string>();
+
     // Accumulate income transactions
     allTransactions.forEach((t: any) => {
       if (t.type !== 'income') return;
       const customerId = t.customer_id;
       if (!customerId || !amounts[customerId]) return;
 
-      amounts[customerId].count += 1;
+      // Deal key: prefer explicit source-document ref (deposit + balance share it);
+      // fall back to customer+date so same-day installments don't count twice
+      const dealKey = (t.ref_type && t.ref_id)
+        ? `${t.ref_type}|${t.ref_id}`
+        : `noRef|${customerId}|${t.date}`;
+
+      if (!seenDeals.has(dealKey)) {
+        seenDeals.add(dealKey);
+        amounts[customerId].count += 1;
+      }
+
       if (t.currency === 'USD') {
         amounts[customerId].usd += (t.amount || 0);
       } else {
