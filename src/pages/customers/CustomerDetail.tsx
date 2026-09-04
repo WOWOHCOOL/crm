@@ -152,7 +152,10 @@ export default function CustomerDetail() {
   // ── Derived data ──
   if (isLoading) return <DetailSkeleton />;
 
-  const totalIncome = (transactions ?? []).filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  // Per-currency totals - USD and RMB are never summed together
+  const incomeTxs = (transactions ?? []).filter((t: any) => t.type === 'income');
+  const totalIncomeRmb = incomeTxs.filter((t: any) => (t.currency || 'RMB') === 'RMB').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const totalIncomeUsd = incomeTxs.filter((t: any) => t.currency === 'USD').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const totalExpense = (transactions ?? []).filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const pendingTasks = (tasks ?? []).filter((t: Task) => t.status === 'pending');
   const pendingOrders = (orders ?? []).filter((o: Order) => (o.status as string) !== 'completed');
@@ -163,7 +166,7 @@ export default function CustomerDetail() {
   (followUps ?? []).forEach((f: FollowUp) => activities.push({ date: f.follow_up_date, text: f.content.slice(0, 80), type: 'followup' }));
   (orders ?? []).slice(0, 3).forEach((o: Order) => activities.push({ date: o.date, text: `订单 ${o.pi_number || ''} ${orderStatusLabels[o.status] || o.status}`, type: 'order' }));
   (quotations ?? []).slice(0, 3).forEach((q: Quotation) => activities.push({ date: q.created_at, text: `报价 ${q.quotation_no}`, type: 'quo' }));
-  (transactions ?? []).slice(0, 3).forEach((t: any) => activities.push({ date: t.date, text: `${t.type === 'income' ? '收入' : '支出'} ¥${Number(t.amount).toFixed(2)}`, type: t.type }));
+  (transactions ?? []).slice(0, 3).forEach((t: any) => activities.push({ date: t.date, text: `${t.type === 'income' ? '收入' : '支出'} ${t.currency === 'USD' ? '$' : '¥'}${Number(t.amount).toFixed(2)}`, type: t.type }));
   activities.sort((a, b) => b.date.localeCompare(a.date));
 
   const txColumns = [
@@ -260,7 +263,7 @@ export default function CustomerDetail() {
           {/* Stats bar */}
           <Row gutter={[12, 12]} style={{ marginTop: tokens.spacingLG, paddingTop: tokens.spacingLG, borderTop: `1px solid ${tokens.colorBorder}` }}>
             <Col xs={12} sm={4}><StatCard icon={<ShoppingCartOutlined />} label="总订单" value={(orders ?? []).length} color={tokens.colorPrimary} onClick={() => document.getElementById('orders')?.scrollIntoView({ behavior: 'smooth' })} /></Col>
-            <Col xs={12} sm={4}><StatCard icon={<DollarOutlined />} label="总收入" value={`¥${totalIncome.toLocaleString()}`} color={tokens.colorSuccess} /></Col>
+            <Col xs={12} sm={4}><StatCard icon={<DollarOutlined />} label="总收入" value={totalIncomeUsd > 0 && totalIncomeRmb > 0 ? `$${totalIncomeUsd.toFixed(0)} / ¥${totalIncomeRmb.toFixed(0)}` : totalIncomeUsd > 0 ? `$${totalIncomeUsd.toFixed(2)}` : `¥${totalIncomeRmb.toFixed(2)}`} color={tokens.colorSuccess} /></Col>
             <Col xs={12} sm={4}><StatCard icon={<OrderedListOutlined />} label="进行中" value={pendingOrders.length} color={tokens.colorWarning} /></Col>
             <Col xs={12} sm={4}><StatCard icon={<BellOutlined />} label="待办" value={pendingTasks.length} color={tokens.colorError} /></Col>
             <Col xs={12} sm={4}><StatCard icon={<FileTextOutlined />} label="报价/PI" value={(quotations ?? []).length} color={tokens.colorPurple} /></Col>
@@ -440,8 +443,18 @@ export default function CustomerDetail() {
             {collapsedSections['finance'] ? null : (
               <>
                 <Row gutter={16} style={{ marginBottom: tokens.spacingLG }}>
-                  <Col xs={12}><Card size="small"><StatCard icon={<DollarOutlined />} label="总收入" value={`¥${totalIncome.toFixed(2)}`} color={tokens.colorSuccess} /></Card></Col>
-                  <Col xs={12}><Card size="small"><StatCard icon={<DollarOutlined />} label="总支出" value={`¥${totalExpense.toFixed(2)}`} color={tokens.colorError} /></Card></Col>
+                  <Col xs={12} sm={totalIncomeUsd > 0 && totalIncomeRmb > 0 ? 8 : 12}>
+                    <Card size="small">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>总收入</span>
+                        {totalIncomeRmb > 0 && <span style={{ fontSize: tokens.fontSizeLG, fontWeight: 700, color: tokens.colorSuccess }}>¥{totalIncomeRmb.toFixed(2)}</span>}
+                        {totalIncomeUsd > 0 && <span style={{ fontSize: tokens.fontSizeLG, fontWeight: 700, color: '#1677ff' }}>${totalIncomeUsd.toFixed(2)}</span>}
+                        {totalIncomeRmb === 0 && totalIncomeUsd === 0 && <span style={{ fontSize: tokens.fontSizeLG, fontWeight: 700, color: tokens.colorSuccess }}>¥0.00</span>}
+                      </div>
+                    </Card>
+                  </Col>
+                  <Col xs={12} sm={totalIncomeUsd > 0 && totalIncomeRmb > 0 ? 8 : 12}><Card size="small"><StatCard icon={<DollarOutlined />} label="总支出" value={`¥${totalExpense.toFixed(2)}`} color={tokens.colorError} /></Card></Col>
+                  {totalIncomeUsd > 0 && totalIncomeRmb > 0 && <Col xs={0} sm={8} />}
                 </Row>
                 <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" scroll={{ x: 'max-content' }} locale={{ emptyText: '暂无收支记录' }} />
               </>
