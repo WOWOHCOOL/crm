@@ -7,8 +7,12 @@ import { extractKeywords } from '../utils/extractKeywords';
 
 interface CustomerCardProps {
   customer: Customer;
-  totalAmount?: number | null;
-  currency?: 'RMB' | 'USD';
+  /** Number of income transactions; null = no records yet */
+  dealCount?: number | null;
+  /** Total income in USD; null = no USD records */
+  totalUsd?: number | null;
+  /** Total income in RMB; null = no RMB records */
+  totalRmb?: number | null;
   onClick: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -32,7 +36,7 @@ function getFlag(country: string | null): string {
   return countryFlags[country] || '';
 }
 
-export default function CustomerCard({ customer, totalAmount, currency, onClick, onEdit, onDelete }: CustomerCardProps) {
+export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, onClick, onEdit, onDelete }: CustomerCardProps) {
   const status = customerStatusMap[customer.status] || customerStatusMap.new;
   const flag = getFlag(customer.country);
 
@@ -50,17 +54,36 @@ export default function CustomerCard({ customer, totalAmount, currency, onClick,
     ...(onDelete ? [{ type: 'divider' as const }, { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: (e: { domEvent: { stopPropagation: () => void } }) => { e.domEvent.stopPropagation(); onDelete(); } }] : []),
   ];
 
-  // Payment summary - displayed in card body, below source/intention
-  // Currency comes from props (calculated from transactions), not from customer record
-  const paymentSummary = (
-    <div style={{ marginTop: tokens.spacingMD, paddingTop: tokens.spacingMD, borderTop: `1px solid ${tokens.colorBorderSecondary}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: tokens.spacingSM }}>
-        <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>成交金额</span>
-        <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorSuccess, fontWeight: 600 }}>
-          {currency === 'USD' ? `$${(totalAmount || 0).toFixed(2)}` : `¥${(totalAmount || 0).toFixed(2)}`}
-        </span>
+  // Deal stats - counts and totals per currency (USD and RMB are never mixed)
+  // Format like SupplierCard: 万 for amounts >= 10000
+  const hasDeals = (dealCount ?? 0) > 0;
+  const fmt = (n: number, sym: string) =>
+    n >= 10000 ? `${sym}${(n / 10000).toFixed(1)}万` : `${sym}${n.toFixed(2).replace(/\.00$/, '')}`;
+
+  const dealStats = (
+    <div style={{
+      display: 'flex',
+      gap: tokens.spacingLG,
+      marginTop: tokens.spacingMD,
+      paddingTop: tokens.spacingMD,
+      borderTop: `1px solid ${tokens.colorBorderSecondary}`,
+    }}>
+      <div style={{ textAlign: 'center', flex: 1 }}>
+        <div style={{ fontSize: tokens.fontSizeLG, fontWeight: 700, color: tokens.colorWarning }}>{hasDeals ? dealCount : '-'}</div>
+        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>成交次数</div>
       </div>
-      {totalAmount === null && <span style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>暂无记录</span>}
+      <div style={{ textAlign: 'center', flex: 1 }}>
+        <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: tokens.colorSuccess, whiteSpace: 'nowrap' }}>
+          {totalRmb != null ? fmt(totalRmb, '¥') : '-'}
+        </div>
+        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>人民币</div>
+      </div>
+      <div style={{ textAlign: 'center', flex: 1 }}>
+        <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: tokens.colorSuccess, whiteSpace: 'nowrap' }}>
+          {totalUsd != null ? fmt(totalUsd, '$') : '-'}
+        </div>
+        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>美元</div>
+      </div>
     </div>
   );
 
@@ -177,8 +200,8 @@ export default function CustomerCard({ customer, totalAmount, currency, onClick,
           )}
         </div>
 
-        {/* Payment summary */}
-        {paymentSummary}
+        {/* Deal stats: count + per-currency totals */}
+        {dealStats}
 
         {/* Auto-extracted product/service tags from inquiry */}
         {(() => {

@@ -80,31 +80,32 @@ export default function CustomerList() {
     },
   });
 
-  // Fetch all transactions for calculating total amount per customer
+  // Fetch all transactions for calculating deal stats per customer
+  // NOTE: no join here - currency lives on transactions, not customers.
+  // A join on customers(currency) fails with 400 and silently breaks all stats.
   // Since auto-accounting was removed in v31, all transactions are manual - no risk of double-counting
-  const { data: allTransactions, isLoading: isLoadingTransactions } = useQuery({
+  const { data: allTransactions } = useQuery({
     queryKey: ['transactions', 'all'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, customers(currency)')
+        .select('id, customer_id, type, amount, currency')
         .order('date', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  // Calculate total income amount and currency per customer
-  // Only count 'income' type transactions linked to this customer
-  // Currency: if any transaction is USD, display USD; otherwise RMB
+  // Calculate deal count and totals per customer, kept per currency
+  // (USD and RMB are never summed together - financial records are the source of truth)
   const customerAmounts = useMemo(() => {
     if (!customers || !allTransactions) return {};
 
-    const amounts: Record<string, { total: number; currency: 'RMB' | 'USD' }> = {};
+    const amounts: Record<string, { count: number; usd: number; rmb: number }> = {};
 
     // Initialize for all customers
     customers.forEach(c => {
-      amounts[c.id] = { total: 0, currency: 'RMB' };
+      amounts[c.id] = { count: 0, usd: 0, rmb: 0 };
     });
 
     // Accumulate income transactions
@@ -113,18 +114,18 @@ export default function CustomerList() {
       const customerId = t.customer_id;
       if (!customerId || !amounts[customerId]) return;
 
-      // Determine currency: if any transaction is USD, use USD
+      amounts[customerId].count += 1;
       if (t.currency === 'USD') {
-        amounts[customerId].currency = 'USD';
+        amounts[customerId].usd += (t.amount || 0);
+      } else {
+        amounts[customerId].rmb += (t.amount || 0);
       }
-
-      // Add amount (already in the correct currency)
-      amounts[customerId].total += (t.amount || 0);
     });
 
     // Round to 2 decimal places
     Object.keys(amounts).forEach(key => {
-      amounts[key].total = Math.round(amounts[key].total * 100) / 100;
+      amounts[key].usd = Math.round(amounts[key].usd * 100) / 100;
+      amounts[key].rmb = Math.round(amounts[key].rmb * 100) / 100;
     });
 
     return amounts;
@@ -317,13 +318,14 @@ export default function CustomerList() {
           <>
             <Row gutter={[tokens.spacingLG, tokens.spacingLG]}>
               {pagedCustomers.map((c: Customer) => {
-                const amountInfo = customerAmounts[c.id] || { total: 0, currency: 'RMB' };
+                const stats = customerAmounts[c.id] || { count: 0, usd: 0, rmb: 0 };
                 return (
                   <Col xs={24} sm={12} lg={8} xl={6} key={c.id}>
                     <CustomerCard
                       customer={c}
-                      totalAmount={amountInfo.total || null}
-                      currency={amountInfo.currency}
+                      dealCount={c.status === 'dealt' && stats.count === 0 ? null : stats.count}
+                      totalUsd={stats.usd > 0 ? stats.usd : null}
+                      totalRmb={stats.rmb > 0 ? stats.rmb : null}
                       onClick={() => navigate(`/customers/${c.id}`)}
                       onEdit={() => openEdit(c)}
                       onDelete={() => deleteMutation.mutate(c.id)}
