@@ -92,10 +92,10 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
       return;
     }
     if (format === 'excel') {
-      exportExcel(record, items, 'USD');
+      exportExcel(record, items, record.currency || 'USD');
       message.success('Excel 已导出');
     } else {
-      exportPDF(record, items, listType, 'USD');
+      exportPDF(record, items, listType, record.currency || 'USD');
     }
   };
 
@@ -125,7 +125,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             ref_type: 'pi',
             ref_id: r.id,
             amount: '0',
-            currency: 'RMB',
+            currency: r.currency || 'USD',
             type: 'income',
             description: desc,
           });

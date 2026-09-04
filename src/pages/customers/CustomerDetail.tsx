@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Collapse } from 'antd';
+import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Collapse, Segmented } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, CheckCircleOutlined, TeamOutlined, OrderedListOutlined, SwapOutlined, PieChartOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -108,6 +108,8 @@ export default function CustomerDetail() {
   });
 
   // ── Mutations ──
+  // New-order modal currency: ¥ or $
+  const [orderCurrency, setOrderCurrency] = useState<'RMB' | 'USD'>('RMB');
   const createOrder = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -115,12 +117,13 @@ export default function CustomerDetail() {
       const { error } = await supabase.from('orders').insert([{
         customer_id: id, pi_number: values.pi_number, order_type: values.order_type || 'normal',
         status: values.status || 'pending', total_amount: values.total_amount ? Number(values.total_amount) : null,
+        currency: orderCurrency,
         notes: values.notes, date: values.date ? dayjs(values.date as string).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         user_id: user.id,
       }]);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customer-orders'] }); setOrderModal(false); orderForm.resetFields(); message.success('订单已创建'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['customer-orders'] }); setOrderModal(false); orderForm.resetFields(); setOrderCurrency('RMB'); message.success('订单已创建'); },
     onError: (error: Error) => message.error(error.message),
   });
 
@@ -343,7 +346,7 @@ export default function CustomerDetail() {
                       <Tag color={orderStatusColors[curStatus]}>{orderStatusLabels[curStatus]}</Tag>
                       <span style={{ fontSize: 12 }}>PI: {order.pi_number || '-'}</span>
                       <span style={{ fontSize: 12 }}>{order.date}</span>
-                      {order.total_amount && <span style={{ fontWeight: 600, fontSize: 13 }}>¥{Number(order.total_amount).toFixed(2)}</span>}
+                      {order.total_amount && (() => { const sym = order.currency === 'USD' ? '$' : '¥'; const color = order.currency === 'USD' ? '#1677ff' : undefined; return <span style={{ fontWeight: 600, fontSize: 13, color }}>{sym}{Number(order.total_amount).toFixed(2)}</span>; })()}
                     </Space>}
                     extra={canManage && next ? <Button size="small" type="primary" onClick={() => updateOrderStatus.mutate({ orderId: order.id, status: next })}>{statusActionLabels[curStatus]}</Button> : undefined}>
                     {order.order_items && order.order_items.length > 0 ? (
@@ -508,7 +511,16 @@ export default function CustomerDetail() {
             <Col xs={24} sm={12}><Form.Item name="pi_number" label="PI 编号"><Input /></Form.Item></Col>
             <Col xs={24} sm={12}><Form.Item name="order_type" label="订单类型" initialValue="normal"><Select options={[{ label: '正常订单', value: 'normal' }, { label: '返单', value: 'repeat' }, { label: '样品', value: 'sample' }]} /></Form.Item></Col>
             <Col xs={24} sm={12}><Form.Item name="status" label="初始状态" initialValue="pending"><Select options={[{ label: '待确认', value: 'pending' }, { label: '已确认', value: 'confirmed' }]} /></Form.Item></Col>
-            <Col xs={24} sm={12}><Form.Item name="total_amount" label="金额"><InputNumber min={0} precision={2} style={{ width: '100%' }} prefix="¥" /></Form.Item></Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="币种" style={{ marginBottom: 0 }}>
+                <Segmented
+                  value={orderCurrency}
+                  onChange={(v) => setOrderCurrency(v as 'RMB' | 'USD')}
+                  options={[{ label: '¥ 人民币', value: 'RMB' }, { label: '$ 美元', value: 'USD' }]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}><Form.Item name="total_amount" label="金额"><InputNumber min={0} precision={2} style={{ width: '100%' }} prefix={orderCurrency === 'USD' ? '$' : '¥'} /></Form.Item></Col>
             <Col xs={24} sm={12}><Form.Item name="date" label="日期" initialValue={dayjs()}><Input type="date" /></Form.Item></Col>
             <Col xs={24}><Form.Item name="notes" label="备注"><Input.TextArea rows={2} /></Form.Item></Col>
           </Row>

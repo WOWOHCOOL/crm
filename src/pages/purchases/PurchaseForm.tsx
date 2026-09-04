@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
-  message, Row, Col, Popconfirm, DatePicker, Typography, Modal, Upload, Image,
+  message, Row, Col, Popconfirm, DatePicker, Typography, Modal, Upload, Image, Segmented,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../auth/AuthContext';
-import type { Product, PurchaseOrder, PurchaseItem, Supplier } from '../../types';
+import type { Product, PurchaseOrder, PurchaseItem, Supplier, CurrencyType } from '../../types';
+import { CURRENCY_SYMBOLS } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportPurchasePDF } from '../../utils/purchaseExport';
 import dayjs from 'dayjs';
@@ -33,6 +34,8 @@ export default function PurchaseForm() {
   }[]>([]);
   const [saving, setSaving] = useState(false);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  // Document currency: unit prices and totals follow this symbol
+  const [currency, setCurrency] = useState<CurrencyType>('RMB');
   const today = dayjs().format('YYYYMMDD');
 
   // Restore draft from sessionStorage on mount (new form only)
@@ -145,8 +148,7 @@ export default function PurchaseForm() {
         .select('*, purchase_items(*)')
         .eq('id', id)
         .single();
-      return data as (PurchaseOrder & { purchase_items: Record<string, unknown>[] }) | null;
-    },
+      return data as (PurchaseOrder & { purchase_items: Record<string, unknown>[] }) | null;    },
     enabled: isEdit,
   });
 
@@ -154,6 +156,7 @@ export default function PurchaseForm() {
   useEffect(() => {
     if (existingOrder) {
       setReceiptPreview(existingOrder.payment_receipt_url || null);
+      setCurrency(existingOrder.currency || 'RMB');
       form.setFieldsValue({
         supplier_id: existingOrder.supplier_id,
         order_no: existingOrder.order_no,
@@ -285,6 +288,7 @@ export default function PurchaseForm() {
       order_no: values.order_no || '',
       order_date: values.order_date ? dayjs(values.order_date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
       total_amount: totalAmount,
+      currency,
       status: 'draft',
       payment_terms: values.payment_terms || null,
       payment_receipt_url: values.payment_receipt_url || null,
@@ -397,7 +401,7 @@ export default function PurchaseForm() {
     {
       title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 100,
       render: (v: number, _: unknown, index: number) => (
-        <InputNumber size="small" min={0} precision={2} prefix="¥" style={{ width: '100%' }}
+        <InputNumber size="small" min={0} precision={2} prefix={CURRENCY_SYMBOLS[currency]} style={{ width: '100%' }}
           value={v} onChange={(val) => updateItem(items[index].key, 'unit_price', val || 0)} />
       ),
     },
@@ -405,7 +409,7 @@ export default function PurchaseForm() {
       title: '小计', key: 'subtotal', width: 90,
       render: (_: unknown, __: unknown, index: number) => {
         const item = items[index];
-        return `¥${(item.quantity * item.unit_price).toFixed(2)}`;
+        return `${CURRENCY_SYMBOLS[currency]}${(item.quantity * item.unit_price).toFixed(2)}`;
       },
     },
     {
@@ -478,6 +482,18 @@ export default function PurchaseForm() {
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="币种 / Currency">
+                <Segmented
+                  value={currency}
+                  onChange={(v) => setCurrency(v as CurrencyType)}
+                  options={[
+                    { label: '¥ 人民币', value: 'RMB' },
+                    { label: '$ 美元', value: 'USD' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
             <Col xs={24}>
               <Form.Item name="payment_terms" label="付款方式" initialValue="20%预付定金，验货通过后提货支付尾款80%">
                 <Input placeholder="如：30%预付，70%发货前付清" />
@@ -521,7 +537,7 @@ export default function PurchaseForm() {
           </Space>
 
           <div style={{ textAlign: 'right', marginTop: 16, fontSize: 16, fontWeight: 600 }}>
-            合计：¥{totalAmount.toFixed(2)}
+            合计：{CURRENCY_SYMBOLS[currency]}{totalAmount.toFixed(2)}
           </div>
 
           <Form.Item name="payment_receipt_url" label="付款水单" style={{ marginTop: 16 }}>

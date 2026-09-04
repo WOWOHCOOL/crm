@@ -77,7 +77,12 @@ export default function OrderList() {
     },
     {
       title: '金额', dataIndex: 'total_amount', key: 'total_amount', width: 110,
-      render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-',
+      render: (v: number | null, r: Order) => {
+        if (!v) return '-';
+        const sym = r.currency === 'USD' ? '$' : '¥';
+        const color = r.currency === 'USD' ? '#1677ff' : undefined;
+        return <span style={{ fontWeight: 500, color }}>{sym}{Number(v).toFixed(2)}</span>;
+      },
     },
     {
       title: '状态', dataIndex: 'status', key: 'status', width: 90,

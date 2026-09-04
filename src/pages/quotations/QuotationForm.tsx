@@ -163,6 +163,7 @@ export default function QuotationForm() {
   useEffect(() => {
     if (existing) {
       setDocType(existing.type);
+      if (existing.currency) setCurrency(existing.currency);
       setReceiptPreview(existing.payment_receipt_url || null);
       form.setFieldsValue({
         ...existing,
@@ -296,6 +297,7 @@ export default function QuotationForm() {
       const baseData = {
         type: docType,
         quotation_no: values.quotation_no,
+        currency,
         customer_company: values.customer_company || null,
         customer_contact: values.customer_contact || null,
         customer_website: null,
@@ -386,6 +388,7 @@ export default function QuotationForm() {
       id: id || '',
       type: docType,
       quotation_no: values.quotation_no || '',
+      currency,
       customer_id: values.customer_id || null,
       customer_company: values.customer_company || null,
       customer_contact: values.customer_contact || null,

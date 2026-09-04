@@ -96,13 +96,22 @@ export default function CustomerList() {
     },
   });
 
+  // Deal count source: orders table (总订单为准) - one order = one deal,
+  // independent of how the payments were recorded (deposit + balance etc.)
+  const { data: dealOrders } = useQuery({
+    queryKey: ['orders', 'deal-count'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('orders').select('id, customer_id');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   // Calculate deal count and totals per customer, kept per currency
   // (USD and RMB are never summed together - financial records are the source of truth)
   //
-  // Deal counting rule (以 PI 为准): a "deal" = a distinct PI. Transactions
-  // recorded via a PI share ref_type='pi' + ref_id, so deposit + balance
-  // installments collapse into ONE deal per PI. Transactions without a PI
-  // ref (pure manual entries) are NOT counted as deals - amounts still count.
+  // Deal counting rule (以订单为准): count orders per customer from the
+  // orders table. Amounts still come from income transactions per currency.
   const customerAmounts = useMemo(() => {
     if (!customers || !allTransactions) return {};
 
@@ -113,24 +122,16 @@ export default function CustomerList() {
       amounts[c.id] = { count: 0, usd: 0, rmb: 0 };
     });
 
-    // Track seen PIs so multiple installments of one PI count once
-    const seenPis = new Set<string>();
+    // Count deals from orders: one order = one deal
+    (dealOrders ?? []).forEach((o: { customer_id: string }) => {
+      if (amounts[o.customer_id]) amounts[o.customer_id].count += 1;
+    });
 
-    // Accumulate income transactions
+    // Accumulate income transactions for amounts
     allTransactions.forEach((t: any) => {
       if (t.type !== 'income') return;
       const customerId = t.customer_id;
       if (!customerId || !amounts[customerId]) return;
-
-      // Count a deal only when the transaction is linked to a PI (ref_type='pi');
-      // each distinct PI counts exactly once, regardless of payment installments
-      if (t.ref_type === 'pi' && t.ref_id) {
-        const piKey = String(t.ref_id);
-        if (!seenPis.has(piKey)) {
-          seenPis.add(piKey);
-          amounts[customerId].count += 1;
-        }
-      }
 
       if (t.currency === 'USD') {
         amounts[customerId].usd += (t.amount || 0);
@@ -146,7 +147,54 @@ export default function CustomerList() {
     });
 
     return amounts;
-  }, [customers, allTransactions]);
+  }, [customers, allTransactions, dealOrders]);
+
+  // Fetch purchase orders linked to customers (via supplier name = customer name)
+  // Purchase amounts shown on customer cards follow each PO's own currency
+  const { data: purchaseOrders } = useQuery({
+    queryKey: ['purchase-orders', 'for-customer-cards'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select('id, total_amount, currency, status, suppliers(name)');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: customerNames } = useQuery({
+    queryKey: ['customers', 'names-only'],
+    queryFn: async () => {
+      const { data } = await supabase.from('customers').select('id, name');
+      return data ?? [];
+    },
+  });
+
+  // Purchase totals per customer, keyed by supplier name = customer name
+  // (same matching rule as the quick-accounting button on PurchaseList)
+  const customerPurchases = useMemo(() => {
+    if (!customers || !purchaseOrders || !customerNames) return {};
+    const nameToId: Record<string, string> = {};
+    (customerNames ?? []).forEach((c: { id: string; name: string }) => {
+      nameToId[c.name.toLowerCase().trim()] = c.id;
+    });
+    const totals: Record<string, { usd: number; rmb: number }> = {};
+    (purchaseOrders as any[]).forEach((po) => {
+      if (po.status === 'cancelled' || po.status === 'draft') return;
+      const supplierName = (po.suppliers as any)?.name;
+      if (!supplierName) return;
+      const cid = nameToId[supplierName.toLowerCase().trim()];
+      if (!cid || !customers.find(c => c.id === cid)) return;
+      if (!totals[cid]) totals[cid] = { usd: 0, rmb: 0 };
+      if (po.currency === 'USD') totals[cid].usd += Number(po.total_amount || 0);
+      else totals[cid].rmb += Number(po.total_amount || 0);
+    });
+    Object.keys(totals).forEach(key => {
+      totals[key].usd = Math.round(totals[key].usd * 100) / 100;
+      totals[key].rmb = Math.round(totals[key].rmb * 100) / 100;
+    });
+    return totals;
+  }, [customers, purchaseOrders, customerNames]);
 
   const editing = useMemo(() => {
     if (!editId || !customers) return null;
@@ -336,6 +384,7 @@ export default function CustomerList() {
             <Row gutter={[tokens.spacingLG, tokens.spacingLG]}>
               {pagedCustomers.map((c: Customer) => {
                 const stats = customerAmounts[c.id] || { count: 0, usd: 0, rmb: 0 };
+                const purchase = customerPurchases[c.id] || { usd: 0, rmb: 0 };
                 return (
                   <Col xs={24} sm={12} lg={8} xl={6} key={c.id}>
                     <CustomerCard
@@ -343,6 +392,8 @@ export default function CustomerList() {
                       dealCount={c.status === 'dealt' && stats.count === 0 ? null : stats.count}
                       totalUsd={stats.usd > 0 ? stats.usd : null}
                       totalRmb={stats.rmb > 0 ? stats.rmb : null}
+                      purchaseRmb={purchase.rmb}
+                      purchaseUsd={purchase.usd}
                       onClick={() => navigate(`/customers/${c.id}`)}
                       onEdit={() => openEdit(c)}
                       onDelete={() => deleteMutation.mutate(c.id)}

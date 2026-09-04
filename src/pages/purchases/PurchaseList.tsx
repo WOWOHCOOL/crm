@@ -148,7 +148,12 @@ export default function PurchaseList() {
     { title: '日期', dataIndex: 'order_date', key: 'order_date', width: 110 },
     {
       title: '金额', dataIndex: 'total_amount', key: 'total_amount', width: 120,
-      render: (v: number | null) => v ? `¥${Number(v).toFixed(2)}` : '-',
+      render: (v: number | null, r: PurchaseOrder) => {
+        if (!v) return '-';
+        const sym = r.currency === 'USD' ? '$' : '¥';
+        const color = r.currency === 'USD' ? '#1677ff' : undefined;
+        return <span style={{ fontWeight: 500, color }}>{sym}{Number(v).toFixed(2)}</span>;
+      },
     },
     {
       title: '状态', dataIndex: 'status', key: 'status', width: 100,
@@ -176,7 +181,7 @@ export default function PurchaseList() {
             ref_type: 'purchase_order',
             ref_id: r.id,
             amount: String(r.total_amount || 0),
-            currency: 'RMB',
+            currency: r.currency || 'RMB',
             type: 'expense',
             description: desc,
           });

@@ -127,6 +127,7 @@ export interface Order {
   order_type: OrderType;
   status: OrderStatus;
   total_amount: number | null;
+  currency: CurrencyType;
   notes: string | null;
   date: string;
   created_at: string;
@@ -221,6 +222,7 @@ export interface PurchaseOrder {
   order_no: string;
   order_date: string;
   total_amount: number | null;
+  currency: CurrencyType;
   status: PurchaseStatus;
   payment_terms: string | null;
   payment_receipt_url: string | null;
@@ -300,6 +302,7 @@ export interface Quotation {
   id: string;
   type: 'quotation' | 'pi';
   quotation_no: string;
+  currency: CurrencyType;
   customer_company: string | null;
   customer_contact: string | null;
   customer_website: string | null;
