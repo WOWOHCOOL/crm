@@ -57,17 +57,19 @@ export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, 
     ...(onDelete ? [{ type: 'divider' as const }, { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: (e: { domEvent: { stopPropagation: () => void } }) => { e.domEvent.stopPropagation(); onDelete(); } }] : []),
   ];
 
-  // Deal stats - counts and totals per currency (USD and RMB are never mixed)
+  // Deal stats - one currency per customer (mutually exclusive):
+  // USD customers show USD only, RMB customers show RMB only.
+  // This also distinguishes domestic vs overseas customers at a glance.
   // Format like SupplierCard: 万 for amounts >= 10000
   const hasDeals = (dealCount ?? 0) > 0;
   const fmt = (n: number, sym: string) =>
     n >= 10000 ? `${sym}${(n / 10000).toFixed(1)}万` : `${sym}${n.toFixed(2).replace(/\.00$/, '')}`;
+  const isUsdCustomer = (totalUsd ?? 0) > 0;
   const hasPurchase = (purchaseRmb ?? 0) > 0 || (purchaseUsd ?? 0) > 0;
   const purchaseDisplay = hasPurchase
-    ? [
-        (purchaseRmb ?? 0) > 0 ? fmt(purchaseRmb!, '¥') : null,
-        (purchaseUsd ?? 0) > 0 ? fmt(purchaseUsd!, '$') : null,
-      ].filter(Boolean).join(' / ')
+    ? isUsdCustomer
+      ? fmt(purchaseUsd ?? 0, '$')
+      : fmt(purchaseRmb ?? 0, '¥')
     : null;
 
   const dealStats = (
@@ -83,16 +85,14 @@ export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, 
         <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>成交次数</div>
       </div>
       <div style={{ textAlign: 'center', flex: 1 }}>
-        <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: tokens.colorSuccess, whiteSpace: 'nowrap' }}>
-          {totalRmb != null ? fmt(totalRmb, '¥') : '-'}
+        <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: isUsdCustomer ? '#1677ff' : tokens.colorSuccess, whiteSpace: 'nowrap' }}>
+          {isUsdCustomer
+            ? (totalUsd != null ? fmt(totalUsd, '$') : '-')
+            : (totalRmb != null ? fmt(totalRmb, '¥') : '-')}
         </div>
-        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>人民币</div>
-      </div>
-      <div style={{ textAlign: 'center', flex: 1 }}>
-        <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: tokens.colorSuccess, whiteSpace: 'nowrap' }}>
-          {totalUsd != null ? fmt(totalUsd, '$') : '-'}
+        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>
+          {isUsdCustomer ? '成交金额 ($)' : '成交金额 (¥)'}
         </div>
-        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>美元</div>
       </div>
       <div style={{ textAlign: 'center', flex: 1 }}>
         <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: '#ff7a45', whiteSpace: 'nowrap' }}>
