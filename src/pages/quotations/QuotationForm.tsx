@@ -8,6 +8,7 @@ import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLe
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation, Customer } from '../../types';
+import { useResponsive } from '../../hooks/useResponsive';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
 function r2(v: number): number {
@@ -55,6 +56,7 @@ export default function QuotationForm() {
   const [searchParams] = useSearchParams();
   const isEdit = !!id;
   const defaultType = (searchParams.get('type') || 'quotation') as 'quotation' | 'pi';
+  const { isMobile } = useResponsive();
 
   const [form] = Form.useForm();
   const [docType, setDocType] = useState<'quotation' | 'pi'>(defaultType);
@@ -604,12 +606,15 @@ export default function QuotationForm() {
             </Space>
           </Space>
 
+          {/* table-keep-scroll: real table + horizontal scroll on mobile (editable grid) */}
           <Table
+            className="table-keep-scroll"
             dataSource={items}
             columns={itemColumns}
             rowKey="_key"
             pagination={false}
             size="small"
+            scroll={{ x: 1000 }}
             locale={{ emptyText: `请点击"从商品库选择"添加产品` }}
             summary={() => !isQuo && items.length > 0 ? (
               <Table.Summary.Row>
@@ -797,7 +802,7 @@ export default function QuotationForm() {
         onOk={addProducts}
         onCancel={() => { setProductModal(false); setSelectedProductIds(new Set()); setProductSearch(''); }}
         okText={`添加选中 (${selectedProductIds.size})`}
-        width={750}
+        width={isMobile ? undefined : 750}
       >
         <Input
           placeholder="搜索产品型号..."

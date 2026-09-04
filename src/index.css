@@ -87,20 +87,47 @@ input, textarea, select {
     flex-shrink: 0;
     margin-right: 8px;
   }
-  .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
+  /* Action columns are marked by ResponsiveTable via data-role="actions" */
+  .ant-table-wrapper .ant-table-tbody > tr > td[data-role="actions"] {
     display: flex !important;
     background: #fafafa !important;
     gap: 6px !important;
+    border-bottom: none !important;
   }
-  .ant-table-wrapper .ant-table-tbody > tr > td:last-child::before {
+  .ant-table-wrapper .ant-table-tbody > tr > td[data-role="actions"]::before {
     display: none !important;
   }
-  .ant-table-wrapper .ant-table-tbody > tr > td:last-child .ant-btn {
+  .ant-table-wrapper .ant-table-tbody > tr > td[data-role="actions"] .ant-btn {
     flex: 1 !important;
     text-align: center !important;
     font-size: 12px !important;
     height: 32px !important;
     border-radius: 6px !important;
+  }
+
+  /* Editable tables (form line-item grids): keep real table + horizontal
+     scroll on mobile instead of card transformation */
+  .ant-table-wrapper.table-keep-scroll .ant-table-thead {
+    display: table-header-group !important;
+  }
+  .ant-table-wrapper.table-keep-scroll .ant-table-tbody > tr {
+    display: table-row !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .ant-table-wrapper.table-keep-scroll .ant-table-tbody > tr > td {
+    display: table-cell !important;
+    padding: 6px 6px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    white-space: nowrap;
+  }
+  .ant-table-wrapper.table-keep-scroll td::before {
+    content: none !important;
+  }
+  .ant-table-wrapper.table-keep-scroll td > * {
+    max-width: none !important;
   }
 
   /* Toolbar input full width */

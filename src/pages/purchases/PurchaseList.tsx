@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  Button, Space, Tag, Card, Popconfirm, message, Select,
+  Button, Space, Tag, Card, Popconfirm, message, Select, Dropdown, Modal,
 } from 'antd';
-import { PlusOutlined, DownloadOutlined, DollarOutlined } from '@ant-design/icons';
+import { PlusOutlined, DownloadOutlined, DollarOutlined, MoreOutlined } from '@ant-design/icons';
 import ResponsiveTable from '../../components/ResponsiveTable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { PurchaseOrder, PurchaseItem, PurchaseStatus, Supplier } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { logOperation } from '../../utils/log';
 import { exportPurchasePDF } from '../../utils/purchaseExport';
 
@@ -41,6 +42,7 @@ export default function PurchaseList() {
   const queryClient = useQueryClient();
   const { isOwner, isAdmin } = useAuth();
   const canEdit = isOwner || isAdmin;
+  const { isMobile } = useResponsive();
 
   // Also fetch linked transactions for finance status
   const { data: orders, isLoading } = useQuery({
@@ -197,8 +199,45 @@ export default function PurchaseList() {
       },
     },
     {
-      title: '操作', key: 'actions', width: 280,
+      title: '操作', key: 'actions', width: isMobile ? 120 : 280,
       render: (_: unknown, record: PurchaseOrder) => {
+        // Mobile: collapse into Edit + More dropdown (no Select inside actions row)
+        if (isMobile) {
+          const nextOpts = nextStatuses[record.status] ?? [];
+          const menuItems = [
+            { key: 'pdf', label: '下载 PDF' },
+            ...(canEdit ? nextOpts.map(s => ({ key: `status-${s}`, label: `变更状态 → ${statusLabels[s]}` })) : []),
+            ...(canEdit && record.status === 'draft' ? [{ type: 'divider' as const }, { key: 'delete', label: '删除', danger: true }] : []),
+          ];
+          return (
+            <Space size="small">
+              <Button size="small" onClick={() => navigate(`/purchases/edit/${record.id}`)}>
+                {record.status === 'draft' ? '编辑' : '查看'}
+              </Button>
+              <Dropdown
+                menu={{
+                  items: menuItems,
+                  onClick: ({ key }) => {
+                    if (key === 'pdf') handleDownload(record);
+                    else if (key.startsWith('status-')) statusChangeMutation.mutate({ id: record.id, newStatus: key.slice(7) as PurchaseStatus });
+                    else if (key === 'delete') {
+                      Modal.confirm({
+                        title: '删除后无法恢复，确定删除此采购单？',
+                        okText: '确认删除',
+                        cancelText: '取消',
+                        okButtonProps: { danger: true },
+                        onOk: () => deleteMutation.mutate(record.id),
+                      });
+                    }
+                  },
+                }}
+                trigger={['click']}
+              >
+                <Button size="small" icon={<MoreOutlined />} />
+              </Dropdown>
+            </Space>
+          );
+        }
         const nextOpts = nextStatuses[record.status] ?? [];
         return (
           <Space size="small" wrap>

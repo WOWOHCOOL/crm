@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Row, Col, Statistic, Table, Spin, DatePicker, Button, Space, Tag, Select } from 'antd';
+import { Card, Row, Col, Statistic, Spin, DatePicker, Button, Space, Tag, Select } from 'antd';
 import { DownloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -9,8 +9,10 @@ import {
 } from 'recharts';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+import { useResponsive } from '../../hooks/useResponsive';
 import { ENTITY_LABELS, CURRENCY_SYMBOLS } from '../../types';
 import type { CurrencyType, EntityType } from '../../types';
+import ResponsiveTable from '../../components/ResponsiveTable';
 
 // ── Premium Color Palette ──
 const COLORS = {
@@ -58,6 +60,7 @@ export default function ReportPage() {
   const [year, setYear] = useState(dayjs().year());
   const [currencyFilter, setCurrencyFilter] = useState<string>('');
   const [entityFilter, setEntityFilter] = useState<string>('');
+  const { isMobile } = useResponsive();
 
   // Fetch account IDs for entity filter
   const { data: entityAccountIds } = useQuery({
@@ -250,7 +253,7 @@ export default function ReportPage() {
           </Space>
         </div>
         <div style={{ padding: '8px 0 0' }}>
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={isMobile ? 240 : 320}>
             <AreaChart data={monthlyData?.months ?? []} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
               <defs>
                 <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.gold} stopOpacity={0.3} /><stop offset="100%" stopColor={COLORS.gold} stopOpacity={0.02} /></linearGradient>
@@ -280,16 +283,16 @@ export default function ReportPage() {
                 <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>共 {section.data.length} 个科目</div>
               </div>
               {section.data.length > 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0' }}>
-                  <ResponsiveContainer width="55%" height={280}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0', flexDirection: isMobile ? 'column' : 'row' }}>
+                  <ResponsiveContainer width={isMobile ? '100%' : '55%'} height={isMobile ? 240 : 280}>
                     <PieChart>
-                      <Pie data={section.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={100} paddingAngle={3}>
+                      <Pie data={section.data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={isMobile ? 40 : 50} outerRadius={isMobile ? 80 : 100} paddingAngle={3}>
                         {section.data.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />)}
                       </Pie>
                       <Tooltip content={<CustomTooltip sym={currencySym} />} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div style={{ flex: 1, paddingRight: 20 }}>
+                  <div style={{ flex: 1, paddingRight: isMobile ? 0 : 20, paddingLeft: isMobile ? 20 : 0, alignSelf: 'stretch' }}>
                     {section.data.slice(0, 6).map((item: any, i: number) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: i < Math.min(section.data.length, 6) - 1 ? '1px solid #f5f5f5' : 'none' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -318,15 +321,15 @@ export default function ReportPage() {
         <Row>
           <Col xs={24} lg={14}>
             <div style={{ padding: '8px 20px 8px 0' }}>
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={customerRank ?? []} margin={{ top: 16, right: 20, left: 10, bottom: 10 }} layout="vertical">
+              <ResponsiveContainer width="100%" height={isMobile ? 280 : 320}>
+                <BarChart data={customerRank ?? []} margin={{ top: 16, right: 20, left: isMobile ? -10 : 10, bottom: 10 }} layout="vertical">
                   <defs>
                     <linearGradient id="gradBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.gold} stopOpacity={0.7} /><stop offset="100%" stopColor={COLORS.goldLight} stopOpacity={1} /></linearGradient>
                     <linearGradient id="gradBarUsd" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.7} /><stop offset="100%" stopColor={COLORS.blueLight} stopOpacity={1} /></linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={(v: number) => formatY(v, currencySym)} />
-                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.text }} width={120} />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 10 : 11, fill: COLORS.text }} width={isMobile ? 90 : 120} />
                   <Tooltip content={<CustomTooltip sym={currencySym} />} />
                   <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={20}>
                     {(customerRank ?? []).map((r: any, i: number) => <Cell key={i} fill={r.currency === 'USD' ? 'url(#gradBarUsd)' : 'url(#gradBar)'} />)}
@@ -337,7 +340,7 @@ export default function ReportPage() {
           </Col>
           <Col xs={24} lg={10}>
             <div style={{ padding: '16px 20px' }}>
-              <Table dataSource={customerRank ?? []} rowKey="rank" size="small" pagination={false}
+              <ResponsiveTable dataSource={customerRank ?? []} rowKey="rank" size="small" pagination={false}
                 columns={[
                   { title: '#', dataIndex: 'rank', key: 'rank', width: 40, render: (v: number) => <Tag style={{ borderRadius: 10, minWidth: 22, textAlign: 'center' }}>{v}</Tag> },
                   { title: '客户', dataIndex: 'name', key: 'name', ellipsis: true },

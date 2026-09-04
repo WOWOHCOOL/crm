@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, Col, Row, Table, Spin, Tag, Space, Typography, Progress } from 'antd';
+import ResponsiveTable from '../components/ResponsiveTable';
 import {
   DollarOutlined,
   ArrowUpOutlined,
@@ -161,11 +162,13 @@ export default function Dashboard() {
               <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
-                  {card.lines.map((line, li) => (
-                    <div key={li} style={{ fontSize: 16, fontWeight: 600, lineHeight: li === 0 ? 1.3 : 1.5, color: li === 1 ? '#1677ff' : undefined }}>
-                      {line}
-                    </div>
-                  ))}
+                  <div style={{ minHeight: 40, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {card.lines.map((line, li) => (
+                      <div key={li} style={{ fontSize: 16, fontWeight: 600, lineHeight: li === 0 ? 1.3 : 1.5, color: li === 1 ? '#1677ff' : undefined }}>
+                        {line}
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div style={{
                   width: 36, height: 36, borderRadius: 8, display: 'flex',
@@ -240,8 +243,8 @@ export default function Dashboard() {
           styles={{ body: { padding: '12px 16px' } }}
           extra={<a onClick={() => navigate('/finance')} style={{ fontSize: 12 }}>查看全部</a>}>
           {txLoading ? <Spin /> : (
-            <Table dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
-              pagination={false} size="small" scroll={{ x: 400 }} />
+            <ResponsiveTable dataSource={recentTransactions ?? []} columns={txColumns} rowKey="id"
+              pagination={false} size="small" />
           )}
         </Card>
       )}

@@ -8,6 +8,7 @@ import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined, Upload
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../auth/AuthContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import type { Product, PurchaseOrder, PurchaseItem, Supplier, CurrencyType } from '../../types';
 import { CURRENCY_SYMBOLS } from '../../types';
 import { logOperation } from '../../utils/log';
@@ -20,6 +21,7 @@ export default function PurchaseForm() {
   const queryClient = useQueryClient();
   const { orgInfo } = useAuth();
   const isEdit = !!id;
+  const { isMobile } = useResponsive();
   const [form] = Form.useForm();
   const [items, setItems] = useState<{
     key: string;
@@ -522,12 +524,15 @@ export default function PurchaseForm() {
 
           <Typography.Title level={5} style={{ marginTop: 4 }}>采购商品</Typography.Title>
 
+          {/* table-keep-scroll: real table + horizontal scroll on mobile (editable grid) */}
           <Table
+            className="table-keep-scroll"
             dataSource={items.map((item, i) => ({ ...item, _index: i }))}
             columns={itemColumns}
             rowKey="key"
             pagination={false}
             size="small"
+            scroll={{ x: 1000 }}
             locale={{ emptyText: '暂无商品，点击下方按钮添加' }}
           />
 
@@ -573,7 +578,7 @@ export default function PurchaseForm() {
         open={selectingIndex !== null}
         onCancel={() => setSelectingIndex(null)}
         footer={null}
-        width={500}
+        width={isMobile ? undefined : 500}
         destroyOnClose
       >
         <ProductSelector products={products ?? []} onSelect={(id) => {

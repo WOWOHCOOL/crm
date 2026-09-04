@@ -22,6 +22,9 @@ export default function ResponsiveTable<T extends object>({
       | undefined;
 
     const colTitle = typeof col.title === 'string' ? col.title : undefined;
+    // Action columns (key: 'actions') get a marker so mobile CSS can render
+    // them as the gray button row instead of assuming the last column
+    const isActions = col.key === 'actions';
 
     return {
       ...col,
@@ -29,6 +32,9 @@ export default function ResponsiveTable<T extends object>({
         const base: CellResult = originalOnCell ? originalOnCell(record, index) : {};
         if (base['data-label'] === undefined && colTitle) {
           base['data-label'] = colTitle;
+        }
+        if (isActions) {
+          base['data-role'] = 'actions';
         }
         return base;
       },

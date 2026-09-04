@@ -1,20 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, message, Popconfirm, Card, Tag, Select,
+  Button, Space, Input, message, Popconfirm, Card, Tag, Select, Dropdown, Modal,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, DeleteOutlined, DollarOutlined, MoreOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
+import { useResponsive } from '../../hooks/useResponsive';
 import type { Quotation, QuotationItem } from '../../types';
 import { logOperation } from '../../utils/log';
 import { exportExcel, exportPDF } from '../../utils/quotationExport';
+import ResponsiveTable from '../../components/ResponsiveTable';
 
 export default function QuotationList({ listType }: { listType: 'quotation' | 'pi' }) {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isMobile } = useResponsive();
 
   const { data: quotations, isLoading } = useQuery({
     queryKey: ['quotations', listType, search],
@@ -143,35 +146,76 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
       },
     }] : []),
     {
-      title: '操作', key: 'actions', width: 280,
-      render: (_: unknown, record: Quotation) => (
-        <Space size="small" wrap>
-          <Button size="small" onClick={() => navigate(`/quotations/edit/${record.id}`)}>编辑</Button>
-          {listType === 'quotation' && (
-            <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
-          )}
-          {listType === 'pi' && (
-            <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
-          )}
-          <Button size="small" onClick={() => handleExport(record, 'pdf')}>PDF</Button>
-          {listType === 'pi' && record.status === 'draft' && (
-            <Button size="small" type="primary"
-              loading={piStatusMutation.isPending}
-              onClick={() => piStatusMutation.mutate({ id: record.id, newStatus: 'sent' })}>
-              标记已发送
-            </Button>
-          )}
-          {listType === 'pi' && record.status === 'sent' && (
-            <Popconfirm title="确定将 PI 撤回草稿状态？"
-              onConfirm={() => piStatusMutation.mutate({ id: record.id, newStatus: 'draft' })}>
-              <Button size="small">撤回草稿</Button>
+      title: '操作', key: 'actions', width: isMobile ? 120 : 280,
+      render: (_: unknown, record: Quotation) => {
+        // Mobile: collapse into Edit + More dropdown to keep the actions row compact
+        if (isMobile) {
+          const menuItems = [
+            { key: 'excel', label: '导出 Excel' },
+            { key: 'pdf', label: '导出 PDF' },
+            ...(listType === 'pi' && record.status === 'draft' ? [{ key: 'mark-sent', label: '标记已发送' }] : []),
+            ...(listType === 'pi' && record.status === 'sent' ? [{ key: 'withdraw', label: '撤回草稿' }] : []),
+            { type: 'divider' as const },
+            { key: 'delete', label: '删除', danger: true },
+          ];
+          return (
+            <Space size="small">
+              <Button size="small" onClick={() => navigate(`/quotations/edit/${record.id}`)}>编辑</Button>
+              <Dropdown
+                menu={{
+                  items: menuItems,
+                  onClick: ({ key }) => {
+                    if (key === 'excel') handleExport(record, 'excel');
+                    else if (key === 'pdf') handleExport(record, 'pdf');
+                    else if (key === 'mark-sent') piStatusMutation.mutate({ id: record.id, newStatus: 'sent' });
+                    else if (key === 'withdraw') piStatusMutation.mutate({ id: record.id, newStatus: 'draft' });
+                    else if (key === 'delete') {
+                      Modal.confirm({
+                        title: '删除后无法恢复，确定删除此报价单？',
+                        okText: '确认删除',
+                        cancelText: '取消',
+                        okButtonProps: { danger: true },
+                        onOk: () => deleteMutation.mutate(record.id),
+                      });
+                    }
+                  },
+                }}
+                trigger={['click']}
+              >
+                <Button size="small" icon={<MoreOutlined />} />
+              </Dropdown>
+            </Space>
+          );
+        }
+        return (
+          <Space size="small" wrap>
+            <Button size="small" onClick={() => navigate(`/quotations/edit/${record.id}`)}>编辑</Button>
+            {listType === 'quotation' && (
+              <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
+            )}
+            {listType === 'pi' && (
+              <Button size="small" onClick={() => handleExport(record, 'excel')}>Excel</Button>
+            )}
+            <Button size="small" onClick={() => handleExport(record, 'pdf')}>PDF</Button>
+            {listType === 'pi' && record.status === 'draft' && (
+              <Button size="small" type="primary"
+                loading={piStatusMutation.isPending}
+                onClick={() => piStatusMutation.mutate({ id: record.id, newStatus: 'sent' })}>
+                标记已发送
+              </Button>
+            )}
+            {listType === 'pi' && record.status === 'sent' && (
+              <Popconfirm title="确定将 PI 撤回草稿状态？"
+                onConfirm={() => piStatusMutation.mutate({ id: record.id, newStatus: 'draft' })}>
+                <Button size="small">撤回草稿</Button>
+              </Popconfirm>
+            )}
+            <Popconfirm title="删除后无法恢复，确定删除此报价单？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消">
+              <Button size="small" danger><DeleteOutlined />删除</Button>
             </Popconfirm>
-          )}
-          <Popconfirm title="删除后无法恢复，确定删除此报价单？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认删除" cancelText="取消">
-            <Button size="small" danger><DeleteOutlined />删除</Button>
-          </Popconfirm>
-        </Space>
-      ),
+          </Space>
+        );
+      },
     },
   ];
 
@@ -192,7 +236,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
             新建{title}
           </Button>
         </Space>
-        <Table
+        <ResponsiveTable
           dataSource={quotations}
           columns={columns}
           rowKey="id"

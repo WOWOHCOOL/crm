@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Collapse, Segmented } from 'antd';
+import { Card, Descriptions, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Collapse, Segmented } from 'antd';
+import ResponsiveTable from '../../components/ResponsiveTable';
 import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, CheckCircleOutlined, TeamOutlined, OrderedListOutlined, SwapOutlined, PieChartOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -350,7 +351,7 @@ export default function CustomerDetail() {
                     </Space>}
                     extra={canManage && next ? <Button size="small" type="primary" onClick={() => updateOrderStatus.mutate({ orderId: order.id, status: next })}>{statusActionLabels[curStatus]}</Button> : undefined}>
                     {order.order_items && order.order_items.length > 0 ? (
-                      <Table dataSource={order.order_items as any[]} rowKey="id" pagination={false} size="small"
+                      <ResponsiveTable dataSource={order.order_items as any[]} rowKey="id" pagination={false} size="small"
                         scroll={{ x: 'max-content' }}
                         columns={[
                           { title: '型号', dataIndex: 'model', key: 'model' },
@@ -408,7 +409,7 @@ export default function CustomerDetail() {
               <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
                   <div style={{ fontSize: tokens.fontSizeLG, fontWeight: 600, marginBottom: tokens.spacingMD, color: tokens.colorTextSecondary }}>报价单</div>
-                  <Table dataSource={(quotations ?? []).filter((q: Quotation) => q.type === 'quotation')}
+                  <ResponsiveTable dataSource={(quotations ?? []).filter((q: Quotation) => q.type === 'quotation')}
                     rowKey="id" size="small" pagination={false}
                     scroll={{ x: 'max-content' }}
                     columns={[
@@ -421,7 +422,7 @@ export default function CustomerDetail() {
                 </Col>
                 <Col xs={24} lg={12}>
                   <div style={{ fontSize: tokens.fontSizeLG, fontWeight: 600, marginBottom: tokens.spacingMD, color: tokens.colorTextSecondary }}>PI</div>
-                  <Table dataSource={(quotations ?? []).filter((q: Quotation) => q.type === 'pi')}
+                  <ResponsiveTable dataSource={(quotations ?? []).filter((q: Quotation) => q.type === 'pi')}
                     rowKey="id" size="small" pagination={false}
                     scroll={{ x: 'max-content' }}
                     columns={[
@@ -459,7 +460,7 @@ export default function CustomerDetail() {
                   <Col xs={12} sm={totalIncomeUsd > 0 && totalIncomeRmb > 0 ? 8 : 12}><Card size="small"><StatCard icon={<DollarOutlined />} label="总支出" value={`¥${totalExpense.toFixed(2)}`} color={tokens.colorError} /></Card></Col>
                   {totalIncomeUsd > 0 && totalIncomeRmb > 0 && <Col xs={0} sm={8} />}
                 </Row>
-                <Table dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" scroll={{ x: 'max-content' }} locale={{ emptyText: '暂无收支记录' }} />
+                <ResponsiveTable dataSource={transactions ?? []} columns={txColumns} rowKey="id" pagination={{ pageSize: 10 }} size="small" scroll={{ x: 'max-content' }} locale={{ emptyText: '暂无收支记录' }} />
               </>
             )}
           </Card>
@@ -473,7 +474,7 @@ export default function CustomerDetail() {
             style={{ borderRadius: tokens.radiusXL }}
           >
             {collapsedSections['tasks'] ? null : (
-              <Table dataSource={tasks ?? []} rowKey="id" size="small" pagination={false}
+              <ResponsiveTable dataSource={tasks ?? []} rowKey="id" size="small" pagination={false}
                 scroll={{ x: 'max-content' }}
                 columns={[
                   { title: '状态', dataIndex: 'status', key: 'status', width: 70, render: (v: string) => <Tag color={v === 'pending' ? 'orange' : v === 'completed' ? 'green' : 'default'}>{v === 'pending' ? '待处理' : v === 'completed' ? '已完成' : '已取消'}</Tag> },

@@ -271,7 +271,7 @@ export default function MainLayout() {
         onClose={() => setDrawerOpen(false)}
         open={isMobile && drawerOpen}
         width={280}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
       >
         <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
           <img src="/logo.webp" alt="WowohCool CRM" style={{ height: 36, objectFit: 'contain' }} />
