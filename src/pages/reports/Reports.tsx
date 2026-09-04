@@ -89,7 +89,7 @@ export default function ReportPage() {
       const pick = (rows: any[] | null) => (rows ?? []).filter((t: any) => (t.currency || 'RMB') === cur);
       const incomes = pick(incRaw);
       const expenses = pick(expRaw);
-      const sumCur = (rows: any[], c: string) => (rows ?? []).filter((t: any) => (t.currency || 'RMB') === c).reduce((s: number, t: any) => s + Number(t.amount), 0);
+      const sumCur = (rows: any[] | null, c: string) => (rows ?? []).filter((t: any) => (t.currency || 'RMB') === c).reduce((s: number, t: any) => s + Number(t.amount), 0);
       const months = Array.from({ length: 12 }, (_, i) => {
         const m = String(i + 1).padStart(2, '0');
         const inc = incomes.filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
