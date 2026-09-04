@@ -236,6 +236,7 @@ export default function CustomerDetail() {
             </div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>电话</div><div style={{ fontWeight: 600 }}>{customer?.phone || '-'}</div></Col>
             <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>邮箱</div><div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer?.email || '-'}</div></Col>
+            <Col xs={12} md={4}><div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>创建时间</div><div style={{ fontWeight: 600, color: tokens.colorTextSecondary }}>{customer?.created_at ? new Date(customer.created_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</div></Col>
             {customer?.tags && (
               <Col xs={24} style={{ marginTop: 4 }}>
                 <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, marginBottom: 4 }}>产品/服务</div>
