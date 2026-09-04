@@ -7,15 +7,12 @@ import { extractKeywords } from '../utils/extractKeywords';
 
 interface CustomerCardProps {
   customer: Customer;
-  /** Number of distinct PI deals; null = no PI-linked records yet */
+  /** Number of deals (= number of orders); null = no orders yet */
   dealCount?: number | null;
   /** Total income in USD; null = no USD records */
   totalUsd?: number | null;
   /** Total income in RMB; null = no RMB records */
   totalRmb?: number | null;
-  /** Total purchase amount from linked purchase orders, per currency */
-  purchaseRmb?: number;
-  purchaseUsd?: number;
   onClick: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -39,7 +36,7 @@ function getFlag(country: string | null): string {
   return countryFlags[country] || '';
 }
 
-export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, purchaseRmb, purchaseUsd, onClick, onEdit, onDelete }: CustomerCardProps) {
+export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, onClick, onEdit, onDelete }: CustomerCardProps) {
   const status = customerStatusMap[customer.status] || customerStatusMap.new;
   const flag = getFlag(customer.country);
 
@@ -65,12 +62,6 @@ export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, 
   const fmt = (n: number, sym: string) =>
     n >= 10000 ? `${sym}${(n / 10000).toFixed(1)}万` : `${sym}${n.toFixed(2).replace(/\.00$/, '')}`;
   const isUsdCustomer = (totalUsd ?? 0) > 0;
-  const hasPurchase = (purchaseRmb ?? 0) > 0 || (purchaseUsd ?? 0) > 0;
-  const purchaseDisplay = hasPurchase
-    ? isUsdCustomer
-      ? fmt(purchaseUsd ?? 0, '$')
-      : fmt(purchaseRmb ?? 0, '¥')
-    : null;
 
   const dealStats = (
     <div style={{
@@ -93,12 +84,6 @@ export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, 
         <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>
           {isUsdCustomer ? '成交金额 ($)' : '成交金额 (¥)'}
         </div>
-      </div>
-      <div style={{ textAlign: 'center', flex: 1 }}>
-        <div style={{ fontSize: tokens.fontSizeMD, fontWeight: 700, color: '#ff7a45', whiteSpace: 'nowrap' }}>
-          {purchaseDisplay || '-'}
-        </div>
-        <div style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>采购金额</div>
       </div>
     </div>
   );

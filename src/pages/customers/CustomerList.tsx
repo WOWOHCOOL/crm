@@ -149,53 +149,6 @@ export default function CustomerList() {
     return amounts;
   }, [customers, allTransactions, dealOrders]);
 
-  // Fetch purchase orders linked to customers (via supplier name = customer name)
-  // Purchase amounts shown on customer cards follow each PO's own currency
-  const { data: purchaseOrders } = useQuery({
-    queryKey: ['purchase-orders', 'for-customer-cards'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('purchase_orders')
-        .select('id, total_amount, currency, status, suppliers(name)');
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: customerNames } = useQuery({
-    queryKey: ['customers', 'names-only'],
-    queryFn: async () => {
-      const { data } = await supabase.from('customers').select('id, name');
-      return data ?? [];
-    },
-  });
-
-  // Purchase totals per customer, keyed by supplier name = customer name
-  // (same matching rule as the quick-accounting button on PurchaseList)
-  const customerPurchases = useMemo(() => {
-    if (!customers || !purchaseOrders || !customerNames) return {};
-    const nameToId: Record<string, string> = {};
-    (customerNames ?? []).forEach((c: { id: string; name: string }) => {
-      nameToId[c.name.toLowerCase().trim()] = c.id;
-    });
-    const totals: Record<string, { usd: number; rmb: number }> = {};
-    (purchaseOrders as any[]).forEach((po) => {
-      if (po.status === 'cancelled' || po.status === 'draft') return;
-      const supplierName = (po.suppliers as any)?.name;
-      if (!supplierName) return;
-      const cid = nameToId[supplierName.toLowerCase().trim()];
-      if (!cid || !customers.find(c => c.id === cid)) return;
-      if (!totals[cid]) totals[cid] = { usd: 0, rmb: 0 };
-      if (po.currency === 'USD') totals[cid].usd += Number(po.total_amount || 0);
-      else totals[cid].rmb += Number(po.total_amount || 0);
-    });
-    Object.keys(totals).forEach(key => {
-      totals[key].usd = Math.round(totals[key].usd * 100) / 100;
-      totals[key].rmb = Math.round(totals[key].rmb * 100) / 100;
-    });
-    return totals;
-  }, [customers, purchaseOrders, customerNames]);
-
   const editing = useMemo(() => {
     if (!editId || !customers) return null;
     return customers.find(c => c.id === editId) ?? null;
@@ -384,7 +337,6 @@ export default function CustomerList() {
             <Row gutter={[tokens.spacingLG, tokens.spacingLG]}>
               {pagedCustomers.map((c: Customer) => {
                 const stats = customerAmounts[c.id] || { count: 0, usd: 0, rmb: 0 };
-                const purchase = customerPurchases[c.id] || { usd: 0, rmb: 0 };
                 return (
                   <Col xs={24} sm={12} lg={8} xl={6} key={c.id}>
                     <CustomerCard
@@ -392,8 +344,6 @@ export default function CustomerList() {
                       dealCount={c.status === 'dealt' && stats.count === 0 ? null : stats.count}
                       totalUsd={stats.usd > 0 ? stats.usd : null}
                       totalRmb={stats.rmb > 0 ? stats.rmb : null}
-                      purchaseRmb={purchase.rmb}
-                      purchaseUsd={purchase.usd}
                       onClick={() => navigate(`/customers/${c.id}`)}
                       onEdit={() => openEdit(c)}
                       onDelete={() => deleteMutation.mutate(c.id)}
