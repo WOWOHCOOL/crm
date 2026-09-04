@@ -7,6 +7,8 @@ import { extractKeywords } from '../utils/extractKeywords';
 
 interface CustomerCardProps {
   customer: Customer;
+  totalAmount?: number | null;
+  currency?: 'RMB' | 'USD';
   onClick: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -30,7 +32,7 @@ function getFlag(country: string | null): string {
   return countryFlags[country] || '';
 }
 
-export default function CustomerCard({ customer, onClick, onEdit, onDelete }: CustomerCardProps) {
+export default function CustomerCard({ customer, totalAmount, currency, onClick, onEdit, onDelete }: CustomerCardProps) {
   const status = customerStatusMap[customer.status] || customerStatusMap.new;
   const flag = getFlag(customer.country);
 
@@ -47,6 +49,19 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
     ...(onEdit ? [{ key: 'edit', icon: <EditOutlined />, label: '编辑', onClick: (e: { domEvent: { stopPropagation: () => void } }) => { e.domEvent.stopPropagation(); onEdit(); } }] : []),
     ...(onDelete ? [{ type: 'divider' as const }, { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: (e: { domEvent: { stopPropagation: () => void } }) => { e.domEvent.stopPropagation(); onDelete(); } }] : []),
   ];
+
+  // Payment summary - displayed in card body, below source/intention
+  const paymentSummary = (
+    <div style={{ marginTop: tokens.spacingMD, paddingTop: tokens.spacingMD, borderTop: `1px solid ${tokens.colorBorderSecondary}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: tokens.spacingSM }}>
+        <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>成交金额</span>
+        <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorSuccess, fontWeight: 600 }}>
+          {customer.currency === 'USD' ? `$${(totalAmount || 0).toFixed(2)}` : `¥${(totalAmount || 0).toFixed(2)}`}
+        </span>
+      </div>
+      {totalAmount === null && <span style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>暂无记录</span>}
+    </div>
+  );
 
   return (
     <div
@@ -160,6 +175,9 @@ export default function CustomerCard({ customer, onClick, onEdit, onDelete }: Cu
             </Tag>
           )}
         </div>
+
+        {/* Payment summary */}
+        {paymentSummary}
 
         {/* Auto-extracted product/service tags from inquiry */}
         {(() => {

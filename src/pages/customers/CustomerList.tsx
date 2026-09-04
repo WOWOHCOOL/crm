@@ -80,6 +80,56 @@ export default function CustomerList() {
     },
   });
 
+  // Fetch all transactions for calculating total amount per customer
+  // Since auto-accounting was removed in v31, all transactions are manual - no risk of double-counting
+  const { data: allTransactions, isLoading: isLoadingTransactions } = useQuery({
+    queryKey: ['transactions', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, customers(currency)')
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Calculate total income amount and currency per customer
+  // Only count 'income' type transactions linked to this customer
+  // Currency: if any transaction is USD, display USD; otherwise RMB
+  const customerAmounts = useMemo(() => {
+    if (!customers || !allTransactions) return {};
+
+    const amounts: Record<string, { total: number; currency: 'RMB' | 'USD' }> = {};
+
+    // Initialize for all customers
+    customers.forEach(c => {
+      amounts[c.id] = { total: 0, currency: 'RMB' };
+    });
+
+    // Accumulate income transactions
+    allTransactions.forEach((t: any) => {
+      if (t.type !== 'income') return;
+      const customerId = t.customer_id;
+      if (!customerId || !amounts[customerId]) return;
+
+      // Determine currency: if any transaction is USD, use USD
+      if (t.currency === 'USD') {
+        amounts[customerId].currency = 'USD';
+      }
+
+      // Add amount (already in the correct currency)
+      amounts[customerId].total += (t.amount || 0);
+    });
+
+    // Round to 2 decimal places
+    Object.keys(amounts).forEach(key => {
+      amounts[key].total = Math.round(amounts[key].total * 100) / 100;
+    });
+
+    return amounts;
+  }, [customers, allTransactions]);
+
   const editing = useMemo(() => {
     if (!editId || !customers) return null;
     return customers.find(c => c.id === editId) ?? null;
@@ -266,16 +316,21 @@ export default function CustomerList() {
         ) : viewMode === 'grid' ? (
           <>
             <Row gutter={[tokens.spacingLG, tokens.spacingLG]}>
-              {pagedCustomers.map((c: Customer) => (
-                <Col xs={24} sm={12} lg={8} xl={6} key={c.id}>
-                  <CustomerCard
-                    customer={c}
-                    onClick={() => navigate(`/customers/${c.id}`)}
-                    onEdit={() => openEdit(c)}
-                    onDelete={() => deleteMutation.mutate(c.id)}
-                  />
-                </Col>
-              ))}
+              {pagedCustomers.map((c: Customer) => {
+                const amountInfo = customerAmounts[c.id] || { total: 0, currency: 'RMB' };
+                return (
+                  <Col xs={24} sm={12} lg={8} xl={6} key={c.id}>
+                    <CustomerCard
+                      customer={c}
+                      totalAmount={amountInfo.total || null}
+                      currency={amountInfo.currency}
+                      onClick={() => navigate(`/customers/${c.id}`)}
+                      onEdit={() => openEdit(c)}
+                      onDelete={() => deleteMutation.mutate(c.id)}
+                    />
+                  </Col>
+                );
+              })}
             </Row>
             {total > PAGE_SIZE && (
               <div style={{ textAlign: 'center', marginTop: tokens.spacingXL }}>
