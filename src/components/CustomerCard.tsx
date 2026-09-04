@@ -51,12 +51,13 @@ export default function CustomerCard({ customer, totalAmount, currency, onClick,
   ];
 
   // Payment summary - displayed in card body, below source/intention
+  // Currency comes from props (calculated from transactions), not from customer record
   const paymentSummary = (
     <div style={{ marginTop: tokens.spacingMD, paddingTop: tokens.spacingMD, borderTop: `1px solid ${tokens.colorBorderSecondary}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: tokens.spacingSM }}>
         <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary }}>成交金额</span>
         <span style={{ fontSize: tokens.fontSizeSM, color: tokens.colorSuccess, fontWeight: 600 }}>
-          {customer.currency === 'USD' ? `$${(totalAmount || 0).toFixed(2)}` : `¥${(totalAmount || 0).toFixed(2)}`}
+          {currency === 'USD' ? `$${(totalAmount || 0).toFixed(2)}` : `¥${(totalAmount || 0).toFixed(2)}`}
         </span>
       </div>
       {totalAmount === null && <span style={{ fontSize: tokens.fontSizeXS, color: tokens.colorTextTertiary }}>暂无记录</span>}
