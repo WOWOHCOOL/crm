@@ -60,6 +60,10 @@ export function exportPurchasePDF(
   supplier: Supplier | null,
 ) {
   const total = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  // Document currency: USD POs print $ symbols and English amount words
+  const isUsd = order.currency === 'USD';
+  const curSym = isUsd ? 'US$' : '¥';
+  const priceHeader = isUsd ? '单价（USD）' : '单价（RMB）';
   const origin = window.location.origin;
 
   const html = `<!DOCTYPE html>
@@ -149,7 +153,7 @@ export function exportPurchasePDF(
       <th style="width:5%">颜色</th>
       <th class="left" style="width:22%">描述/规格</th>
       <th style="width:6%">数量</th>
-      <th style="width:10%">单价（RMB）</th>
+      <th style="width:10%">${priceHeader}</th>
       <th style="width:10%">金额</th>
       <th class="left" style="width:21%">备注</th>
     </tr></thead>
@@ -163,7 +167,7 @@ export function exportPurchasePDF(
           <td class="left">${item.description || ''}</td>
           <td>${item.quantity}</td>
           <td>${Number(item.unit_price).toFixed(2)}</td>
-          <td>${r2(item.quantity * item.unit_price).toFixed(2)}</td>
+          <td>${curSym}${r2(item.quantity * item.unit_price).toFixed(2)}</td>
           <td class="left">${item.remarks || ''}</td>
         </tr>
       `).join('')}
@@ -171,8 +175,10 @@ export function exportPurchasePDF(
   </table>
 
   <div class="total-box">
-    <div class="line big">合计金额：¥${r2(total).toFixed(2)}</div>
-    <div class="words">合计人民币大写：${amountInChinese(r2(total))}</div>
+    <div class="line big">合计金额：${curSym}${r2(total).toFixed(2)}</div>
+    ${isUsd
+      ? `<div class="words">Amount in Words: US Dollars ${Number(r2(total)).toLocaleString('en-US', { minimumFractionDigits: 2 })} Only</div>`
+      : `<div class="words">合计人民币大写：${amountInChinese(r2(total))}</div>`}
   </div>
 
   <div class="section-title">合同内容</div>

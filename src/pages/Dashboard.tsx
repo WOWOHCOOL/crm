@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Card, Col, Row, Statistic, Table, Spin, Tag, Space, Typography, Progress } from 'antd';
+import { Card, Col, Row, Table, Spin, Tag, Space, Typography, Progress } from 'antd';
 import {
   DollarOutlined,
   ArrowUpOutlined,
@@ -44,19 +44,26 @@ export default function Dashboard() {
         { count: productCount },
         { data: orderData },
       ] = await Promise.all([
-        supabase.from('transactions').select('amount').eq('type', 'income').gte('date', firstDay).lte('date', lastDay),
-        supabase.from('transactions').select('amount').eq('type', 'expense').gte('date', firstDay).lte('date', lastDay),
+        supabase.from('transactions').select('amount,currency').eq('type', 'income').gte('date', firstDay).lte('date', lastDay),
+        supabase.from('transactions').select('amount,currency').eq('type', 'expense').gte('date', firstDay).lte('date', lastDay),
         supabase.from('customers').select('*', { count: 'exact', head: true }),
         supabase.from('products').select('*', { count: 'exact', head: true }),
         supabase.from('orders').select('status'),
       ]);
 
-      const totalIncome = income?.reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
-      const totalExpense = expense?.reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
+      // Per-currency buckets: USD and RMB are never summed together
+      const sumBy = (rows: { amount: number; currency: string }[] | null, cur: 'USD' | 'RMB') =>
+        (rows ?? []).filter((t) => (t.currency || 'RMB') === cur).reduce((sum, t) => sum + Number(t.amount), 0);
+      const incomeUsd = sumBy(income, 'USD');
+      const incomeRmb = sumBy(income, 'RMB');
+      const expenseUsd = sumBy(expense, 'USD');
+      const expenseRmb = sumBy(expense, 'RMB');
       const pendingOrders = orderData?.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length ?? 0;
 
       return {
-        totalIncome, totalExpense, balance: totalIncome - totalExpense,
+        incomeUsd, incomeRmb, expenseUsd, expenseRmb,
+        balanceUsd: incomeUsd - expenseUsd,
+        balanceRmb: incomeRmb - expenseRmb,
         customerCount: customerCount ?? 0, productCount: productCount ?? 0,
         pendingOrders,
       };
@@ -107,17 +114,27 @@ export default function Dashboard() {
     { title: '科目', key: 'account', width: 80, render: (_: unknown, r: Record<string, unknown>) => (r.accounts as Record<string, string> | null)?.name ?? '-' },
   ];
 
+  // Dual-currency display: single line when only one currency has values,
+  // two lines when both exist (matches customer card convention)
+  const moneyLines = (rmb: number, usd: number) => {
+    const hasRmb = rmb !== 0;
+    const hasUsd = usd !== 0;
+    if (hasRmb && hasUsd) return [`¥${rmb.toLocaleString('zh-CN')}`, `$${usd.toLocaleString('en-US')}`];
+    if (hasUsd) return [`$${usd.toLocaleString('en-US')}`];
+    return [`¥${rmb.toLocaleString('zh-CN')}`];
+  };
+
   const statCards = canViewFinance ? [
-    { icon: <ArrowUpOutlined />, color: '#52c41a', bg: '#f6ffed', title: '本月收入', value: stats?.totalIncome ?? 0, suffix: '元', link: '/finance' },
-    { icon: <ArrowDownOutlined />, color: '#ff4d4f', bg: '#fff2f0', title: '本月支出', value: stats?.totalExpense ?? 0, suffix: '元', link: '/finance' },
-    { icon: <DollarOutlined />, color: '#1677ff', bg: '#f0f5ff', title: '本月结余', value: stats?.balance ?? 0, suffix: '元', link: '/reports' },
-    { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', value: stats?.customerCount ?? 0, suffix: '人', link: '/customers' },
-    { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', value: stats?.productCount ?? 0, suffix: '个', link: '/products' },
-    { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', value: stats?.pendingOrders ?? 0, suffix: '单', link: '/orders' },
+    { icon: <ArrowUpOutlined />, color: '#52c41a', bg: '#f6ffed', title: '本月收入', lines: moneyLines(stats?.incomeRmb ?? 0, stats?.incomeUsd ?? 0), link: '/finance' },
+    { icon: <ArrowDownOutlined />, color: '#ff4d4f', bg: '#fff2f0', title: '本月支出', lines: moneyLines(stats?.expenseRmb ?? 0, stats?.expenseUsd ?? 0), link: '/finance' },
+    { icon: <DollarOutlined />, color: '#1677ff', bg: '#f0f5ff', title: '本月结余', lines: moneyLines(stats?.balanceRmb ?? 0, stats?.balanceUsd ?? 0), link: '/reports' },
+    { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', lines: [`${stats?.customerCount ?? 0} 人`], link: '/customers' },
+    { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', lines: [`${stats?.productCount ?? 0} 个`], link: '/products' },
+    { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', lines: [`${stats?.pendingOrders ?? 0} 单`], link: '/orders' },
   ] : [
-    { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', value: stats?.customerCount ?? 0, suffix: '人', link: '/customers' },
-    { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', value: stats?.productCount ?? 0, suffix: '个', link: '/products' },
-    { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', value: stats?.pendingOrders ?? 0, suffix: '单', link: '/orders' },
+    { icon: <TeamOutlined />, color: '#722ed1', bg: '#f9f0ff', title: '客户总数', lines: [`${stats?.customerCount ?? 0} 人`], link: '/customers' },
+    { icon: <ShoppingOutlined />, color: '#13c2c2', bg: '#e6fffb', title: '商品总数', lines: [`${stats?.productCount ?? 0} 个`], link: '/products' },
+    { icon: <ShoppingCartOutlined />, color: '#fa8c16', bg: '#fff7e6', title: '进行中订单', lines: [`${stats?.pendingOrders ?? 0} 单`], link: '/orders' },
   ];
 
   const quickActions = [
@@ -144,9 +161,11 @@ export default function Dashboard() {
               <Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>{card.title}</div>
-                  <Statistic value={card.value} precision={0}
-                    suffix={card.suffix} valueStyle={{ fontSize: 18, fontWeight: 600 }}
-                    loading={isLoading} />
+                  {card.lines.map((line, li) => (
+                    <div key={li} style={{ fontSize: 16, fontWeight: 600, lineHeight: li === 0 ? 1.3 : 1.5, color: li === 1 ? '#1677ff' : undefined }}>
+                      {line}
+                    </div>
+                  ))}
                 </div>
                 <div style={{
                   width: 36, height: 36, borderRadius: 8, display: 'flex',

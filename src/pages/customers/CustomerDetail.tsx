@@ -355,8 +355,8 @@ export default function CustomerDetail() {
                         columns={[
                           { title: '型号', dataIndex: 'model', key: 'model' },
                           { title: '数量', dataIndex: 'quantity', key: 'quantity' },
-                          { title: '单价', dataIndex: 'unit_price', key: 'unit_price', render: (v: number) => `¥${Number(v).toFixed(2)}` },
-                          { title: '小计', key: 'subtotal', render: (_: any, r: any) => `¥${(Number(r.quantity) * Number(r.unit_price)).toFixed(2)}` },
+                          { title: '单价', dataIndex: 'unit_price', key: 'unit_price', render: (v: number) => `${order.currency === 'USD' ? '$' : '¥'}${Number(v).toFixed(2)}` },
+                          { title: '小计', key: 'subtotal', render: (_: any, r: any) => `${order.currency === 'USD' ? '$' : '¥'}${(Number(r.quantity) * Number(r.unit_price)).toFixed(2)}` },
                         ]} />
                     ) : <div style={{ color: tokens.colorTextTertiary, fontSize: 12, padding: 8 }}>暂无明细</div>}
 

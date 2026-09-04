@@ -79,18 +79,30 @@ export default function ReportPage() {
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      let incQ = supabase.from('transactions').select('date,amount').eq('type', 'income').gte('date', start).lte('date', end);
-      let expQ = supabase.from('transactions').select('date,amount').eq('type', 'expense').gte('date', start).lte('date', end);
-      if (currencyFilter) { incQ = incQ.eq('currency', currencyFilter); expQ = expQ.eq('currency', currencyFilter); }
-      if (entityAccountIds) { incQ = incQ.in('account_id', entityAccountIds); expQ = expQ.in('account_id', entityAccountIds); }
-      const [{ data: incomes }, { data: expenses }] = await Promise.all([incQ, expQ]);
+      const incQ = supabase.from('transactions').select('date,amount,currency').eq('type', 'income').gte('date', start).lte('date', end);
+      const expQ = supabase.from('transactions').select('date,amount,currency').eq('type', 'expense').gte('date', start).lte('date', end);
+      const { data: incRaw } = await (entityAccountIds ? incQ.in('account_id', entityAccountIds) : incQ);
+      const { data: expRaw } = await (entityAccountIds ? expQ.in('account_id', entityAccountIds) : expQ);
+      // Per-currency buckets: USD and RMB are never summed together.
+      // No filter → aggregate only RMB in charts/KPI; USD totals are surfaced separately.
+      const cur = currencyFilter || 'RMB';
+      const pick = (rows: any[] | null) => (rows ?? []).filter((t: any) => (t.currency || 'RMB') === cur);
+      const incomes = pick(incRaw);
+      const expenses = pick(expRaw);
+      const sumCur = (rows: any[], c: string) => (rows ?? []).filter((t: any) => (t.currency || 'RMB') === c).reduce((s: number, t: any) => s + Number(t.amount), 0);
       const months = Array.from({ length: 12 }, (_, i) => {
         const m = String(i + 1).padStart(2, '0');
-        const inc = (incomes ?? []).filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const exp = (expenses ?? []).filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const inc = incomes.filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
+        const exp = expenses.filter((t: any) => (t.date as string).startsWith(`${year}-${m}`)).reduce((s: number, t: any) => s + Number(t.amount), 0);
         return { month: `${m}月`, 收入: inc, 支出: exp, 利润: inc - exp };
       });
-      return { months, totalIncome: months.reduce((s, m) => s + m.收入, 0), totalExpense: months.reduce((s, m) => s + m.支出, 0) };
+      return {
+        months,
+        totalIncome: months.reduce((s, m) => s + m.收入, 0),
+        totalExpense: months.reduce((s, m) => s + m.支出, 0),
+        otherCurrencyIncome: currencyFilter ? null : sumCur(incRaw, 'USD'),
+        otherCurrencyExpense: currencyFilter ? null : sumCur(expRaw, 'USD'),
+      };
     },
   });
 
@@ -99,12 +111,14 @@ export default function ReportPage() {
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      let query = supabase.from('transactions').select('amount,type,accounts(name,entity)').gte('date', start).lte('date', end);
-      if (currencyFilter) query = query.eq('currency', currencyFilter);
+      let query = supabase.from('transactions').select('amount,type,currency,accounts(name,entity)').gte('date', start).lte('date', end);
       if (entityAccountIds) query = query.in('account_id', entityAccountIds);
       const { data } = await query;
+      // Same currency as the monthly view: filtered → that currency; no filter → RMB only
+      const cur = currencyFilter || 'RMB';
       const im: Record<string, number> = {}, em: Record<string, number> = {};
       (data ?? []).forEach((t: any) => {
+        if ((t.currency || 'RMB') !== cur) return;
         const name = (t.accounts as any)?.name ?? '未分类';
         if (t.type === 'income') im[name] = (im[name] ?? 0) + Number(t.amount);
         else em[name] = (em[name] ?? 0) + Number(t.amount);
@@ -122,16 +136,18 @@ export default function ReportPage() {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
       let query = supabase.from('transactions').select('amount,currency,customers(name)').eq('type', 'income').gte('date', start).lte('date', end);
-      if (currencyFilter) query = query.eq('currency', currencyFilter);
       if (entityAccountIds) query = query.in('account_id', entityAccountIds);
       const { data } = await query;
-      // Group by (customer, currency) - USD and RMB are never summed together
+      // Group by (customer, currency) - USD and RMB are never summed together.
+      // No filter → show only RMB (consistent with the monthly KPI view).
+      const cur = currencyFilter || 'RMB';
       const map: Record<string, { name: string; currency: CurrencyType; amount: number }> = {};
       (data ?? []).forEach((t: any) => {
+        if ((t.currency || 'RMB') !== cur) return;
         const n = (t.customers as any)?.name ?? '未关联';
-        const cur = (t.currency as CurrencyType) || 'RMB';
-        const key = `${n}|${cur}`;
-        if (!map[key]) map[key] = { name: n, currency: cur, amount: 0 };
+        const c = (t.currency as CurrencyType) || 'RMB';
+        const key = `${n}|${c}`;
+        if (!map[key]) map[key] = { name: n, currency: c, amount: 0 };
         map[key].amount += Number(t.amount);
       });
       return Object.values(map)
@@ -143,6 +159,10 @@ export default function ReportPage() {
 
   const totalProfit = (monthlyData?.totalIncome ?? 0) - (monthlyData?.totalExpense ?? 0);
   const profitMargin = (monthlyData?.totalIncome ?? 0) > 0 ? ((totalProfit / (monthlyData?.totalIncome ?? 1)) * 100).toFixed(1) : '0.0';
+  // When no currency filter is set, charts show RMB only; USD totals are not
+  // summed in - shown as a separate line on the KPI cards instead.
+  const usdNote = (v: number | null | undefined) =>
+    v != null && v !== 0 ? `  + $${v.toLocaleString('en-US')} (USD,未计入)` : '';
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
@@ -161,7 +181,9 @@ export default function ReportPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: COLORS.text }}>财务报表</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: COLORS.muted }}>{year}年 财务数据汇总</p>
+          <p style={{ margin: '2px 0 0', fontSize: 13, color: COLORS.muted }}>
+            {year}年 财务数据汇总（{currencyLabel}）
+          </p>
         </div>
         <Space wrap>
           <Select
@@ -191,10 +213,10 @@ export default function ReportPage() {
       {/* ── KPI Row ── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {[
-          { label: `年度收入（${currencyLabel}）`, value: monthlyData?.totalIncome ?? 0, prefix: currencySym, color: COLORS.green, icon: <ArrowUpOutlined />, bg: '#ecfdf5' },
-          { label: `年度支出（${currencyLabel}）`, value: monthlyData?.totalExpense ?? 0, prefix: currencySym, color: COLORS.red, icon: <ArrowDownOutlined />, bg: '#fef2f2' },
-          { label: `年度利润（${currencyLabel}）`, value: totalProfit, prefix: currencySym, color: totalProfit >= 0 ? COLORS.gold : COLORS.red, icon: null, bg: totalProfit >= 0 ? '#fffbeb' : '#fef2f2' },
-          { label: '利润率', value: profitMargin, suffix: '%', color: COLORS.blue, icon: null, bg: '#eff6ff' },
+          { label: `年度收入（${currencyLabel}）`, value: monthlyData?.totalIncome ?? 0, prefix: currencySym, color: COLORS.green, icon: <ArrowUpOutlined />, bg: '#ecfdf5', extra: usdNote(monthlyData?.otherCurrencyIncome) },
+          { label: `年度支出（${currencyLabel}）`, value: monthlyData?.totalExpense ?? 0, prefix: currencySym, color: COLORS.red, icon: <ArrowDownOutlined />, bg: '#fef2f2', extra: usdNote(monthlyData?.otherCurrencyExpense) },
+          { label: `年度利润（${currencyLabel}）`, value: totalProfit, prefix: currencySym, color: totalProfit >= 0 ? COLORS.gold : COLORS.red, icon: null, bg: totalProfit >= 0 ? '#fffbeb' : '#fef2f2', extra: '' },
+          { label: '利润率', value: profitMargin, suffix: '%', color: COLORS.blue, icon: null, bg: '#eff6ff', extra: '' },
         ].map((card, i) => (
           <Col xs={12} sm={6} key={i}>
             <Card styles={{ body: { padding: '18px 20px' } }} style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}>
@@ -204,6 +226,7 @@ export default function ReportPage() {
                   <div style={{ fontSize: 22, fontWeight: 700, color: card.color, lineHeight: 1.2 }}>
                     {card.prefix || ''}{Number(card.value).toLocaleString('zh-CN', { minimumFractionDigits: card.suffix ? 1 : 2 })}{card.suffix || ''}
                   </div>
+                  {card.extra ? <div style={{ fontSize: 11, color: '#1677ff', marginTop: 4 }}>{card.extra}</div> : null}
                 </div>
                 {card.icon && <div style={{ width: 36, height: 36, borderRadius: 10, background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{card.icon}</div>}
               </div>
@@ -217,7 +240,9 @@ export default function ReportPage() {
         <div style={{ padding: '18px 20px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>月度收支趋势</div>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>全年月度营收与支出变化</div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>
+              全年月度营收与支出变化{!currencyFilter && monthlyData?.otherCurrencyIncome ? '（仅人民币，USD 未计入）' : ''}
+            </div>
           </div>
           <Space size={12}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: COLORS.muted }}><span style={{ width: 12, height: 3, borderRadius: 2, background: COLORS.gold }} /> 收入</span>
