@@ -204,6 +204,18 @@ export default function InquiryList() {
     { title: '公司', dataIndex: 'company', key: 'company', width: 150 },
     { title: '国家', dataIndex: 'country', key: 'country', width: 80 },
     { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
+    { title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 140,
+      render: (v: string) => {
+        if (!v) return '-';
+        return new Date(v).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      },
+    },
     { title: '状态', dataIndex: 'status', key: 'status', width: 80,
       render: (v: string) => {
         const item = customerStatusMap[v] || customerStatusMap.new;
