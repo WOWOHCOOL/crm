@@ -223,16 +223,19 @@ export default function ReportPage() {
           { label: '利润率', value: profitMargin, suffix: '%', color: COLORS.blue, icon: null, bg: '#eff6ff', extra: '' },
         ].map((card, i) => (
           <Col xs={12} sm={6} key={i}>
-            <Card styles={{ body: { padding: '18px 20px' } }} style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4, fontWeight: 500 }}>{card.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: card.color, lineHeight: 1.2 }}>
+            <Card styles={{ body: { padding: isMobile ? '14px 12px' : '18px 20px' } }} style={{ borderRadius: 12, border: '1px solid #f0f0f0', minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: isMobile ? 11 : 12, color: COLORS.muted, marginBottom: 4, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</div>
+                  <div style={{
+                    fontSize: isMobile ? 16 : 22, fontWeight: 700, color: card.color, lineHeight: 1.2,
+                    wordBreak: 'break-all', overflowWrap: 'anywhere',
+                  }}>
                     {card.prefix || ''}{Number(card.value).toLocaleString('zh-CN', { minimumFractionDigits: card.suffix ? 1 : 2 })}{card.suffix || ''}
                   </div>
-                  {card.extra ? <div style={{ fontSize: 11, color: '#1677ff', marginTop: 4 }}>{card.extra}</div> : null}
+                  {card.extra ? <div style={{ fontSize: isMobile ? 10 : 11, color: '#1677ff', marginTop: 4, wordBreak: 'break-all' }}>{card.extra}</div> : null}
                 </div>
-                {card.icon && <div style={{ width: 36, height: 36, borderRadius: 10, background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{card.icon}</div>}
+                {card.icon && <div style={{ flexShrink: 0, width: isMobile ? 28 : 36, height: isMobile ? 28 : 36, borderRadius: 10, background: card.bg, color: card.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? 14 : 18 }}>{card.icon}</div>}
               </div>
             </Card>
           </Col>
@@ -293,14 +296,14 @@ export default function ReportPage() {
                       <Tooltip content={<CustomTooltip sym={currencySym} />} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div style={{ flex: 1, paddingRight: isMobile ? 0 : 20, paddingLeft: isMobile ? 20 : 0, alignSelf: 'stretch' }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: isMobile ? 16 : 24, paddingLeft: isMobile ? 20 : 0, alignSelf: 'stretch' }}>
                     {section.data.slice(0, 6).map((item: any, i: number) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, borderBottom: i < Math.min(section.data.length, 6) - 1 ? '1px solid #f5f5f5' : 'none' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block' }} />
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '5px 0', fontSize: 12, borderBottom: i < Math.min(section.data.length, 6) - 1 ? '1px solid #f5f5f5' : 'none' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length], display: 'inline-block', flexShrink: 0 }} />
                           {item.name}
                         </span>
-                        <span style={{ fontWeight: 600, color: COLORS.text }}>{currencySym}{Number(item.value).toLocaleString()}</span>
+                        <span style={{ fontWeight: 600, color: COLORS.text, flexShrink: 0, whiteSpace: 'nowrap' }}>{currencySym}{Number(item.value).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>

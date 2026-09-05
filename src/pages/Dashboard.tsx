@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Card, Col, Row, Table, Spin, Tag, Space, Typography, Progress } from 'antd';
-import ResponsiveTable from '../components/ResponsiveTable';
+import { Card, Col, Row, Table, Spin, Tag, Space, Typography, Progress } from 'antd';import ResponsiveTable from '../components/ResponsiveTable';
 import {
   DollarOutlined,
   ArrowUpOutlined,
@@ -16,6 +15,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import { useAuth } from '../auth/AuthContext';
+import { lazyPrefetch } from '../utils/lazyRoutes';
 import dayjs from 'dayjs';
 
 const cardStyle = {
@@ -30,6 +30,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { isOwner, isAdmin } = useAuth();
   const canViewFinance = isOwner || isAdmin;
+  // Warm up the finance page chunk while the user reads the dashboard
+  lazyPrefetch('/finance');
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],

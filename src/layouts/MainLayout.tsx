@@ -22,6 +22,7 @@ import {
 import { useResponsive } from '../hooks/useResponsive';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabase';
+import { lazyPrefetch } from '../utils/lazyRoutes';
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -180,7 +181,7 @@ export default function MainLayout() {
             items={menuItems}
             openKeys={openKeys}
             onOpenChange={setOpenKeys}
-            onClick={({ key }) => { navigate(key); }}
+            onClick={({ key }) => { lazyPrefetch(key); navigate(key); }}
           />
         </Sider>
       )}
@@ -245,6 +246,7 @@ export default function MainLayout() {
               <div key={item.key}
                 onClick={() => {
                   if (item.key === '__more__') { setDrawerOpen(true); return; }
+                  lazyPrefetch(item.key);
                   navigate(item.key);
                 }}
                 style={{
@@ -281,7 +283,7 @@ export default function MainLayout() {
           items={menuItems}
           openKeys={openKeys}
           onOpenChange={setOpenKeys}
-          onClick={({ key }) => { navigate(key); setDrawerOpen(false); }}
+          onClick={({ key }) => { lazyPrefetch(key); navigate(key); setDrawerOpen(false); }}
           style={{ borderRight: 'none' }}
         />
       </Drawer>
