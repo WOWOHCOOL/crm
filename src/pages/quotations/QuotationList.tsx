@@ -95,7 +95,7 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
       return;
     }
     if (format === 'excel') {
-      exportExcel(record, items, record.currency || 'USD');
+      void exportExcel(record, items, record.currency || 'USD');
       message.success('Excel 已导出');
     } else {
       exportPDF(record, items, listType, record.currency || 'USD');

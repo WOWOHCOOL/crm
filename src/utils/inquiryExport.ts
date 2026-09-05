@@ -1,6 +1,8 @@
-import * as XLSX from 'xlsx';
 import type { Customer } from '../types';
 import { customerStatusMap, intentionMap } from '../styles/theme';
+
+// xlsx (~430KB) loads on demand when the user actually exports
+type XLSXModule = typeof import('xlsx');
 
 function fmtDateTime(d: string): string {
   if (!d) return '';
@@ -56,7 +58,8 @@ const COL_WIDTHS = [
   { wch: 18 },  // 更新时间
 ];
 
-export function exportInquiriesToExcel(data: Customer[]) {
+export async function exportInquiriesToExcel(data: Customer[]) {
+  const XLSX: XLSXModule = await import('xlsx');
   const rows: unknown[][] = [HEADERS];
 
   for (const c of data) {

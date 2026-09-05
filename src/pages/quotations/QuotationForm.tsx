@@ -428,7 +428,7 @@ export default function QuotationForm() {
 
   const handleExportExcel = () => {
     const { quotationData, qItems } = getExportData();
-    exportExcel(quotationData, qItems, currency);
+    void exportExcel(quotationData, qItems, currency);
     message.success('Excel 已导出');
   };
 

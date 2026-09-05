@@ -257,7 +257,7 @@ export default function InquiryList() {
           />
           <Space wrap>
             <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加询盘线索</Button>
-            <Button icon={<DownloadOutlined />} onClick={() => exportInquiriesToExcel(customers ?? [])} disabled={!customers?.length}>
+            <Button icon={<DownloadOutlined />} onClick={() => { void exportInquiriesToExcel(customers ?? []); }} disabled={!customers?.length}>
               导出 Excel
             </Button>
           </Space>

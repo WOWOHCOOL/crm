@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+// xlsx (~430KB) loads on demand when the user actually exports
+type XLSXModule = typeof import('xlsx');
 import type { Quotation, QuotationItem } from '../types';
 
 function r2(v: number): number {
@@ -159,7 +160,7 @@ function buildExcelRows(
 // ============================================================
 // EXCEL EXPORT
 // ============================================================
-export function exportExcel(
+export async function exportExcel(
   q: Quotation,
   items: QuotationItem[],
   currency: 'USD' | 'RMB',
@@ -168,6 +169,7 @@ export function exportExcel(
   const docType = type || q.type || 'quotation';
   const title = docType === 'quotation' ? 'QUOTATION' : 'INVOICE';
   const d = buildExcelRows(q, items, docType, currency);
+  const XLSX: XLSXModule = await import('xlsx');
 
   const ws = XLSX.utils.aoa_to_sheet(d);
 
@@ -212,7 +214,7 @@ export function exportExcel(
     if (first === 'Authorized Signature') sigRow = i;
   });
 
-  const merges: XLSX.Range[] = [
+  const merges: import('xlsx').Range[] = [
     // Title row
     { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
     // Quotation no

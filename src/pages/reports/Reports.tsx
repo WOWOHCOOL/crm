@@ -8,7 +8,6 @@ import {
   PieChart, Pie, Cell, Legend, AreaChart, Area, RadialBarChart, RadialBar,
 } from 'recharts';
 import dayjs from 'dayjs';
-import * as XLSX from 'xlsx';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ENTITY_LABELS, CURRENCY_SYMBOLS } from '../../types';
 import type { CurrencyType, EntityType } from '../../types';
@@ -167,7 +166,9 @@ export default function ReportPage() {
   const usdNote = (v: number | null | undefined) =>
     v != null && v !== 0 ? `  + $${v.toLocaleString('en-US')} (USD,未计入)` : '';
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    // xlsx (~430KB) loads on demand at export time
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((monthlyData?.months ?? []).map((m: any) => ({ '月份': m.month, '收入': m.收入, '支出': m.支出, '利润': m.利润 }))), '月度收支');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((accountData?.income ?? []).map((i: any) => ({ '科目': i.name, '金额': i.value }))), '收入科目');
@@ -209,7 +210,7 @@ export default function ReportPage() {
             options={Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))}
           />
           <DatePicker picker="year" value={dayjs(`${year}`)} onChange={(d) => setYear(d?.year() ?? dayjs().year())} />
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>导出 Excel</Button>
+          <Button icon={<DownloadOutlined />} onClick={() => { void handleExport(); }}>导出 Excel</Button>
         </Space>
       </div>
 

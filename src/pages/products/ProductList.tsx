@@ -16,7 +16,6 @@ import ProductCard from '../../components/ProductCard';
 import ResponsiveTable from '../../components/ResponsiveTable';
 import { TableSkeleton } from '../../components/Skeletons';
 import { logOperation } from '../../utils/log';
-import * as XLSX from 'xlsx';
 
 const PAGE_SIZE = 20;
 const VIEW_KEY = 'product_view_mode';
@@ -188,8 +187,10 @@ export default function ProductList() {
 
   const handleImportFile = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        // xlsx (~430KB) loads on demand at import/export time
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -231,7 +232,8 @@ export default function ProductList() {
     if (fail === 0) { setImportModalOpen(false); setImportData([]); }
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.aoa_to_sheet([
       ['品名', '官网型号', '供应商型号', '供应商名称', '供货价', '建议报价', '含税', '产品图片'],
       ['Model-X100', 'SN-2024-A001', '示例供应商', '120', '180', '是', 'https://example.com/image.jpg'],
@@ -289,7 +291,7 @@ export default function ProductList() {
           {canEdit && <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>添加商品</Button>
             <Button icon={<InboxOutlined />} onClick={() => setImportModalOpen(true)}>导入 Excel</Button>
-            <Button type="link" size="small" onClick={downloadTemplate}>下载模板</Button>
+            <Button type="link" size="small" onClick={() => { void downloadTemplate(); }}>下载模板</Button>
           </Space>}
         </Space>
 
