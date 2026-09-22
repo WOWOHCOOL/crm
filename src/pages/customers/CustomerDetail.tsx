@@ -351,7 +351,7 @@ export default function CustomerDetail() {
             title={<span style={{ fontSize: tokens.fontSizeLG, fontWeight: 600 }}>订单 ({orders?.length ?? 0})</span>}
             extra={
               <Space>
-                {collapsedSections['orders'] ? <UpOutlined /> : <DownOutlined />}
+                <CollapseToggle collapsed={!!collapsedSections['orders']} onToggle={() => toggleCollapse('orders')} />
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setOrderModal(true)}>新建订单</Button>
               </Space>
             }
