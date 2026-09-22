@@ -1,14 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Space, Tag, Card, message, Popconfirm } from 'antd';
-import { PlusOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import ResponsiveTable from '../../components/ResponsiveTable';
 import type { Order, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import { logOperation } from '../../utils/log';
-import { formatDate, formatMoney } from '../../utils/format';
-import dayjs from 'dayjs';
+import { formatMoney } from '../../utils/format';
 
 const statusLabels: Record<OrderStatus, string> = {
   pending: '待确认',

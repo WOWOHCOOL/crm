@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Form, Select, Input, InputNumber, Button, Space, Table,
-  message, Row, Col, Popconfirm, DatePicker, Typography, Modal, Upload, Image, Segmented,
+  message, Row, Col, DatePicker, Typography, Modal, Upload, Image, Segmented,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowLeftOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../auth/AuthContext';
 import { useResponsive } from '../../hooks/useResponsive';

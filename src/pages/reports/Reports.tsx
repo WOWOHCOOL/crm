@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
-import { Card, Row, Col, Statistic, Spin, DatePicker, Button, Space, Tag, Select } from 'antd';
+import { useState } from 'react';
+import { Card, Row, Col, Spin, DatePicker, Button, Space, Tag, Select } from 'antd';
 import { DownloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, AreaChart, Area, RadialBarChart, RadialBar,
+  PieChart, Pie, Cell, AreaChart, Area,
 } from 'recharts';
 import dayjs from 'dayjs';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -32,7 +32,6 @@ const COLORS = {
   bg: '#f8f9fb',
 };
 
-const CHART_COLORS = [COLORS.gold, COLORS.blue, COLORS.green, COLORS.orange, COLORS.purple, COLORS.cyan, COLORS.pink, COLORS.indigo, COLORS.red, '#14b8a6'];
 const PIE_COLORS = ['#d4a843', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1', '#ef4444', '#14b8a6', '#f97316', '#84cc16'];
 
 const CustomTooltip = ({ active, payload, label, sym = '¥' }: any) => {
@@ -180,13 +179,19 @@ export default function ReportPage() {
   if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><Spin size="large" /></div>;
 
   return (
+    // ⚠️ 这个根 div 刻意 **不加横向内边距**。
+    // 下面两个 <Row gutter={[16,16]}> 靠负 margin 各向外溢 8px（gutter/2），
+    // 与 Col 自身的 8px 内边距相抵，使卡片正好贴齐 Content 的 padding 边——
+    // 也就是和全站其它页面同一条竖线。若给这里加 padding，内容会整体内缩 8px，
+    // 反而与上方页头、与其它页面错位；而父级 Content 的 padding（移动端 8 / 桌面 24）
+    // 已经能吸收这 8px 外溢，实测 docOverflow 始终为 0。
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: COLORS.text }}>财务报表</h2>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: COLORS.muted }}>
-            {year}年 财务数据汇总（{currencyLabel}）
+            {year}年 财务数据汇总（{currencyLabel}{entityFilter ? ` · ${entityLabel}` : ''}）
           </p>
         </div>
         <Space wrap>

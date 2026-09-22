@@ -5,7 +5,7 @@ import {
   Select, Row, Col, Divider, Modal, Tag, Segmented, Typography, Image, Upload,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Product, QuotationItem, Quotation, Customer } from '../../types';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -375,7 +375,7 @@ export default function QuotationForm() {
       const qty = items.reduce((s, i) => s + i.quantity, 0);
       sessionStorage.removeItem('quotation_form_draft');
       message.success(isEdit ? '已更新' : '已保存');
-      logOperation(docType === 'quotation' ? 'quotation' : 'pi', isEdit ? 'update' : 'create', qId, `${values.quotation_no} (${items.length} items)`);
+      logOperation(docType === 'quotation' ? 'quotation' : 'pi', isEdit ? 'update' : 'create', qId, `${values.quotation_no} (${items.length} items, ${qty} pcs)`);
       navigate(`/quotations/${docType === 'quotation' ? 'quo' : 'pi'}`);
     } catch (err: unknown) {
       message.error((err as Error).message || '保存失败');

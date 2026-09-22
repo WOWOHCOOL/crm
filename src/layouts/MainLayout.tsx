@@ -18,15 +18,6 @@ import {
   LockOutlined,
   SettingOutlined,
   AppstoreOutlined,
-  UnorderedListOutlined,
-  FileDoneOutlined,
-  ProfileOutlined,
-  ReconciliationOutlined,
-  ShoppingOutlined,
-  ContactsOutlined,
-  InboxOutlined,
-  TagsOutlined,
-  TransactionOutlined,
 } from '@ant-design/icons';
 import { useResponsive } from '../hooks/useResponsive';
 import { useAuth } from '../auth/AuthContext';

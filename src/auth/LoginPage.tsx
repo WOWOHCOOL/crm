@@ -6,7 +6,6 @@ import { useAuth } from './AuthContext';
 import { isConfigured, supabase } from '../supabase';
 
 const REMEMBER_KEY = 'crm_remember';
-const PASS_KEY = 'crm_remember_pass';
 
 function loadRemembered(): { email: string; password: string; remember: boolean } {
   try {

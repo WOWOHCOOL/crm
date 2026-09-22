@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Spin, Tag, message, Row, Col, Modal, Form, Input } from 'antd';
+import { Card, Descriptions, Button, Tag, message, Row, Col, Modal, Form, Input } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, ShopOutlined, ShoppingCartOutlined, DollarOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
@@ -13,7 +13,6 @@ import StatCard from '../../components/StatCard';
 import ResponsiveTable from '../../components/ResponsiveTable';
 import EmptyState from '../../components/EmptyState';
 import { DetailSkeleton } from '../../components/Skeletons';
-import dayjs from 'dayjs';
 
 export default function SupplierDetail() {
   const { id } = useParams<{ id: string }>();

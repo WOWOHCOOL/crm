@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Table, Button, Space, Modal, Form, Input, InputNumber, Select,
@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import { useApiMutation } from '../../hooks/useApiMutation';
 import { logOperation } from '../../utils/log';
-import { ENTITY_LABELS, ENTITY_COLORS, CURRENCY_SYMBOLS, CURRENCY_LABELS } from '../../types';
+import { ENTITY_LABELS, ENTITY_COLORS, CURRENCY_SYMBOLS } from '../../types';
 import type { CurrencyType } from '../../types';
 import { formatDate, formatMoney } from '../../utils/format';
 import dayjs from 'dayjs';

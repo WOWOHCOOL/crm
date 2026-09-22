@@ -1,4 +1,4 @@
-import { Tag, Dropdown } from 'antd';
+import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { EditOutlined, EyeOutlined, DeleteOutlined, MoreOutlined, ShopOutlined } from '@ant-design/icons';
 import type { Supplier } from '../types';

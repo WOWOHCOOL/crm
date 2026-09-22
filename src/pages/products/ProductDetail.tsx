@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Button, Space, Tag, Row, Col, Image, Modal, Form, Input, InputNumber, Switch, Select, Upload, message } from 'antd';
+import { Card, Descriptions, Button, Tag, Row, Col, Image, Modal, Form, Input, InputNumber, Switch, Select, Upload, message } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';

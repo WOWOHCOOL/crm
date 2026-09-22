@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
-  Popconfirm, Card, Row, Col, Tag, Radio, Pagination, Skeleton, Tooltip,
+  Button, Space, Input, Modal, Form, Select, Upload, Image, message,
+  Popconfirm, Card, Row, Col, Tag, Radio, Pagination, Tooltip,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, UploadOutlined, AppstoreOutlined, UnorderedListOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';

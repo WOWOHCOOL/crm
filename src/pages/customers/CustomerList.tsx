@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Table, Button, Space, Input, Modal, Form, Select, Upload, Image, message,
-  Popconfirm, Card, Row, Col, Tag, Pagination, Skeleton, Tooltip,
+  Button, Space, Input, Modal, Form, Select, Upload, Image, message,
+  Popconfirm, Card, Row, Col, Tag, Pagination, Tooltip,
 } from 'antd';
 import { PlusOutlined, SearchOutlined, UploadOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -74,7 +74,7 @@ export default function CustomerList() {
       if (search) {
         query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,country.ilike.%${search}%,source.ilike.%${search}%`);
       }
-      query = query.eq('status', 'dealt');
+      query = query.eq('status', statusFilter);
       const { data } = await query;
       return (data ?? []) as Customer[];
     },

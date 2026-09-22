@@ -10,6 +10,7 @@ import {
   CarryOutOutlined,
   ClockCircleOutlined,
   CalendarOutlined,
+  FieldTimeOutlined,
   WarningOutlined,
   ProfileOutlined,
   ReconciliationOutlined,
@@ -91,15 +92,20 @@ export default function Dashboard() {
         .select('id, title, due_date, priority, status')
         .in('status', ['pending'])
         .order('due_date', { ascending: true });
-      if (!data) return { overdue: 0, today: 0, upcoming: 0 };
+      if (!data) return { overdue: 0, today: 0, upcoming: 0, later: 0, total: 0 };
       const overdue = data.filter(t => t.due_date && t.due_date < today).length;
       const todayTasks = data.filter(t => t.due_date === today).length;
       const upcoming = data.filter(t => t.due_date && t.due_date > today && dayjs(t.due_date).diff(dayjs(), 'day') <= 3).length;
-      return { overdue, today: todayTasks, upcoming };
+      // total 是**全部** pending（含 3 日之后到期、以及没填期限的），later 把差额补上。
+      // 原先进度条的分母只取 overdue+today+upcoming（近 3 日口径），
+      // 于是「3/12 今日」里的 12 既不是待办总数、也和上面三行之和刚好相等，
+      // 读起来像是「今天要干 3/12 的活」——分母是错的。
+      const total = data.length;
+      return { overdue, today: todayTasks, upcoming, total, later: total - overdue - todayTasks - upcoming };
     },
   });
 
-  const totalPending = (tasksData?.overdue || 0) + (tasksData?.today || 0) + (tasksData?.upcoming || 0);
+  const totalPending = tasksData?.total ?? 0;
 
   const { data: recentTransactions, isLoading: txLoading } = useQuery({
     queryKey: ['recent-transactions'],
@@ -235,6 +241,12 @@ export default function Dashboard() {
                   <span><CalendarOutlined style={{ color: '#1677ff', marginRight: 6 }} />近3日到期</span>
                   <Tag color="blue" style={{ borderRadius: 6, minWidth: 28, textAlign: 'center' }}>{tasksData.upcoming}</Tag>
                 </div>
+                {/* 补上差额，让「已逾期 + 今日 + 近3日 + 更晚」正好等于待办总数 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span><FieldTimeOutlined style={{ color: '#94a3b8', marginRight: 6 }} />更晚 / 无期限</span>
+                  <Tag style={{ borderRadius: 6, minWidth: 28, textAlign: 'center', color: '#64748b' }}>{tasksData.later}</Tag>
+                </div>
+                {/* 分母 = 全部待办，标签才与数值自洽 */}
                 <Progress percent={totalPending > 0 ? Math.round((tasksData.today / totalPending) * 100) : 0}
                   size="small" strokeColor="#1677ff" format={() => `${tasksData.today}/${totalPending} 今日`} />
               </Space>

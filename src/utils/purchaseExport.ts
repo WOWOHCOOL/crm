@@ -64,7 +64,6 @@ export function exportPurchasePDF(
   const isUsd = order.currency === 'USD';
   const curSym = isUsd ? 'US$' : '¥';
   const priceHeader = isUsd ? '单价（USD）' : '单价（RMB）';
-  const origin = window.location.origin;
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${order.order_no}</title>

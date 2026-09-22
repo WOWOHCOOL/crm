@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Descriptions, Button, Space, Spin, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Collapse, Segmented } from 'antd';
+import { Card, Button, Space, Tag, Modal, Form, Input, InputNumber, Select, Image, message, Row, Col, Segmented } from 'antd';
 import ResponsiveTable from '../../components/ResponsiveTable';
-import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, CheckCircleOutlined, TeamOutlined, OrderedListOutlined, SwapOutlined, PieChartOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PlusOutlined, SendOutlined, ShoppingCartOutlined, DollarOutlined, BellOutlined, FileTextOutlined, TeamOutlined, OrderedListOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../supabase';
 import type { Order, Quotation, Task, FollowUp, OrderStatus } from '../../types';
@@ -23,6 +23,29 @@ const orderStatusLabels: Record<OrderStatus, string> = { pending: '待确认', c
 const orderStatusColors: Record<OrderStatus, string> = { pending: 'orange', confirmed: 'geekblue', in_production: 'purple', shipped: 'cyan', completed: 'green' };
 const nextStatus: Record<OrderStatus, OrderStatus | null> = { pending: 'confirmed', confirmed: 'in_production', in_production: 'shipped', shipped: 'completed', completed: null };
 const statusActionLabels: Record<OrderStatus, string> = { pending: '确认订单', confirmed: '开始生产', in_production: '标记发货', shipped: '标记完成', completed: '已完成' };
+
+/**
+ * 分区折叠开关。
+ *
+ * 原先这四个分区已经写好了折叠**状态**（collapsedSections）与折叠后的渲染分支，
+ * 但唯一的箭头只是个静态图标、从来没有 onClick —— toggleCollapse 定义了却没被调用，
+ * 于是「能不能折叠」这件事在界面上是个死功能：看着像开关，点了没反应。
+ * 现在把它接上，并给四个分区都补上开关（原先只有「订单」那一节有箭头，另外三节连箭头都没有）。
+ * 方向按惯例：展开时箭头朝上（点它收起），收起时朝下（点它展开）。
+ */
+function CollapseToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      type="text"
+      size="small"
+      aria-label={collapsed ? '展开' : '收起'}
+      aria-expanded={!collapsed}
+      icon={collapsed ? <DownOutlined /> : <UpOutlined />}
+      onClick={onToggle}
+      style={{ color: tokens.colorTextTertiary }}
+    />
+  );
+}
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -403,6 +426,7 @@ export default function CustomerDetail() {
         <section id="quotations-pi" style={{ scrollMarginTop: 80 }}>
           <Card
             title={<span style={{ fontSize: tokens.fontSizeLG, fontWeight: 600 }}>报价单 & PI ({quotations?.length ?? 0})</span>}
+            extra={<CollapseToggle collapsed={!!collapsedSections['quotations-pi']} onToggle={() => toggleCollapse('quotations-pi')} />}
             styles={{ body: { padding: collapsedSections['quotations-pi'] ? 0 : (isMobile ? tokens.spacingMD : tokens.spacingXL) } }}
             style={{ marginBottom: 20, borderRadius: tokens.radiusXL }}
           >
@@ -442,6 +466,7 @@ export default function CustomerDetail() {
         <section id="finance" style={{ scrollMarginTop: 80 }}>
           <Card
             title={<span style={{ fontSize: tokens.fontSizeLG, fontWeight: 600 }}>收支记录</span>}
+            extra={<CollapseToggle collapsed={!!collapsedSections['finance']} onToggle={() => toggleCollapse('finance')} />}
             styles={{ body: { padding: collapsedSections['finance'] ? 0 : (isMobile ? tokens.spacingMD : tokens.spacingXL) } }}
             style={{ marginBottom: 20, borderRadius: tokens.radiusXL }}
           >
@@ -471,6 +496,7 @@ export default function CustomerDetail() {
         <section id="tasks" style={{ scrollMarginTop: 80, marginBottom: isMobile ? 72 : 0 }}>
           <Card
             title={<span style={{ fontSize: tokens.fontSizeLG, fontWeight: 600 }}>待办任务 ({pendingTasks.length})</span>}
+            extra={<CollapseToggle collapsed={!!collapsedSections['tasks']} onToggle={() => toggleCollapse('tasks')} />}
             styles={{ body: { padding: collapsedSections['tasks'] ? 0 : (isMobile ? tokens.spacingMD : tokens.spacingXL) } }}
             style={{ borderRadius: tokens.radiusXL }}
           >

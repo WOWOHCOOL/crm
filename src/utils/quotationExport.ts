@@ -197,17 +197,17 @@ export async function exportExcel(
     { s: { r: 3, c: 0 }, e: { r: 3, c: 7 } },
   ];
 
-  // Find important rows by scanning
-  let sellerRow = -1, buyerRow = -1;
-  let headerRow = -1;
+  // Find important rows by scanning.
+  // 注意：SELLER / SUPPLIER 与 BUYER / CUSTOMER 是**同一行**的左右两半（见上面的 d.push），
+  // 所以不存在独立的 buyerRow；表头行（'#'）本就该保持各列独立、不该合并。
+  // 这两个变量原先被扫描赋值却从未被读取，属于死代码，已删除。
+  let sellerRow = -1;
   let totalRow = -1;
   let bankRow = -1, termsRow = -1, sigRow = -1;
 
   d.forEach((row, i) => {
     const first = String(row[0] || '').trim();
     if (first === 'SELLER / SUPPLIER') sellerRow = i;
-    if (first === 'BUYER / CUSTOMER') buyerRow = i;
-    if (first === '#') headerRow = i;
     if (first === 'TOTAL DUE:') totalRow = i;
     if (first === 'BANK INFORMATION') bankRow = i;
     if (first === 'TERMS & CONDITIONS') termsRow = i;
@@ -247,6 +247,11 @@ export async function exportExcel(
   if (bankRow >= 0) merges.push({ s: { r: bankRow, c: 0 }, e: { r: bankRow, c: 7 } });
   if (termsRow >= 0) merges.push({ s: { r: termsRow, c: 0 }, e: { r: termsRow, c: 7 } });
   if (sigRow >= 0) merges.push({ s: { r: sigRow, c: 0 }, e: { r: sigRow, c: 7 } });
+
+  // TOTAL DUE 行：与 PDF 版保持一致（那边是 `<td colspan="4">TOTAL DUE:</td>` + 金额一列），
+  // 即标签横跨 A:D、金额留在 E 列。原先 totalRow 被扫描出来却从未使用，
+  // 于是导出的 PI 里「TOTAL DUE:」只占 A 一格，标签会溢出到右侧空单元格。
+  if (totalRow >= 0) merges.push({ s: { r: totalRow, c: 0 }, e: { r: totalRow, c: 3 } });
 
   // Merge section content rows (bank info, terms, signature)
   d.forEach((row, i) => {
@@ -297,7 +302,6 @@ export function exportPDF(
   const depRate = q.deposit_rate || 50;
   const deposit = r2(grandTotal * depRate / 100);
   const balance = r2(grandTotal - deposit);
-  const qtys = items.reduce((s, i) => s + i.quantity, 0);
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${q.quotation_no}</title>
