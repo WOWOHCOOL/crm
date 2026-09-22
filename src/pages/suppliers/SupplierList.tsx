@@ -20,8 +20,9 @@ const PAGE_SIZE = 20;
 const VIEW_KEY = 'supplier_view_mode';
 
 export default function SupplierList() {
-  const { isOwner, isAdmin, orgInfo } = useAuth();
-  const canEdit = isOwner || isAdmin;
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  const { hasPerm, orgInfo } = useAuth();
+  const canEdit = hasPerm('products');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -200,7 +201,8 @@ export default function SupplierList() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="供应商资料">
         <Space style={{ marginBottom: tokens.spacingLG, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索供应商名称/联系人"
@@ -268,7 +270,7 @@ export default function SupplierList() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Form.Item name="name" label="供应商名称" rules={[{ required: true, message: '请输入供应商名称' }]}>

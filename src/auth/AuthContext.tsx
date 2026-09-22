@@ -12,6 +12,13 @@ interface AuthState {
   permissions: Permission[];
   isOwner: boolean;
   isAdmin: boolean;
+  /**
+   * 权限判定的唯一入口。
+   * 主账号/管理员直接放行；普通成员看 permissions 数组。
+   * 之前 MainLayout 与 Dashboard 各写了一套（Dashboard 只认 isOwner||isAdmin，
+   * 完全忽略 permissions），导致「配了 finance 权限却看不到财务卡片」这类矛盾。
+   */
+  hasPerm: (k: Permission) => boolean;
   signUp: (email: string, password: string, name: string, inviteCode: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -31,15 +38,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [orgLoading, setOrgLoading] = useState(true);
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
-  const fetchPermissions = useCallback(async () => {
-    try {
-      const { data } = await supabase.rpc('get_my_permissions');
-      if (Array.isArray(data)) setPermissions(data as Permission[]);
-    } catch { /* ignore */ }
-  }, []);
-
   const isOwner = orgInfo?.role === 'owner';
   const isAdmin = orgInfo?.role === 'admin' || isOwner;
+
+  const hasPerm = useCallback(
+    (k: Permission) => isOwner || isAdmin || permissions.includes(k),
+    [isOwner, isAdmin, permissions],
+  );
+
+  // 写权限不是独立概念：成员在「已授权的模块」内即可读写，
+  // 所以各页面的 canEdit 就是 hasPerm('<该模块>')，不需要第二个判定入口。
+  // （2026-09-22 决策：原先 8 个页面用 canEdit = isOwner||isAdmin 让成员全站只读，
+  //   而报价单表单/客户列表又没有门禁 —— 统一为「有模块权限即可写」。）
 
   const fetchOrg = useCallback(async () => {
     setOrgLoading(true);
@@ -166,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, loading, orgInfo, orgLoading,
-      permissions, isOwner, isAdmin,
+      permissions, isOwner, isAdmin, hasPerm,
       signUp, signIn, signOut,
       createOrg, joinWithInviteCode, refreshOrg,
       hasOrgSetup,

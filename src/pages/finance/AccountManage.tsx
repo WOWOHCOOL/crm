@@ -220,7 +220,8 @@ export default function AccountManage() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="科目管理">
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Button size="small" loading={initMutation.isPending}
             onClick={() => initMutation.mutate()}>
@@ -246,7 +247,7 @@ export default function AccountManage() {
         onCancel={closeModal}
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Form.Item name="name" label="科目名称" rules={[{ required: true, message: '请输入科目名称' }]}>

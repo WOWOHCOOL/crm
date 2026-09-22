@@ -18,9 +18,10 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOwner, isAdmin } = useAuth();
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  const { hasPerm } = useAuth();
   const { isMobile } = useResponsive();
-  const canEdit = isOwner || isAdmin;
+  const canEdit = hasPerm('products');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -209,7 +210,7 @@ export default function ProductDetail() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Row gutter={16}>

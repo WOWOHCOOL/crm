@@ -579,7 +579,7 @@ export default function PurchaseForm() {
         onCancel={() => setSelectingIndex(null)}
         footer={null}
         width={isMobile ? undefined : 500}
-        destroyOnClose
+        destroyOnHidden
       >
         <ProductSelector products={products ?? []} onSelect={(id) => {
           if (selectingIndex === -1) {

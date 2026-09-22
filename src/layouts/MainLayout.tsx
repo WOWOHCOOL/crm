@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Button, Drawer, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
+  FunnelPlotOutlined,
   TeamOutlined,
-  BellOutlined,
-  DollarOutlined,
-  ShopOutlined,
+  CarryOutOutlined,
   AccountBookOutlined,
+  ShopOutlined,
   BarChartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -18,21 +18,80 @@ import {
   LockOutlined,
   SettingOutlined,
   AppstoreOutlined,
+  UnorderedListOutlined,
+  FileDoneOutlined,
+  ProfileOutlined,
+  ReconciliationOutlined,
+  ShoppingOutlined,
+  ContactsOutlined,
+  InboxOutlined,
+  TagsOutlined,
+  TransactionOutlined,
 } from '@ant-design/icons';
 import { useResponsive } from '../hooks/useResponsive';
 import { useAuth } from '../auth/AuthContext';
+import RouteGuard from '../auth/RouteGuard';
 import { supabase } from '../supabase';
 import { lazyPrefetch } from '../utils/lazyRoutes';
 
 const { Header, Sider, Content, Footer } = Layout;
 
+/**
+ * 意向等级的圆点标记。
+ * 原先用 emoji（🔴🟠⚪）作菜单图标，存在三个问题：
+ *   1. emoji 由系统字体渲染，各平台大小/基线不一致，菜单行高会被撑得参差
+ *   2. 无法跟随主题色，深色侧边栏下观感尤其突兀
+ *   3. 语义上"红点"易被误读为未读提醒，而非"意向等级"
+ * 改为统一尺寸的色点，与 intentionMap 的颜色一一对应。
+ */
+const IntentionDot = ({ color }: { color: string }) => (
+  <span
+    style={{
+      display: 'inline-block',
+      width: 7,
+      height: 7,
+      borderRadius: '50%',
+      background: color,
+      boxShadow: `0 0 0 2px ${color}22`,
+    }}
+  />
+);
+
 const bottomNavItems = [
   { key: '/', icon: <DashboardOutlined />, label: '总览' },
   { key: '/customers', icon: <TeamOutlined />, label: '客户' },
-  { key: '/tasks', icon: <BellOutlined />, label: '任务' },
-  { key: '/finance', icon: <DollarOutlined />, label: '财务' },
+  { key: '/tasks', icon: <CarryOutOutlined />, label: '任务' },
+  { key: '/finance', icon: <AccountBookOutlined />, label: '财务' },
   { key: '__more__', icon: <AppstoreOutlined />, label: '更多' },
 ];
+
+/**
+ * 由当前路径推导侧边栏高亮项。
+ * 必须与 menuItems 的 key 严格一一对应，否则会出现"当前页面无高亮"。
+ * 旧实现用一连串 if 就地改写，且遗漏了 /quotations（无子路径）与
+ * /inquiries 带其它 query 参数的情况。
+ */
+function resolveSelectedKey(pathname: string, search: string): string {
+  const [seg0, seg1] = pathname.split('/').filter(Boolean);
+  if (seg0 === 'inquiries') {
+    const intention = new URLSearchParams(search).get('intention');
+    return intention ? `/inquiries?intention=${intention}` : '/inquiries';
+  }
+  if (seg0 === 'quotations') return seg1 === 'pi' ? '/quotations/pi' : '/quotations/quo';
+  if (seg0 === 'purchases') return '/purchases';
+  return '/' + (seg0 || '');
+}
+
+/** 当前路径所属的菜单分组（用于侧边栏默认展开） */
+function resolveOpenKeys(pathname: string): string[] {
+  const seg0 = pathname.split('/').filter(Boolean)[0] || '';
+  const groups: string[] = [];
+  if (seg0 === 'inquiries') groups.push('inquiries-group');
+  if (['customers', 'orders', 'quotations', 'tasks'].includes(seg0)) groups.push('customers-group');
+  if (['products', 'suppliers', 'purchases'].includes(seg0)) groups.push('supplier-group');
+  if (['finance', 'accounts'].includes(seg0)) groups.push('finance-group');
+  return groups;
+}
 
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
@@ -40,48 +99,45 @@ export default function MainLayout() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
-  const { user, signOut, orgInfo, permissions, isOwner, isAdmin } = useAuth();
+  const { user, signOut, orgInfo, isOwner, hasPerm } = useAuth();
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
   const location = useLocation();
-  const [openKeys, setOpenKeys] = useState<string[]>(() => {
-    const p = location.pathname;
-    const groups: string[] = [];
-    if (p.startsWith('/inquiries')) groups.push('inquiries-group');
-    if (p.startsWith('/customers') || p.startsWith('/orders') || p.startsWith('/quotations') || p.startsWith('/tasks')) groups.push('customers-group');
-    if (p.startsWith('/products') || p.startsWith('/suppliers') || p.startsWith('/purchases')) groups.push('supplier-group');
-    if (p.startsWith('/finance') || p.startsWith('/accounts')) groups.push('finance-group');
-    return groups;
-  });
+  const [openKeys, setOpenKeys] = useState<string[]>(() => resolveOpenKeys(location.pathname));
 
-  const pathParts = location.pathname.split('/').filter(Boolean);
-  let selectedKey = '/' + (pathParts[0] || '');
-  if (pathParts.length >= 2 && pathParts[0] === 'purchases') selectedKey = '/purchases';
-  if (pathParts.length >= 2 && pathParts[0] === 'quotations') selectedKey = '/' + pathParts.slice(0, 2).join('/');
-  if (pathParts[0] === 'inquiries' && location.search) selectedKey = '/inquiries' + location.search;
+  const selectedKey = resolveSelectedKey(location.pathname, location.search);
 
   const displayName = (user?.user_metadata?.name as string) || user?.email;
-  const hasPerm = (k: string) => isOwner || isAdmin || permissions.includes(k as never);
+  // hasPerm 统一由 AuthContext 提供（主账号/管理员放行 + permissions 数组）
 
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-    ...(hasPerm('tasks') ? [{ key: '/tasks', icon: <BellOutlined />, label: '任务跟进' }] : []),
+    ...(hasPerm('tasks') ? [{ key: '/tasks', icon: <CarryOutOutlined />, label: '任务跟进' }] : []),
     ...(hasPerm('customers') ? [{
-      key: 'inquiries-group', icon: <BellOutlined />, label: '询盘线索',
+      key: 'inquiries-group', icon: <FunnelPlotOutlined />, label: '询盘线索',
       children: [
         { key: '/inquiries', label: '全部线索' },
-        { key: '/inquiries?intention=high', label: '🔴 重点' },
-        { key: '/inquiries?intention=normal', label: '🟠 一般' },
-        { key: '/inquiries?intention=low', label: '⚪ 很差' },
+        { key: '/inquiries?intention=high', icon: <IntentionDot color="#ff4d4f" />, label: '重点意向' },
+        { key: '/inquiries?intention=normal', icon: <IntentionDot color="#fa8c16" />, label: '一般意向' },
+        { key: '/inquiries?intention=low', icon: <IntentionDot color="#bfbfbf" />, label: '意向较弱' },
       ],
     }] : []),
-    ...(hasPerm('customers') ? [{
+    // 报价单/PI 在 ALL_PERMISSIONS 里是独立的 quotations 权限。
+    // 原先无条件挂在 customers 组下，导致 quotations 配了也没用、
+    // 而只给 customers 的人反而能进报价单 —— 现按各自权限分别控制。
+    ...((hasPerm('customers') || hasPerm('quotations')) ? [{
       key: 'customers-group', icon: <TeamOutlined />, label: '客户管理',
       children: [
-        { key: '/customers', label: '客户列表' },
-        { key: '/orders', label: '采购订单（PO）' },
-        { key: '/quotations/quo', label: '报价单 (QUO)' },
-        { key: '/quotations/pi', label: '形式发票（PI）' },
+        ...(hasPerm('customers') ? [
+          { key: '/customers', label: '客户列表' },
+          // 原为「采购订单（PO）」，实为客户的销售订单（orders 表含 customer_id / pi_number），
+          // 与供应商侧的「采购单」重名易混淆，故更名。
+          { key: '/orders', label: '销售订单' },
+        ] : []),
+        ...(hasPerm('quotations') ? [
+          { key: '/quotations/quo', label: '报价单 (QUO)' },
+          { key: '/quotations/pi', label: '形式发票 (PI)' },
+        ] : []),
       ],
     }] : []),
     ...(hasPerm('products') ? [{
@@ -89,17 +145,19 @@ export default function MainLayout() {
       children: [
         { key: '/products', label: '商品管理' },
         { key: '/suppliers', label: '供应商资料' },
-        { key: '/purchases', label: '供应商采购单' },
+        { key: '/purchases', label: '采购单' },
       ],
     }] : []),
     ...((hasPerm('finance') || hasPerm('accounts')) ? [{
-      key: 'finance-group', icon: <DollarOutlined />, label: '财务管理',
+      key: 'finance-group', icon: <AccountBookOutlined />, label: '财务管理',
       children: [
         ...(hasPerm('finance') ? [{ key: '/finance', label: '财务记账' }] : []),
         ...(hasPerm('accounts') ? [{ key: '/accounts', label: '科目管理' }] : []),
       ],
     }] : []),
-    { key: '/reports', icon: <BarChartOutlined />, label: '财务报表', style: hasPerm('reports') ? {} : { display: 'none' } },
+    // 原先用 style:{display:'none'} 隐藏无权限项，会留下一个不可点击的占位节点，
+    // 改为按权限决定是否生成该菜单项。
+    ...(hasPerm('reports') ? [{ key: '/reports', icon: <BarChartOutlined />, label: '财务报表' }] : []),
     ...(isOwner ? [{ key: '/org', icon: <SettingOutlined />, label: '团队管理' }] : []),
   ];
 
@@ -224,7 +282,11 @@ export default function MainLayout() {
           overflowX: 'hidden',
           paddingBottom: isMobile ? 72 : 24, /* space for bottom nav */
         }}>
-          <Outlet />
+          {/* 路由级权限校验：与侧边栏菜单使用同一套权限映射，
+              避免「菜单里没有、敲 URL 却能进」 */}
+          <RouteGuard>
+            <Outlet />
+          </RouteGuard>
         </Content>
 
         <Footer style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
@@ -268,15 +330,16 @@ export default function MainLayout() {
 
       {/* Mobile Drawer */}
       <Drawer
-        title="菜单"
         placement="left"
         onClose={() => setDrawerOpen(false)}
         open={isMobile && drawerOpen}
-        width={280}
-        styles={{ body: { padding: 0 } }}
+        // antd 6 弃用了 width，且 size 只接受 default(378)/large(736)，
+        // 都会超出 390px 视口，故改用 styles.wrapper 精确控制。
+        styles={{ body: { padding: 0 }, wrapper: { width: 'min(280px, 82vw)' } }}
+        closeIcon={null}
       >
-        <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-          <img src="/logo.webp" alt="WowohCool CRM" style={{ height: 36, objectFit: 'contain' }} />
+        <div style={{ padding: '18px 16px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+          <img src="/logo.webp" alt="WowohCool CRM" style={{ height: 34, objectFit: 'contain' }} />
         </div>
         <Menu mode="inline"
           selectedKeys={[selectedKey]}
@@ -284,7 +347,7 @@ export default function MainLayout() {
           openKeys={openKeys}
           onOpenChange={setOpenKeys}
           onClick={({ key }) => { lazyPrefetch(key); navigate(key); setDrawerOpen(false); }}
-          style={{ borderRight: 'none' }}
+          style={{ borderRight: 'none', fontSize: 14 }}
         />
       </Drawer>
 
@@ -292,7 +355,7 @@ export default function MainLayout() {
       <Modal title="修改密码" open={passwordModalOpen}
         onCancel={() => { setPasswordModalOpen(false); passwordForm.resetFields(); }}
         onOk={() => passwordForm.submit()}
-        confirmLoading={passwordLoading} destroyOnClose
+        confirmLoading={passwordLoading} destroyOnHidden
       >
         <Form form={passwordForm} layout="vertical" onFinish={handleChangePassword}>
           <Form.Item name="newPassword" label="新密码" rules={[

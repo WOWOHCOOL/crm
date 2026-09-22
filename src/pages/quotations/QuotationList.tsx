@@ -102,7 +102,8 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
     }
   };
 
-  const title = listType === 'quotation' ? '报价单' : 'PI';
+  // 与侧边栏菜单项保持一致（报价单 / 形式发票），同时用于页面标题与搜索框占位
+  const title = listType === 'quotation' ? '报价单' : '形式发票';
 
   const columns = [
     { title: `${title}编号`, dataIndex: 'quotation_no', key: 'quotation_no', width: 200, onCell: () => ({ 'data-label': '编号' } as React.TdHTMLAttributes<unknown>) },
@@ -221,7 +222,8 @@ export default function QuotationList({ listType }: { listType: 'quotation' | 'p
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title={title}>
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder={`搜索${title}编号 / 客户公司`}

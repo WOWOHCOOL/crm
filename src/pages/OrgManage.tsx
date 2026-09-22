@@ -1,22 +1,42 @@
 import { useState } from 'react';
-import { Card, Table, Tag, Button, message, Space, Tabs, Switch, Spin, Select, Typography, Row, Col } from 'antd';
-import { CopyOutlined, UserOutlined, PlusOutlined, TeamOutlined, KeyOutlined, SafetyOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Button, message, Space, Tabs, Switch, Spin, Select, Row, Col, Drawer, Tooltip, Empty, Divider } from 'antd';
+import { CopyOutlined, UserOutlined, PlusOutlined, TeamOutlined, KeyOutlined, SafetyOutlined, HistoryOutlined, SettingOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import { useAuth } from '../auth/AuthContext';
-import type { OrgMemberInfo, OperationLog } from '../types';
+import type { OrgMemberInfo, OperationLog, MemberPermission, Permission } from '../types';
 import { ALL_PERMISSIONS } from '../types';
 
 const actionLabels: Record<string, string> = { create: '新建', update: '编辑', delete: '删除' };
 const entityLabels: Record<string, string> = { customer: '客户', product: '商品', transaction: '流水', account: '科目', quotation: '报价单', pi: 'PI', task: '任务' };
+
+// 成员权限摘要：管理员在 hasPerm() 里直接绕过全部开关，所以展示为「全部权限」，
+// 不再逐个列出，避免给出「这些开关对他有效」的错误暗示。
+function renderPermSummary(record: OrgMemberInfo, granted: string[]) {
+  if (record.role === 'admin') {
+    return <Tag color="gold" style={{ borderRadius: 6, margin: 0 }}>全部权限</Tag>;
+  }
+  if (granted.length === 0) {
+    return <span style={{ fontSize: 12, color: '#94a3b8' }}>未分配</span>;
+  }
+  return (
+    <Space size={[4, 4]} wrap>
+      {ALL_PERMISSIONS.filter(p => granted.includes(p.key)).map(p => (
+        <Tag key={p.key} color="blue" style={{ borderRadius: 6, margin: 0, fontSize: 11 }}>{p.label}</Tag>
+      ))}
+    </Space>
+  );
+}
 
 export default function OrgManage() {
   const { orgInfo } = useAuth();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState<string | null>(null);
   const [tab, setTab] = useState('invite');
+  // 权限抽屉当前编辑的成员（null = 关闭）
+  const [permMember, setPermMember] = useState<OrgMemberInfo | null>(null);
 
-  const { data: members, isLoading } = useQuery({
+  const { data: members } = useQuery({
     queryKey: ['org-members'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_org_members');
@@ -24,6 +44,9 @@ export default function OrgManage() {
       return (data ?? []) as OrgMemberInfo[];
     },
   });
+
+  // 主账号（owner）拥有全部权限，不参与权限配置
+  const nonOwnerMembers = (members ?? []).filter(m => m.role !== 'owner');
 
   const { data: inviteCodes, isLoading: codesLoading } = useQuery({
     queryKey: ['org-invite-codes'],
@@ -44,6 +67,30 @@ export default function OrgManage() {
     enabled: tab === 'logs',
   });
 
+  // 成员权限：get_org_members() 只返回 user_id/email/role，没有权限字段，
+  // 只能按成员逐个调 get_member_permissions。用一次 Promise.all 合并成单个查询，
+  // 避免 N 个独立 useQuery 各自触发 loading。
+  const memberIds = nonOwnerMembers.map(m => m.user_id).join(',');
+  const { data: memberPerms, isLoading: permsLoading } = useQuery({
+    queryKey: ['org-member-perms', memberIds],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        nonOwnerMembers.map(async (m) => {
+          const { data, error } = await supabase.rpc('get_member_permissions', { p_user_id: m.user_id });
+          if (error) throw error;
+          const allowed = ((data ?? []) as MemberPermission[])
+            .filter(p => p.allowed)
+            .map(p => p.permission);
+          return [m.user_id, allowed] as const;
+        }),
+      );
+      return Object.fromEntries(entries) as Record<string, string[]>;
+    },
+    enabled: tab === 'perms' && nonOwnerMembers.length > 0,
+  });
+
+  const permsOf = (userId: string): string[] => memberPerms?.[userId] ?? [];
+
   const generateMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('generate_team_invite_code');
@@ -63,7 +110,31 @@ export default function OrgManage() {
       const result = data as { error?: string };
       if (result.error) throw new Error(result.error);
     },
-    onSuccess: () => { message.success('角色已更新'); queryClient.invalidateQueries({ queryKey: ['org-members'] }); },
+    onSuccess: () => {
+      message.success('角色已更新');
+      queryClient.invalidateQueries({ queryKey: ['org-members'] });
+      // 角色一变，有效权限集合就变（管理员绕过全部开关），摘要要跟着刷新
+      queryClient.invalidateQueries({ queryKey: ['org-member-perms'] });
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
+  // 真正的权限开关：写 member_permissions 表。
+  // ⚠️ 原实现把 7 个开关的 onChange 全接到了 roleMutation（改 admin/member），
+  // 用户以为在配权限，实际在改角色 —— 这里改为写 set_member_permission。
+  const permissionMutation = useMutation({
+    mutationFn: async ({ userId, permission, allowed }: { userId: string; permission: Permission; allowed: boolean }) => {
+      const { data, error } = await supabase.rpc('set_member_permission', {
+        p_user_id: userId, p_permission: permission, p_allowed: allowed,
+      });
+      if (error) throw error;
+      const result = data as { error?: string };
+      if (result.error) throw new Error(result.error);
+    },
+    onSuccess: (_data, vars) => {
+      message.success(vars.allowed ? '已授予权限' : '已收回权限');
+      queryClient.invalidateQueries({ queryKey: ['org-member-perms'] });
+    },
     onError: (err: Error) => message.error(err.message),
   });
 
@@ -71,8 +142,6 @@ export default function OrgManage() {
     try { await navigator.clipboard.writeText(text); setCopied(text); message.success('已复制'); setTimeout(() => setCopied(null), 2000); }
     catch { message.error('复制失败'); }
   };
-
-  const nonOwnerMembers = (members ?? []).filter(m => m.role !== 'owner');
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -139,12 +208,15 @@ export default function OrgManage() {
             )},
 
             // ── PERMISSIONS ──
+            // 原先是「邮箱 + 角色 + 7 个权限开关」共 9 列（scroll x=600），
+            // 既挤又让开关语义混乱。现收敛为 4 列，权限细节放进抽屉。
             { key: 'perms', label: <span><SafetyOutlined /> 成员 ({nonOwnerMembers.length})</span>, children: (
               <div style={{ padding: '12px 20px 20px' }}>
                 {nonOwnerMembers.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>暂无子账号，生成邀请码邀请成员加入</div>
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ padding: '28px 0' }}
+                    description={<span style={{ color: '#94a3b8' }}>暂无子账号，生成邀请码邀请成员加入</span>} />
                 ) : (
-                  <Table dataSource={nonOwnerMembers} rowKey="user_id" pagination={false}
+                  <Table dataSource={nonOwnerMembers} rowKey="user_id" pagination={false} loading={permsLoading}
                     columns={[
                       { title: '邮箱', dataIndex: 'email', key: 'email', onCell: () => ({ 'data-label': '邮箱' } as any), render: (v: string) => v || '-' },
                       { title: '角色', dataIndex: 'role', key: 'role', width: 130, onCell: () => ({ 'data-label': '角色' } as any),
@@ -154,16 +226,21 @@ export default function OrgManage() {
                             options={[{ label: '管理员', value: 'admin' }, { label: '普通账号', value: 'member' }]} />
                         ),
                       },
-                      ...ALL_PERMISSIONS.map(p => ({
-                        title: p.label, key: p.key, width: 70, onCell: () => ({ 'data-label': p.label } as any),
+                      { title: '权限', key: 'perms', onCell: () => ({ 'data-label': '权限' } as any),
+                        render: (_: unknown, record: OrgMemberInfo) => renderPermSummary(record, permsOf(record.user_id)),
+                      },
+                      { title: '操作', key: 'action', width: 108, onCell: () => ({ 'data-label': '操作' } as any),
                         render: (_: unknown, record: OrgMemberInfo) => (
-                          <Switch size="small" defaultChecked
-                            onChange={(val) => roleMutation.mutate({ userId: record.user_id, role: val ? 'admin' : 'member' })}
-                          />
+                          record.role === 'admin' ? (
+                            <Tooltip title="管理员默认拥有全部权限">
+                              <Button size="small" disabled>配置权限</Button>
+                            </Tooltip>
+                          ) : (
+                            <Button size="small" icon={<SettingOutlined />} onClick={() => setPermMember(record)}>配置权限</Button>
+                          )
                         ),
-                      })),
+                      },
                     ]}
-                    scroll={{ x: 600 }}
                   />
                 )}
               </div>
@@ -192,6 +269,48 @@ export default function OrgManage() {
           ]}
         />
       </Card>
+
+      {/* ═══ 权限配置抽屉 ═══ */}
+      <Drawer
+        open={!!permMember}
+        onClose={() => setPermMember(null)}
+        title="配置权限"
+        placement="right"
+        // antd 6 的 size 已接受任意 CSS 长度（内部 parseWidthHeight 对非纯数字字符串原样透传），
+        // 不必再走 styles.wrapper 覆盖宽度。
+        size="min(400px, 92vw)"
+        styles={{ body: { padding: '16px 20px 24px' } }}
+        destroyOnHidden
+      >
+        {permMember && (
+          <>
+            <div style={{ fontSize: 14, fontWeight: 600, wordBreak: 'break-all' }}>
+              {permMember.email || permMember.user_id}
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 12px' }}>
+              仅对「普通账号」生效；管理员与主账号默认拥有全部权限。
+            </div>
+            {ALL_PERMISSIONS.map((p, i) => (
+              <div key={p.key}>
+                {i > 0 && <Divider style={{ margin: 0 }} />}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 0' }}>
+                  <span style={{ fontSize: 13 }}>{p.label}</span>
+                  <Switch
+                    size="small"
+                    checked={permsOf(permMember.user_id).includes(p.key)}
+                    loading={permissionMutation.isPending && permissionMutation.variables?.permission === p.key}
+                    onChange={(val) => permissionMutation.mutate({
+                      userId: permMember.user_id,
+                      permission: p.key,
+                      allowed: val,
+                    })}
+                  />
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </Drawer>
     </div>
   );
 }

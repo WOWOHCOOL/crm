@@ -333,7 +333,14 @@ export default function ReportPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: COLORS.muted }} tickFormatter={(v: number) => formatY(v, currencySym)} />
-                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 10 : 11, fill: COLORS.text }} width={isMobile ? 90 : 120} />
+                  {/* 客户名作分类轴：移动端只有 90px，recharts 不会自动截断，
+                      长公司名会直接画出轴外（实测溢出 39px）。这里按屏宽截断，
+                      完整名称仍可在 Tooltip 中看到。 */}
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 10 : 11, fill: COLORS.text }} width={isMobile ? 90 : 120}
+                    tickFormatter={(v: string) => {
+                      const max = isMobile ? 8 : 16;
+                      return v && v.length > max ? `${v.slice(0, max)}…` : v;
+                    }} />
                   <Tooltip content={<CustomTooltip sym={currencySym} />} />
                   <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={20}>
                     {(customerRank ?? []).map((r: any, i: number) => <Cell key={i} fill={r.currency === 'USD' ? 'url(#gradBarUsd)' : 'url(#gradBar)'} />)}

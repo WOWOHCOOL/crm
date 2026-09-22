@@ -28,8 +28,9 @@ const priorityOptions = [
 ];
 
 export default function TaskList() {
-  const { isOwner, isAdmin, orgInfo } = useAuth();
-  const canEdit = isOwner || isAdmin;
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  const { hasPerm, orgInfo } = useAuth();
+  const canEdit = hasPerm('tasks');
   const queryClient = useQueryClient();
   const { isMobile } = useResponsive();
 
@@ -124,7 +125,8 @@ export default function TaskList() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="任务跟进">
         <Space style={{ marginBottom: tokens.spacingLG, width: '100%', justifyContent: 'space-between' }} wrap>
           <Space wrap>
             <Select value={statusFilter} onChange={(v) => setStatusFilter(v)} style={{ width: 100 }} options={[{ label: '全部', value: 'all' }, { label: '待处理', value: 'pending' }, { label: '已完成', value: 'completed' }]} />
@@ -162,7 +164,7 @@ export default function TaskList() {
       </Card>
 
       {/* Add/Edit Modal */}
-      <Modal title={editing ? '编辑任务' : '新建任务'} open={modalOpen} onCancel={closeModal} onOk={() => form.submit()} confirmLoading={saveMutation.isPending} width={600} destroyOnClose>
+      <Modal title={editing ? '编辑任务' : '新建任务'} open={modalOpen} onCancel={closeModal} onOk={() => form.submit()} confirmLoading={saveMutation.isPending} width={600} destroyOnHidden>
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Form.Item name="title" label="任务标题" rules={[{ required: true, message: '请输入任务标题' }]}><Input /></Form.Item>
           <Row gutter={16}>
@@ -176,7 +178,7 @@ export default function TaskList() {
       </Modal>
 
       {/* Detail Modal */}
-      <Modal title="任务详情" open={detailOpen} onCancel={closeDetail} footer={null} width={600} destroyOnClose>
+      <Modal title="任务详情" open={detailOpen} onCancel={closeDetail} footer={null} width={600} destroyOnHidden>
         {detailTask && (
           <Descriptions column={1} size="small" colon={false} labelStyle={{ color: tokens.colorTextTertiary, fontSize: tokens.fontSizeSM, width: 80 }} contentStyle={{ color: tokens.colorText }}>
             <Descriptions.Item label="标题"><strong>{detailTask.title}</strong></Descriptions.Item>

@@ -245,7 +245,8 @@ export default function InquiryList() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="询盘线索">
         <Space style={{ marginBottom: tokens.spacingLG, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索姓名/公司/电话/邮箱"
@@ -338,7 +339,7 @@ export default function InquiryList() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         width={720}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Row gutter={16}>

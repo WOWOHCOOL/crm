@@ -61,7 +61,7 @@ export default function LoginPage() {
   if (checking) {
     return (
       <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Spin size="large" tip="检查登录状态..." />
+        <Spin size="large" description="检查登录状态..." />
       </div>
     );
   }

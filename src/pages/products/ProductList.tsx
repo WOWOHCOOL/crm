@@ -21,8 +21,9 @@ const PAGE_SIZE = 20;
 const VIEW_KEY = 'product_view_mode';
 
 export default function ProductList() {
-  const { isOwner, isAdmin } = useAuth();
-  const canEdit = isOwner || isAdmin;
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  const { hasPerm } = useAuth();
+  const canEdit = hasPerm('products');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() =>
@@ -278,7 +279,8 @@ export default function ProductList() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="商品管理">
         <Space style={{ marginBottom: tokens.spacingLG, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索型号 / 品名 / 供应商"
@@ -337,7 +339,7 @@ export default function ProductList() {
       </Card>
 
       {/* Edit / Add Modal */}
-      <Modal title={editing ? '编辑商品' : '添加商品'} open={modalOpen} onCancel={closeModal} onOk={() => form.submit()} confirmLoading={saveMutation.isPending} width={600} destroyOnClose>
+      <Modal title={editing ? '编辑商品' : '添加商品'} open={modalOpen} onCancel={closeModal} onOk={() => form.submit()} confirmLoading={saveMutation.isPending} width={600} destroyOnHidden>
         <Form form={form} layout="vertical" onFinish={(values) => saveMutation.mutate(values)}>
           <Row gutter={16}>
             <Col xs={24} sm={12}><Form.Item name="product_name" label="品名"><Input /></Form.Item></Col>
@@ -373,7 +375,7 @@ export default function ProductList() {
       </Modal>
 
       {/* Import Modal */}
-      <Modal title="批量导入商品" open={importModalOpen} onCancel={() => { setImportModalOpen(false); setImportData([]); }} onOk={handleImportSubmit} confirmLoading={importLoading} okText="确认导入" width={800} destroyOnClose>
+      <Modal title="批量导入商品" open={importModalOpen} onCancel={() => { setImportModalOpen(false); setImportData([]); }} onOk={handleImportSubmit} confirmLoading={importLoading} okText="确认导入" width={800} destroyOnHidden>
         {importData.length === 0 ? (
           <Upload.Dragger accept=".xlsx,.xls" showUploadList={false} beforeUpload={(file) => { handleImportFile(file); return false; }}>
             <p style={{ fontSize: 48, margin: 0 }}><InboxOutlined /></p>
@@ -394,7 +396,7 @@ export default function ProductList() {
       </Modal>
 
       {/* Detail Modal (keep for backward compatibility) */}
-      <Modal title={detailProduct ? detailProduct.official_model : '产品详情'} open={detailOpen} onCancel={closeDetail} footer={null} width={700} destroyOnClose>
+      <Modal title={detailProduct ? detailProduct.official_model : '产品详情'} open={detailOpen} onCancel={closeDetail} footer={null} width={700} destroyOnHidden>
         {detailProduct && (
           <>
             <Descriptions bordered column={2} size="small" style={{ marginBottom: 16 }}>

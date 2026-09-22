@@ -180,8 +180,16 @@ export interface OrgInfo {
 export interface OrgMemberInfo {
   user_id: string;
   email: string;
-  role: 'owner' | 'member';
+  // 'admin' 曾经漏掉：set_member_role 明确接受 admin|member，角色下拉也在提供「管理员」，
+  // 类型却写死了 'owner' | 'member'，属于类型在说谎。
+  role: 'owner' | 'admin' | 'member';
   created_at: string;
+}
+
+// get_member_permissions() 的返回形状：{ permission, allowed }[]
+export interface MemberPermission {
+  permission: string;
+  allowed: boolean;
 }
 
 export interface OperationLog {

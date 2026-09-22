@@ -7,6 +7,7 @@ import ResponsiveTable from '../../components/ResponsiveTable';
 import type { Order, OrderStatus } from '../../types';
 import { useAuth } from '../../auth/AuthContext';
 import { logOperation } from '../../utils/log';
+import { formatDate, formatMoney } from '../../utils/format';
 import dayjs from 'dayjs';
 
 const statusLabels: Record<OrderStatus, string> = {
@@ -34,8 +35,9 @@ const orderTypeLabels: Record<string, string> = {
 export default function OrderList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOwner, isAdmin } = useAuth();
-  const canEdit = isOwner || isAdmin;
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  const { hasPerm } = useAuth();
+  const canEdit = hasPerm('customers');
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders-list'],
@@ -81,7 +83,7 @@ export default function OrderList() {
         if (!v) return '-';
         const sym = r.currency === 'USD' ? '$' : '¥';
         const color = r.currency === 'USD' ? '#1677ff' : undefined;
-        return <span style={{ fontWeight: 500, color }}>{sym}{Number(v).toFixed(2)}</span>;
+        return <span style={{ fontWeight: 500, color }}>{formatMoney(v, sym)}</span>;
       },
     },
     {
@@ -122,7 +124,9 @@ export default function OrderList() {
 
   return (
     <div>
-      <Card title="采购订单（PO）">
+      {/* 原为「采购订单（PO）」：该表存的是客户订单（含 customer_id / pi_number），
+          与供应商侧的「采购单」(/purchases) 同名易混淆，故更名。 */}
+      <Card title="销售订单">
         <ResponsiveTable
           dataSource={orders}
           columns={columns}

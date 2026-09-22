@@ -11,6 +11,7 @@ import { useApiMutation } from '../../hooks/useApiMutation';
 import { logOperation } from '../../utils/log';
 import { ENTITY_LABELS, ENTITY_COLORS, CURRENCY_SYMBOLS, CURRENCY_LABELS } from '../../types';
 import type { CurrencyType } from '../../types';
+import { formatDate, formatMoney } from '../../utils/format';
 import dayjs from 'dayjs';
 
 export default function TransactionList() {
@@ -290,6 +291,8 @@ export default function TransactionList() {
 
   const columns = [
     { title: '日期', dataIndex: 'date', key: 'date', width: 120, onCell: () => ({ 'data-label': '日期' } as React.TdHTMLAttributes<any>),
+      // 原先无 render，直接输出原始字段，会显示成 2026-09-22T08:59:49.500Z
+      render: (v: string) => formatDate(v),
       sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => (a.date as string).localeCompare(b.date as string) },
     { title: '类型', dataIndex: 'type', key: 'type', width: 80, onCell: () => ({ 'data-label': '类型' } as React.TdHTMLAttributes<any>),
       render: (v: string) => <Tag color={v === 'income' ? 'green' : 'red'}>{v === 'income' ? '收入' : '支出'}</Tag> },
@@ -298,7 +301,7 @@ export default function TransactionList() {
         const currency = (r.currency as CurrencyType) || 'RMB';
         const sym = CURRENCY_SYMBOLS[currency] || '¥';
         const color = currency === 'USD' ? '#1677ff' : undefined;
-        return <span style={{ fontWeight: 600, color }}>{sym}{Number(r.amount || 0).toFixed(2)}</span>;
+        return <span style={{ fontWeight: 600, color }}>{formatMoney(r.amount as number, sym)}</span>;
       } },
     { title: '客户/供应商', key: 'customer', width: 120, onCell: () => ({ 'data-label': '客户/供应商' } as React.TdHTMLAttributes<any>),
       render: (_: unknown, r: Record<string, unknown>) => {
@@ -364,7 +367,8 @@ export default function TransactionList() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="财务记账">
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Space wrap>
             <Select

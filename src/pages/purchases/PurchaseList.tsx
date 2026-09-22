@@ -40,8 +40,10 @@ const nextStatuses: Partial<Record<PurchaseStatus, PurchaseStatus[]>> = {
 export default function PurchaseList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOwner, isAdmin } = useAuth();
-  const canEdit = isOwner || isAdmin;
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  // 采购单归在「供应商管理」组，该组由 products 权限把守
+  const { hasPerm } = useAuth();
+  const canEdit = hasPerm('products');
   const { isMobile } = useResponsive();
 
   // Also fetch linked transactions for finance status
@@ -267,7 +269,9 @@ export default function PurchaseList() {
 
   return (
     <div>
-      <Card title="供应商采购单">
+      {/* 与侧边栏菜单项「采购单」保持一致；与客户侧的「销售订单」构成对称命名。
+          原为「供应商采购单」，改菜单时漏改了页面标题。 */}
+      <Card title="采购单">
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'flex-end' }}>
           {canEdit && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/purchases/new')}>

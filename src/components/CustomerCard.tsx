@@ -179,6 +179,9 @@ export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, 
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
             flex: 1,
+            // flex 子项默认 min-width:auto，不会收缩到内容宽度以下，
+            // 缺了这行时 ellipsis 不生效、长姓名会把卡片撑破
+            minWidth: 0,
           }}>
             {customer.name}
           </span>
@@ -220,13 +223,14 @@ export default function CustomerCard({ customer, dealCount, totalUsd, totalRmb, 
         })()}
 
         {/* Country + company */}
-        <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, display: 'flex', alignItems: 'center', gap: 4 }}>
-          {flag && <span>{flag}</span>}
-          <span>{customer.country || '-'}</span>
+        <div style={{ fontSize: tokens.fontSizeSM, color: tokens.colorTextTertiary, display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          {flag && <span style={{ flexShrink: 0 }}>{flag}</span>}
+          <span style={{ flexShrink: 0 }}>{customer.country || '-'}</span>
           {customer.company && (
             <>
-              <span style={{ opacity: 0.4 }}>·</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{customer.company}</span>
+              <span style={{ opacity: 0.4, flexShrink: 0 }}>·</span>
+              {/* minWidth:0 才能让 ellipsis 生效（实测最长公司名曾溢出 56px） */}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>{customer.company}</span>
             </>
           )}
         </div>

@@ -40,9 +40,10 @@ export default function CustomerDetail() {
   const queryClient = useQueryClient();
   const [orderModal, setOrderModal] = useState(false);
   const [orderForm] = Form.useForm();
-  const { isOwner, isAdmin } = useAuth();
+  // 写权限 = 该模块的访问权限：成员在已授权模块内可读写（2026-09-22 统一）
+  const { hasPerm } = useAuth();
   const { isMobile } = useResponsive();
-  const canManage = isOwner || isAdmin;
+  const canManage = hasPerm('customers');
   const [shippingModalOpen, setShippingModalOpen] = useState(false);
   const [shippingOrder, setShippingOrder] = useState<Order | null>(null);
   const [shippingForm] = Form.useForm();
@@ -506,7 +507,7 @@ export default function CustomerDetail() {
       </div>
 
       {/* ── Modals ── */}
-      <Modal title="新建订单" open={orderModal} onCancel={() => setOrderModal(false)} onOk={() => orderForm.submit()} confirmLoading={createOrder.isPending} destroyOnClose>
+      <Modal title="新建订单" open={orderModal} onCancel={() => setOrderModal(false)} onOk={() => orderForm.submit()} confirmLoading={createOrder.isPending} destroyOnHidden>
         <Form form={orderForm} layout="vertical" onFinish={(values) => createOrder.mutate(values)}>
           <Row gutter={16}>
             <Col xs={24} sm={12}><Form.Item name="pi_number" label="PI 编号"><Input /></Form.Item></Col>
@@ -528,7 +529,7 @@ export default function CustomerDetail() {
         </Form>
       </Modal>
 
-      <Modal title="出运跟踪信息" open={shippingModalOpen} onCancel={() => { setShippingModalOpen(false); setShippingOrder(null); }} onOk={() => shippingForm.submit()} confirmLoading={updateShipping.isPending} destroyOnClose width={600}>
+      <Modal title="出运跟踪信息" open={shippingModalOpen} onCancel={() => { setShippingModalOpen(false); setShippingOrder(null); }} onOk={() => shippingForm.submit()} confirmLoading={updateShipping.isPending} destroyOnHidden width={600}>
         <Form form={shippingForm} layout="vertical" onFinish={(values) => { if (!shippingOrder) return; updateShipping.mutate({ orderId: shippingOrder.id, values }); }}>
           <Row gutter={16}>
             <Col xs={24} sm={12}><Form.Item name="tracking_company" label="承运公司"><Input placeholder="如：COSCO、DHL" /></Form.Item></Col>

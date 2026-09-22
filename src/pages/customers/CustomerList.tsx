@@ -305,7 +305,8 @@ export default function CustomerList() {
 
   return (
     <div>
-      <Card>
+      {/* 与侧边栏菜单项一致；此前该页无任何标题，移动端看不出自己在哪一页 */}
+      <Card title="客户列表">
         <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }} wrap>
           <Input
             placeholder="搜索姓名/公司/电话/邮箱"
@@ -387,7 +388,7 @@ export default function CustomerList() {
         }}
         confirmLoading={saveMutation.isPending}
         width={720}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical"
   onFinish={(values) => {
