@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, Col, Row, Spin, Tag, Space, Typography, Progress, Alert } from 'antd';
 import ResponsiveTable from '../components/ResponsiveTable';
+import { DashboardSkeleton } from '../components/Skeletons';
 import {
   WalletOutlined,
   RiseOutlined,
@@ -36,7 +37,7 @@ const cardStyle = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { hasPerm, isOwner, isAdmin, permissions } = useAuth();
+  const { hasPerm, isOwner, isAdmin, permissions, orgLoading } = useAuth();
   // 财务数据的可见性走统一的 hasPerm（原先只认 isOwner||isAdmin，
   // 忽略了 permissions 数组，配了 finance 权限的成员反而看不到财务卡片）
   const canViewFinance = hasPerm('finance');
@@ -167,7 +168,15 @@ export default function Dashboard() {
   // 完全没有被分配任何模块权限（新加入成员的默认状态：member_permissions 为空，
   // 加入流程不会授予任何默认权限）→ 直接说明原因，而不是给一个近乎空白的页面。
   // 主账号/管理员不在 member_permissions 里，故要排除。
-  const hasNoModule = !isOwner && !isAdmin && permissions.length === 0;
+  //
+  // ⚠️ 必须等 orgLoading 结束再判：组织信息与权限数组都是异步加载的，加载期间
+  // isOwner/isAdmin 为 false、permissions 为空数组，三个条件同时成立 → 这句
+  // 「你还没有被分配任何模块权限」会在**主账号**和**管理员**的屏幕上先闪一下，
+  // 再被真实内容顶掉。用错误信息抢先回答一个还没问完的问题，比慢一点更糟。
+  const hasNoModule = !orgLoading && !isOwner && !isAdmin && permissions.length === 0;
+
+  // 组织/权限还在加载：给骨架屏，不要先渲染一个「无权限」的空壳页面
+  if (orgLoading) return <DashboardSkeleton />;
 
   return (
     <div>
