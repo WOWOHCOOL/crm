@@ -278,6 +278,11 @@ export interface Task {
 }
 
 export const ALL_PERMISSIONS = [
+  // 询盘线索与客户管理是**两个**模块，各自独立授权：
+  // 原先把 /inquiries 也挂在 customers 权限下，于是「只给询盘不给客户」或
+  // 「只给客户不给询盘」都做不到 —— 权限清单里根本没有这一项可勾。
+  // 顺序按业务流：先有线索，再成客户。
+  { key: 'inquiries', label: '询盘管理' },
   { key: 'customers', label: '客户管理' },
   { key: 'products', label: '商品管理' },
   { key: 'finance', label: '财务记账' },

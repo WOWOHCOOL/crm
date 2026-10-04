@@ -12,19 +12,24 @@ import { permissionForPath } from './routePermissions';
  * 成员直接敲 #/finance 依然能打开页面，权限只挡菜单不挡访问。
  * 这里补上路由级校验，让「菜单不可见」与「URL 不可达」一致。
  *
- * 主账号与管理员直接放行（与 MainLayout 的 hasPerm 语义一致：
- * hasPerm = isOwner || isAdmin || permissions.includes(k)）。
+ * ⚠️ 判定一律走 `hasPerm` 这一个入口。原先这里手写了一遍
+ * 「isOwner || isAdmin || permissions.includes(need)」，等于第二套判定 ——
+ * 一旦 hasPerm 的语义调整（例如管理员是否绕过开关），这里就会悄悄漂移，
+ * 出现「菜单藏了但路由放行」这类只在特定角色下复现的裂缝。
  *
  * 不做静默重定向 —— 直接说明原因并给一个返回入口，比莫名跳回首页更好排查。
  */
 export default function RouteGuard({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { permissions, isOwner, isAdmin } = useAuth();
+  const { hasPerm, isOwner } = useAuth();
 
   const need = permissionForPath(pathname);
   const allowed = need === null
-    || (need === 'owner' ? isOwner : (isOwner || isAdmin || permissions.includes(need)));
+    || (need === 'owner'
+      ? isOwner
+      // 数组 = 任一命中即可（被多个模块共用的页面，见 routePermissions 的说明）
+      : Array.isArray(need) ? need.some(k => hasPerm(k)) : hasPerm(need));
 
   if (allowed) return <>{children}</>;
 

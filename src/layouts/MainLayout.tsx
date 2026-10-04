@@ -104,7 +104,9 @@ export default function MainLayout() {
   const menuItems: MenuProps['items'] = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
     ...(hasPerm('tasks') ? [{ key: '/tasks', icon: <CarryOutOutlined />, label: '任务跟进' }] : []),
-    ...(hasPerm('customers') ? [{
+    // 询盘线索是独立权限（inquiries），不再借用 customers。
+    // 原先它挂在 customers 下，导致「只给询盘」做不到，权限清单里也没有这一项可勾。
+    ...(hasPerm('inquiries') ? [{
       key: 'inquiries-group', icon: <FunnelPlotOutlined />, label: '询盘线索',
       children: [
         { key: '/inquiries', label: '全部线索' },
