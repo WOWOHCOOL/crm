@@ -208,6 +208,33 @@ export default function CustomerList() {
         return data;
       }
     },
+    // 乐观更新：提交瞬间就把新行写进列表，不再等「POST 完再 GET 回来」。
+    // ⚠️ 只在新增路径生效；编辑路径若也走乐观插入会先插一条重复行。
+    // ⚠️ keys 不含 `['customers-select']` —— 那里是 {value,label} 选项对象。
+    // 精确到本页当前筛选（queryKey 就是 ['customers', search]），不外溢到别的页面缓存。
+    optimistic: editId
+      ? undefined
+      : {
+          keys: [['customers', search]],
+          makeRow: (values: Partial<Customer>) => ({
+            ...values,
+            id: `optimistic-${Date.now()}`,
+            status: values.status ?? 'new',
+            created_at: new Date().toISOString(),
+          }),
+          // ⛔ 必须有这个判定：本列表的查询硬编码 `status='dealt'`（见文件顶部
+          // statusFilter 常量），而新增表单的 status `initialValue="new"`。
+          // 不判定的话，**每次新增都会先冒出一条「新线索」再凭空消失** ——
+          // 这是默认路径，不是边缘场景。搜索生效时新行也必须命中，否则同理。
+          accept: (key, row) => {
+            if (row.status !== statusFilter) return false;
+            const kw = String(key[1] ?? '').trim().toLowerCase();
+            if (!kw) return true;
+            // 与 queryFn 里的 or(...ilike...) 字段列表保持一致
+            return ['name', 'company', 'phone', 'email', 'country', 'source']
+              .some((f) => String(row[f] ?? '').toLowerCase().includes(kw));
+          },
+        },
     invalidateKeys: [['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
       sessionStorage.removeItem('customer_form_draft');

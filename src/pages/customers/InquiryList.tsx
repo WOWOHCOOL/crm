@@ -143,6 +143,34 @@ export default function InquiryList() {
         if (error) throw error;
       }
     },
+    // 乐观更新：提交的瞬间就把新行写进列表，不再等「POST 完再 GET 回来」。
+    // ⚠️ 只在新增路径生效 —— 编辑路径若也走乐观插入，会先插一条重复行。
+    // ⚠️ keys 里刻意不含 `['customers-select']`：那里存的是 {value,label} 选项
+    // 对象，塞一行原始客户进去会让下拉框显示成乱码。
+    optimistic: editId
+      ? undefined
+      : {
+          // ⚠️ key 精确到「本页当前筛选」。原先写 `['inquiries'], ['customers']`，
+          // 前缀会连 CustomerList 的 `['customers', search]` 一起命中 ——
+          // 而那个列表只显示 status='dealt'，塞一条新线索进去就是幽灵行。
+          keys: [['inquiries', search, statusFilter, intentionFilter]],
+          makeRow: (values: Partial<Customer>) => ({
+            ...values,
+            id: `optimistic-${Date.now()}`,
+            status: values.status ?? 'new',
+            created_at: new Date().toISOString(),
+          }),
+          // 与 queryFn 的筛选逻辑一一对应，否则筛选生效时会冒出不该出现的行。
+          accept: (key, row) => {
+            const [, kw, st, intent] = key as [string, string, string, string];
+            if (st === 'all' ? row.status === 'dealt' : row.status !== st) return false;
+            if (intent && row.intention !== intent) return false;
+            const q = String(kw ?? '').trim().toLowerCase();
+            if (!q) return true;
+            return ['name', 'company', 'phone', 'email', 'country', 'source']
+              .some((f) => String(row[f] ?? '').toLowerCase().includes(q));
+          },
+        },
     invalidateKeys: [['inquiries'], ['customers'], ['customers-select'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
       sessionStorage.removeItem('inquiry_form_draft');

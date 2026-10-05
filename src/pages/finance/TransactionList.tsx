@@ -271,6 +271,53 @@ export default function TransactionList() {
         if (!res.data || res.data.length === 0) throw new Error('添加失败');
       }
     },
+    // 乐观更新：只在**新增**路径生效（编辑路径若也插入会先出现一条重复行）。
+    // ⚠️ 变量是**原始表单值**（不是行），所以要在这里复刻上面 finalPayload 的构造，
+    // 并补上列表要直接显示的关联名称（customers/suppliers/accounts）——
+    // 否则新行会先显示成「-」再跳成名字，比不加还难看。
+    optimistic: editing
+      ? undefined
+      : {
+          keys: [['transactions', filters]],
+          makeRow: (values: Record<string, unknown>) => {
+            const isExpense = values.type === 'expense';
+            const relatedId = (values.customer_id as string) || null;
+            const relatedName = ((isExpense ? suppliers : customers) ?? [])
+              .find((x: Record<string, unknown>) => x.id === relatedId)?.name ?? null;
+            const acc = (accounts ?? []).find(
+              (a: Record<string, unknown>) => a.id === values.account_id,
+            );
+            return {
+              id: `optimistic-${Date.now()}`,
+              type: values.type,
+              amount: Number(values.amount),
+              currency: (values.currency as string) || 'RMB',
+              date: values.date
+                ? dayjs(values.date as string).format('YYYY-MM-DD')
+                : dayjs().format('YYYY-MM-DD'),
+              customer_id: isExpense ? null : relatedId,
+              supplier_id: isExpense ? relatedId : null,
+              account_id: (values.account_id as string) || null,
+              description: (values.description as string) || null,
+              voucher_url: (values.voucher_url as string) || null,
+              ref_type: (values.ref_type as string) || null,
+              ref_id: (values.ref_id as string) || null,
+              customers: !isExpense && relatedName ? { name: relatedName } : null,
+              suppliers: isExpense && relatedName ? { name: relatedName } : null,
+              accounts: acc ? { name: acc.name, entity: acc.entity } : null,
+            };
+          },
+          // 与 queryFn 的筛选条件一一对应，否则筛选生效时会冒出不该出现的行。
+          accept: (_key, row) => {
+            if (filters.type && row.type !== filters.type) return false;
+            if (filters.currency && row.currency !== filters.currency) return false;
+            const [from, to] = filters.dateRange ?? [];
+            const d = String(row.date);
+            if (from && d < from) return false;
+            if (to && d > to) return false;
+            return true;
+          },
+        },
     invalidateKeys: [['transactions'], ['recent-transactions'], ['dashboard-stats']],
     onSuccess: (_data, values) => {
       closeModal();

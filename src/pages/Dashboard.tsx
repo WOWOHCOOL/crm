@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Col, Row, Spin, Tag, Space, Typography, Progress, Alert } from 'antd';
 import ResponsiveTable from '../components/ResponsiveTable';
@@ -41,8 +42,29 @@ export default function Dashboard() {
   // 财务数据的可见性走统一的 hasPerm（原先只认 isOwner||isAdmin，
   // 忽略了 permissions 数组，配了 finance 权限的成员反而看不到财务卡片）
   const canViewFinance = hasPerm('finance');
-  // Warm up the finance page chunk while the user reads the dashboard
-  lazyPrefetch('/finance');
+
+  // 预热财务页的懒加载分包，让用户点过去时不用等下载。
+  //
+  // ⚠️ 这里原先是在**渲染期间**直接调 `lazyPrefetch('/finance')`，代价全落在首屏上：
+  // 财务页的依赖闭包（Table / DatePicker / Image / InputNumber / Popconfirm /
+  // 一批图标）合计约 190 KB gzip，会在首页自己的资源还没下完时就抢带宽和主线程。
+  // 而且它**没做权限判断** —— 没有 finance 权限的成员永远进不去 /finance，
+  // 照样要白下载这一整包。
+  //
+  // 现在改成：等首屏空闲后再预热，且只在用户确实有 finance 权限时。
+  // 预热本身仍有价值（点击时命中缓存），但不该拿首屏换。
+  useEffect(() => {
+    if (!canViewFinance) return;
+    const warm = () => lazyPrefetch('/finance');
+    const hasIdle = typeof requestIdleCallback === 'function';
+    const id = hasIdle
+      ? requestIdleCallback(warm, { timeout: 3000 })
+      : window.setTimeout(warm, 1500);
+    return () => {
+      if (hasIdle) cancelIdleCallback(id as number);
+      else clearTimeout(id as number);
+    };
+  }, [canViewFinance]);
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
